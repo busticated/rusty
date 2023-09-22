@@ -1,0 +1,13 @@
+name: Run CI/CD Jobs
+
+on:
+  push:
+  schedule:
+    - cron: '0 16 * * WED'
+
+jobs:
+  test:
+    name: Run Tests
+    uses: ./.github/workflows/test.yaml
+    secrets: inherit
+
