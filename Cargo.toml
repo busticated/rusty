@@ -1,0 +1,12 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.package]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+authors = ["Busticated <itsbusticated@gmail.com>"]
+
+[profile.dev]
+# Faster builds, disable if you need
+debug = 0
