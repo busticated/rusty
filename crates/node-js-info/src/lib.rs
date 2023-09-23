@@ -7,10 +7,10 @@ use std::string::ToString;
 use std::error::Error;
 use semver::Version;
 use strum::ParseError;
-pub use os::NodeJSOS;
-pub use arch::NodeJSArch;
-pub use ext::NodeJSPkgExt;
-pub use url::NodeJSURLFormatter;
+use crate::arch::NodeJSArch;
+use crate::ext::NodeJSPkgExt;
+use crate::url::NodeJSURLFormatter;
+use crate::os::NodeJSOS;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct NodeJSInfo {
@@ -37,8 +37,8 @@ impl NodeJSInfo {
         info.os = NodeJSOS::from_env().unwrap();
         info.arch = NodeJSArch::from_env().unwrap();
         info.ext = match info.os {
-            NodeJSOS::Windows => NodeJSPkgExt::ZIP,
-            _ => NodeJSPkgExt::TARGZ,
+            NodeJSOS::Windows => NodeJSPkgExt::Zip,
+            _ => NodeJSPkgExt::Targz,
         };
         Ok(info)
     }
@@ -84,17 +84,17 @@ impl NodeJSInfo {
     }
 
     pub fn tar_gz(&mut self) -> &mut Self {
-        self.ext = NodeJSPkgExt::TARGZ;
+        self.ext = NodeJSPkgExt::Targz;
         self
     }
 
     pub fn tar_xz(&mut self) -> &mut Self {
-        self.ext = NodeJSPkgExt::TARXZ;
+        self.ext = NodeJSPkgExt::Tarxz;
         self
     }
 
     pub fn zip(&mut self) -> &mut Self {
-        self.ext = NodeJSPkgExt::ZIP;
+        self.ext = NodeJSPkgExt::Zip;
         self
     }
 
@@ -153,7 +153,7 @@ mod tests {
         let info = NodeJSInfo::new("1.0.0");
         assert_eq!(info.os, NodeJSOS::Linux);
         assert_eq!(info.arch, NodeJSArch::X64);
-        assert_eq!(info.ext, NodeJSPkgExt::TARGZ);
+        assert_eq!(info.ext, NodeJSPkgExt::Targz);
         assert_eq!(info.version, "1.0.0".to_string());
         assert_eq!(info.filename, "".to_string());
         assert_eq!(info.sha256, "".to_string());
@@ -165,7 +165,7 @@ mod tests {
         let info = NodeJSInfo::default();
         assert_eq!(info.os, NodeJSOS::Linux);
         assert_eq!(info.arch, NodeJSArch::X64);
-        assert_eq!(info.ext, NodeJSPkgExt::TARGZ);
+        assert_eq!(info.ext, NodeJSPkgExt::Targz);
         assert_eq!(info.version, "".to_string());
         assert_eq!(info.filename, "".to_string());
         assert_eq!(info.sha256, "".to_string());
@@ -177,9 +177,9 @@ mod tests {
         let info = NodeJSInfo::from_env("1.0.0").unwrap();
 
         if info.os == NodeJSOS::Windows {
-            assert_eq!(info.ext, NodeJSPkgExt::ZIP);
+            assert_eq!(info.ext, NodeJSPkgExt::Zip);
         } else {
-            assert_eq!(info.ext, NodeJSPkgExt::TARGZ);
+            assert_eq!(info.ext, NodeJSPkgExt::Targz);
         }
     }
 
@@ -233,15 +233,15 @@ mod tests {
 
         info.zip();
 
-        assert_eq!(info.ext, NodeJSPkgExt::ZIP);
+        assert_eq!(info.ext, NodeJSPkgExt::Zip);
 
         info.tar_gz();
 
-        assert_eq!(info.ext, NodeJSPkgExt::TARGZ);
+        assert_eq!(info.ext, NodeJSPkgExt::Targz);
 
         info.tar_xz();
 
-        assert_eq!(info.ext, NodeJSPkgExt::TARXZ);
+        assert_eq!(info.ext, NodeJSPkgExt::Tarxz);
     }
 
     #[test]

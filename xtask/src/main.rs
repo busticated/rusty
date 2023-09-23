@@ -1,12 +1,12 @@
 mod tasks;
 mod workspace;
 
+use crate::tasks::{Task, Tasks};
+use crate::workspace::Workspace;
 use duct::cmd;
 use std::env;
 use std::error::Error;
 use std::path::PathBuf;
-use tasks::{Task, Tasks};
-use workspace::Workspace;
 
 type DynError = Box<dyn Error>;
 

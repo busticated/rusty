@@ -5,13 +5,13 @@ use strum_macros::{Display, EnumString};
 #[derive(Clone, Debug, Display, EnumString, PartialEq)]
 pub enum NodeJSPkgExt {
     #[strum(serialize = "tar.gz")]
-    TARGZ,
+    Targz,
 
     #[strum(serialize = "tar.xz")]
-    TARXZ,
+    Tarxz,
 
     #[strum(serialize = "zip")]
-    ZIP,
+    Zip,
 }
 
 impl Default for NodeJSPkgExt {
@@ -22,7 +22,7 @@ impl Default for NodeJSPkgExt {
 
 impl NodeJSPkgExt {
     pub fn new() -> NodeJSPkgExt {
-        NodeJSPkgExt::TARGZ
+        NodeJSPkgExt::Targz
     }
 }
 
@@ -33,18 +33,18 @@ mod tests {
     #[test]
     fn it_initializes() {
         let ext = NodeJSPkgExt::new();
-        assert_eq!(ext, NodeJSPkgExt::TARGZ);
+        assert_eq!(ext, NodeJSPkgExt::Targz);
     }
 
     #[test]
     fn it_initializes_with_defaults() {
         let ext = NodeJSPkgExt::default();
-        assert_eq!(ext, NodeJSPkgExt::TARGZ);
+        assert_eq!(ext, NodeJSPkgExt::Targz);
     }
 
     #[test]
     fn it_initializes_from_str() {
         let ext = NodeJSPkgExt::from_str("tar.xz").unwrap();
-        assert_eq!(ext, NodeJSPkgExt::TARXZ);
+        assert_eq!(ext, NodeJSPkgExt::Tarxz);
     }
 }

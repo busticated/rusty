@@ -63,9 +63,9 @@ mod tests {
     #[test]
     fn it_initializes() {
         let url_fmt = NodeJSURLFormatter::new();
-        assert_eq!(url_fmt.protocol, format!("https:"));
-        assert_eq!(url_fmt.host, format!("nodejs.org"));
-        assert_eq!(url_fmt.pathname, format!("/download/release"));
+        assert_eq!(url_fmt.protocol, "https:");
+        assert_eq!(url_fmt.host, "nodejs.org");
+        assert_eq!(url_fmt.pathname, "/download/release");
     }
 
     #[test]
@@ -79,7 +79,7 @@ mod tests {
         let url_fmt = NodeJSURLFormatter::new();
         assert_eq!(
             url_fmt.info("1.0.0"),
-            format!("https://nodejs.org/download/release/v1.0.0/SHASUMS256.txt")
+            "https://nodejs.org/download/release/v1.0.0/SHASUMS256.txt"
         );
     }
 
@@ -88,7 +88,7 @@ mod tests {
         let url_fmt = NodeJSURLFormatter::new();
         assert_eq!(
             url_fmt.pkg("1.0.0", "fake-filename"),
-            format!("https://nodejs.org/download/release/v1.0.0/fake-filename")
+            "https://nodejs.org/download/release/v1.0.0/fake-filename"
         );
     }
 }
