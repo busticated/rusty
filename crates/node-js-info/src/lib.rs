@@ -1,3 +1,22 @@
+//! Asynchronously retrieve Node.js release info by version and platform
+//!
+//! # Examples
+//!
+//! ```rust
+//! use std::error::Error;
+//! use node_js_info::NodeJSInfo;
+//!
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn Error>> {
+//!   let info = NodeJSInfo::new("20.6.1").macos().arm64().fetch().await?;
+//!   assert_eq!(info.version, "20.6.1");
+//!   assert_eq!(info.filename, "node-v20.6.1-darwin-arm64.tar.gz");
+//!   assert_eq!(info.sha256, "d8ba8018d45b294429b1a7646ccbeaeb2af3cdf45b5c91dabbd93e2a2035cb46");
+//!   assert_eq!(info.url, "https://nodejs.org/download/release/v20.6.1/node-v20.6.1-darwin-arm64.tar.gz");
+//!   Ok(())
+//! }
+//! ```
+
 mod os;
 mod arch;
 mod ext;
@@ -25,6 +44,18 @@ pub struct NodeJSInfo {
 }
 
 impl NodeJSInfo {
+    /// Create a new instance using default settings
+    ///
+    /// # Arguments
+    ///
+    /// * `semver` - The Node.js version you are targeting (`String` / `&str`)
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use node_js_info::NodeJSInfo;
+    /// let info = NodeJSInfo::new("20.6.1");
+    /// ```
     pub fn new<T: AsRef<str>>(semver: T) -> Self {
         NodeJSInfo {
             version: semver.as_ref().to_owned(),
@@ -32,6 +63,18 @@ impl NodeJSInfo {
         }
     }
 
+    /// Create a new instance mirroring current environment based on `std::env::consts::OS` and `std::env::consts::ARCH`
+    ///
+    /// # Arguments
+    ///
+    /// * `semver` - The Node.js version you are targeting (`String` / `&str`)
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use node_js_info::NodeJSInfo;
+    /// let info = NodeJSInfo::from_env("20.6.1");
+    /// ```
     pub fn from_env<T: AsRef<str>>(semver: T) -> Result<NodeJSInfo, ParseError> {
         let mut info = NodeJSInfo::new(semver);
         info.os = NodeJSOS::from_env().unwrap();
@@ -43,65 +86,179 @@ impl NodeJSInfo {
         Ok(info)
     }
 
+    /// Sets instance `os` field to `darwin`
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use node_js_info::NodeJSInfo;
+    /// let info = NodeJSInfo::new("20.6.1").macos();
+    /// ```
     pub fn macos(&mut self) -> &mut Self {
         self.os = NodeJSOS::Darwin;
         self
     }
 
+    /// Sets instance `os` field to `linux`
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use node_js_info::NodeJSInfo;
+    /// let info = NodeJSInfo::new("20.6.1").linux();
+    /// ```
     pub fn linux(&mut self) -> &mut Self {
         self.os = NodeJSOS::Linux;
         self
     }
 
+    /// Sets instance `os` field to `windows`
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use node_js_info::NodeJSInfo;
+    /// let info = NodeJSInfo::new("20.6.1").windows();
+    /// ```
     pub fn windows(&mut self) -> &mut Self {
         self.os = NodeJSOS::Windows;
         self
     }
 
+    /// Sets instance `arch` field to `x64`
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use node_js_info::NodeJSInfo;
+    /// let info = NodeJSInfo::new("20.6.1").x64();
+    /// ```
     pub fn x64(&mut self) -> &mut Self {
         self.arch = NodeJSArch::X64;
         self
     }
 
+    /// Sets instance `arch` field to `x86`
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use node_js_info::NodeJSInfo;
+    /// let info = NodeJSInfo::new("20.6.1").x86();
+    /// ```
     pub fn x86(&mut self) -> &mut Self {
         self.arch = NodeJSArch::X86;
         self
     }
 
+    /// Sets instance `arch` field to `arm64`
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use node_js_info::NodeJSInfo;
+    /// let info = NodeJSInfo::new("20.6.1").arm64();
+    /// ```
     pub fn arm64(&mut self) -> &mut Self {
         self.arch = NodeJSArch::ARM64;
         self
     }
 
+    /// Sets instance `arch` field to `armv7l`
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use node_js_info::NodeJSInfo;
+    /// let info = NodeJSInfo::new("20.6.1").armv7l();
+    /// ```
     pub fn armv7l(&mut self) -> &mut Self {
         self.arch = NodeJSArch::ARMV7L;
         self
     }
 
+    /// Sets instance `arch` field to `ppc64le`
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use node_js_info::NodeJSInfo;
+    /// let info = NodeJSInfo::new("20.6.1").ppc64le();
+    /// ```
     pub fn ppc64le(&mut self) -> &mut Self {
         self.arch = NodeJSArch::PPC64LE;
         self
     }
 
+    /// Sets instance `ext` field to `tar.gz`
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use node_js_info::NodeJSInfo;
+    /// let info = NodeJSInfo::new("20.6.1").tar_gz();
+    /// ```
     pub fn tar_gz(&mut self) -> &mut Self {
         self.ext = NodeJSPkgExt::Targz;
         self
     }
 
+    /// Sets instance `ext` field to `tar.xz`
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use node_js_info::NodeJSInfo;
+    /// let info = NodeJSInfo::new("20.6.1").tar_xz();
+    /// ```
     pub fn tar_xz(&mut self) -> &mut Self {
         self.ext = NodeJSPkgExt::Tarxz;
         self
     }
 
+    /// Sets instance `ext` field to `.zip`
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use node_js_info::NodeJSInfo;
+    /// let info = NodeJSInfo::new("20.6.1").zip();
+    /// ```
     pub fn zip(&mut self) -> &mut Self {
         self.ext = NodeJSPkgExt::Zip;
         self
     }
 
+    /// Creates owned data from reference for convenience when chaining
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use node_js_info::NodeJSInfo;
+    /// let info = NodeJSInfo::new("20.6.1").windows().x64().zip().to_owned();
+    /// ```
     pub fn to_owned(&self) -> Self {
         self.clone()
     }
 
+    /// Fetch Node.js metadata from releases download server
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use std::error::Error;
+    /// use node_js_info::NodeJSInfo;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn Error>> {
+    ///   let info = NodeJSInfo::new("20.6.1").macos().arm64().fetch().await?;
+    ///   assert_eq!(info.version, "20.6.1");
+    ///   assert_eq!(info.filename, "node-v20.6.1-darwin-arm64.tar.gz");
+    ///   assert_eq!(info.sha256, "d8ba8018d45b294429b1a7646ccbeaeb2af3cdf45b5c91dabbd93e2a2035cb46");
+    ///   assert_eq!(info.url, "https://nodejs.org/download/release/v20.6.1/node-v20.6.1-darwin-arm64.tar.gz");
+    ///   Ok(())
+    /// }
+    /// ```
     pub async fn fetch(&mut self) -> Result<Self, Box<dyn Error>> {
         self.version = match Version::parse(self.version.as_str()) {
             Err(e) => return Err(Box::new(e)),
