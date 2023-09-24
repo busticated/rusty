@@ -1,3 +1,4 @@
+mod readme;
 mod tasks;
 mod workspace;
 
@@ -24,14 +25,14 @@ fn try_main() -> Result<(), DynError> {
     args.remove(0); // drop executable path
 
     let tasks = init_tasks();
-    let workspace = Workspace::new(cargo);
+    let mut workspace = Workspace::new(cargo);
     let cmd = match args.get(0) {
         Some(x) => x.clone(),
         None => "".to_string(),
     };
 
     match tasks.get(cmd.clone()) {
-        Some(task) => task.exec(args, &workspace, &tasks),
+        Some(task) => task.exec(args, &mut workspace, &tasks),
         None => print_help(cmd, args, tasks),
     }
 }
@@ -167,7 +168,7 @@ fn init_tasks() -> Tasks {
             name: "dist".into(),
             description: "create release artifacts".into(),
             run: |_, workspace, _| {
-                let dist_dir = workspace.root()?.join("target/release");
+                let dist_dir = workspace.path.join("target/release");
                 println!(":::::::::::::::::::::::::::::::::::::::::::");
                 println!(":::: Building Project for Distribution ::::");
                 println!(":::::::::::::::::::::::::::::::::::::::::::");
@@ -183,11 +184,25 @@ fn init_tasks() -> Tasks {
             name: "doc".into(),
             description: "build project documentation".into(),
             run: |_, workspace, _| {
-                println!(":::::::::::::::::::::::::::::::");
-                println!(":::: Building Project Docs ::::");
-                println!(":::::::::::::::::::::::::::::::");
+                println!(":::::::::::::::::::::::::::");
+                println!(":::: Building All Docs ::::");
+                println!(":::::::::::::::::::::::::::");
+
+                println!();
+                println!(":::: Updating Workspace README...");
+                println!(":::: Done: {}", workspace.readme.path.display());
+
+                let crates = workspace.crates()?;
+                workspace.readme.update_crates_list(crates)?;
+
+                println!();
+                println!(":::: Testing Examples...");
 
                 cmd!(&workspace.cargo, "test", "--doc").run()?;
+
+                println!();
+                println!(":::: Rendering Docs...");
+
                 cmd!(
                     &workspace.cargo,
                     "doc",

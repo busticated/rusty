@@ -8,7 +8,7 @@ type DynError = Box<dyn Error>;
 pub struct Task {
     pub name: String,
     pub description: String,
-    pub run: fn(args: Vec<String>, &Workspace, &Tasks) -> Result<(), DynError>,
+    pub run: fn(args: Vec<String>, &mut Workspace, &Tasks) -> Result<(), DynError>,
 }
 
 impl Task {
@@ -16,7 +16,7 @@ impl Task {
     pub fn new<N: AsRef<str>, D: AsRef<str>>(
         name: N,
         description: D,
-        run: fn(args: Vec<String>, &Workspace, &Tasks) -> Result<(), DynError>,
+        run: fn(args: Vec<String>, &mut Workspace, &Tasks) -> Result<(), DynError>,
     ) -> Self {
         Task {
             name: name.as_ref().to_owned(),
@@ -28,7 +28,7 @@ impl Task {
     pub fn exec(
         &self,
         args: Vec<String>,
-        workspace: &Workspace,
+        workspace: &mut Workspace,
         tasks: &Tasks,
     ) -> Result<(), DynError> {
         (self.run)(args, workspace, tasks)?;
@@ -95,9 +95,9 @@ mod tests {
     #[test]
     fn it_executes_a_task() {
         let tasks = Tasks::new();
-        let workspace = Workspace::new("cargo");
+        let mut workspace = Workspace::new("cargo");
         let task = Task::new("test", "my test task", |_, _, _| Ok(()));
-        task.exec(vec![], &workspace, &tasks).unwrap();
+        task.exec(vec![], &mut workspace, &tasks).unwrap();
     }
 
     #[test]

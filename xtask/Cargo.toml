@@ -7,3 +7,5 @@ edition = "2021"
 
 [dependencies]
 duct = "0.13.*"
+regex = "1.*"
+toml = "0.8.*"
