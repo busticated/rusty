@@ -95,7 +95,7 @@ mod tests {
     #[test]
     fn it_executes_a_task() {
         let tasks = Tasks::new();
-        let mut workspace = Workspace::new("cargo");
+        let mut workspace = Workspace::new();
         let task = Task::new("test", "my test task", |_, _, _| Ok(()));
         task.exec(vec![], &mut workspace, &tasks).unwrap();
     }

@@ -1,6 +1,7 @@
 use crate::readme::Readme;
 use duct::cmd;
 use std::collections::BTreeMap;
+use std::env;
 use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
@@ -20,23 +21,17 @@ pub struct Crate {
     pub readme: Readme,
 }
 
+impl CratePaths for Crate {
+    fn path(&self) -> PathBuf {
+        self.path.to_owned()
+    }
+}
+
 impl Crate {
     pub fn new<T: AsRef<str>>(name: T, path: PathBuf) -> Self {
         let name = name.as_ref().to_owned();
         let readme = Readme::new(path.clone());
         Crate { name, path, readme }
-    }
-
-    pub fn tmp_path(&self) -> PathBuf {
-        self.path.join(TMP_DIRNAME)
-    }
-
-    pub fn coverage_path(&self) -> PathBuf {
-        self.tmp_path().join(COVERAGE_DIRNAME)
-    }
-
-    pub fn manifest_path(&self) -> PathBuf {
-        self.path.join(CARGO_TOML)
     }
 
     pub fn clean(&self) -> Result<(), DynError> {
@@ -61,28 +56,22 @@ pub struct Workspace {
     pub readme: Readme,
 }
 
+impl CratePaths for Workspace {
+    fn path(&self) -> PathBuf {
+        self.path.to_owned()
+    }
+}
+
 impl Workspace {
-    pub fn new<T: AsRef<str>>(cargo: T) -> Self {
+    pub fn new() -> Self {
+        let cargo = get_cargo_cmd();
         let path = root_path(&cargo).unwrap();
-        let cargo = cargo.as_ref().to_owned();
         let readme = Readme::new(path.clone());
         Workspace {
             cargo,
             path,
             readme,
         }
-    }
-
-    pub fn tmp_path(&self) -> PathBuf {
-        self.path.join(TMP_DIRNAME)
-    }
-
-    pub fn coverage_path(&self) -> PathBuf {
-        self.tmp_path().join(COVERAGE_DIRNAME)
-    }
-
-    pub fn manifest_path(&self) -> PathBuf {
-        self.path.join(CARGO_TOML)
     }
 
     pub fn crates(&self) -> Result<BTreeMap<String, Crate>, DynError> {
@@ -129,7 +118,27 @@ impl Workspace {
     }
 }
 
+pub trait CratePaths {
+    fn path(&self) -> PathBuf;
+
+    fn tmp_path(&self) -> PathBuf {
+        self.path().join(TMP_DIRNAME)
+    }
+
+    fn coverage_path(&self) -> PathBuf {
+        self.tmp_path().join(COVERAGE_DIRNAME)
+    }
+
+    fn manifest_path(&self) -> PathBuf {
+        self.path().join(CARGO_TOML)
+    }
+}
+
 // UTILS //////////////////////////////////////////////////////////////////////
+fn get_cargo_cmd() -> String {
+    env::var("CARGO").unwrap_or_else(|_| "cargo".to_string())
+}
+
 fn root_path<T: AsRef<str>>(cargo: T) -> Result<PathBuf, DynError> {
     let stdout = cmd!(
         cargo.as_ref().to_owned(),
@@ -141,4 +150,83 @@ fn root_path<T: AsRef<str>>(cargo: T) -> Result<PathBuf, DynError> {
     .read()?;
 
     Ok(PathBuf::from(stdout.replace("Cargo.toml", "").trim()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_initializes_a_workspace() {
+        let workspace = Workspace::new();
+        assert!(!workspace.cargo.is_empty());
+    }
+
+    #[test]
+    fn it_gets_path_to_workspace() {
+        let workspace = Workspace::new();
+        let root_path = root_path(get_cargo_cmd()).unwrap();
+        assert_eq!(workspace.path(), root_path);
+    }
+
+    #[test]
+    fn it_gets_path_to_workspace_tmp_dir() {
+        let workspace = Workspace::new();
+        let root_path = root_path(get_cargo_cmd()).unwrap();
+        assert_eq!(workspace.tmp_path(), root_path.join("tmp"));
+    }
+
+    #[test]
+    fn it_gets_path_to_workspace_coverage_dir() {
+        let workspace = Workspace::new();
+        let root_path = root_path(get_cargo_cmd()).unwrap();
+        assert_eq!(
+            workspace.coverage_path(),
+            root_path.join("tmp").join("coverage")
+        );
+    }
+
+    #[test]
+    fn it_gets_path_to_workspace_manifest_file() {
+        let workspace = Workspace::new();
+        let root_path = root_path(get_cargo_cmd()).unwrap();
+        assert_eq!(workspace.manifest_path(), root_path.join("Cargo.toml"));
+    }
+
+    #[test]
+    fn it_initializes_a_crate() {
+        let c = Crate::new("test", PathBuf::from("fake-crate"));
+        assert_eq!(c.name, "test");
+        assert_eq!(c.path, PathBuf::from("fake-crate"));
+    }
+
+    #[test]
+    fn it_gets_path_to_crate() {
+        let c = Crate::new("test", PathBuf::from("fake-crate"));
+        assert_eq!(c.path(), PathBuf::from("fake-crate"));
+    }
+
+    #[test]
+    fn it_gets_path_to_crate_tmp_dir() {
+        let c = Crate::new("test", PathBuf::from("fake-crate"));
+        assert_eq!(c.tmp_path(), PathBuf::from("fake-crate").join("tmp"));
+    }
+
+    #[test]
+    fn it_gets_path_to_crate_coverage_dir() {
+        let c = Crate::new("test", PathBuf::from("fake-crate"));
+        assert_eq!(
+            c.coverage_path(),
+            PathBuf::from("fake-crate").join("tmp").join("coverage")
+        );
+    }
+
+    #[test]
+    fn it_gets_path_to_crate_manifest_file() {
+        let c = Crate::new("test", PathBuf::from("fake-crate"));
+        assert_eq!(
+            c.manifest_path(),
+            PathBuf::from("fake-crate").join("Cargo.toml")
+        );
+    }
 }

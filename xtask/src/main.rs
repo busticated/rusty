@@ -19,13 +19,12 @@ fn main() {
 }
 
 fn try_main() -> Result<(), DynError> {
-    let cargo = env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
+    let mut workspace = Workspace::new();
     let mut args: Vec<String> = env::args().collect();
 
     args.remove(0); // drop executable path
 
     let tasks = init_tasks();
-    let mut workspace = Workspace::new(cargo);
     let cmd = match args.get(0) {
         Some(x) => x.clone(),
         None => "".to_string(),
