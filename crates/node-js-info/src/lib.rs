@@ -330,14 +330,24 @@ mod tests {
     }
 
     #[test]
-    fn it_initializes_using_current_environment() {
+    #[cfg_attr(not(target_os = "macos"), ignore)]
+    fn it_initializes_using_current_environment_on_macos() {
         let info = NodeJSInfo::from_env("1.0.0").unwrap();
+        assert_eq!(info.ext, NodeJSPkgExt::Targz);
+    }
 
-        if info.os == NodeJSOS::Windows {
-            assert_eq!(info.ext, NodeJSPkgExt::Zip);
-        } else {
-            assert_eq!(info.ext, NodeJSPkgExt::Targz);
-        }
+    #[test]
+    #[cfg_attr(not(target_os = "linux"), ignore)]
+    fn it_initializes_using_current_environment_on_linux() {
+        let info = NodeJSInfo::from_env("1.0.0").unwrap();
+        assert_eq!(info.ext, NodeJSPkgExt::Targz);
+    }
+
+    #[test]
+    #[cfg_attr(not(target_os = "windows"), ignore)]
+    fn it_initializes_using_current_environment_on_windows() {
+        let info = NodeJSInfo::from_env("1.0.0").unwrap();
+        assert_eq!(info.ext, NodeJSPkgExt::Zip);
     }
 
     #[test]
