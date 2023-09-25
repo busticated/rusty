@@ -1,3 +1,4 @@
+use crate::krate::{Krate, KratePaths};
 use crate::readme::Readme;
 use duct::cmd;
 use std::collections::BTreeMap;
@@ -10,44 +11,6 @@ use toml::Table;
 type DynError = Box<dyn Error>;
 
 const CRATES_DIRNAME: &str = "crates";
-const TMP_DIRNAME: &str = "tmp";
-const COVERAGE_DIRNAME: &str = "coverage";
-const CARGO_TOML: &str = "Cargo.toml";
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct Crate {
-    pub name: String,
-    pub path: PathBuf,
-    pub readme: Readme,
-}
-
-impl CratePaths for Crate {
-    fn path(&self) -> PathBuf {
-        self.path.to_owned()
-    }
-}
-
-impl Crate {
-    pub fn new<T: AsRef<str>>(name: T, path: PathBuf) -> Self {
-        let name = name.as_ref().to_owned();
-        let readme = Readme::new(path.clone());
-        Crate { name, path, readme }
-    }
-
-    pub fn clean(&self) -> Result<(), DynError> {
-        Ok(fs::remove_dir_all(self.tmp_path())?)
-    }
-
-    pub fn create_dirs(&self) -> Result<(), DynError> {
-        Ok(fs::create_dir_all(self.coverage_path())?)
-    }
-
-    pub fn manifest(&self) -> Result<Table, DynError> {
-        let toml_path = self.manifest_path();
-        let toml = fs::read_to_string(toml_path)?;
-        Ok(toml.parse::<Table>()?)
-    }
-}
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Workspace {
@@ -56,7 +19,7 @@ pub struct Workspace {
     pub readme: Readme,
 }
 
-impl CratePaths for Workspace {
+impl KratePaths for Workspace {
     fn path(&self) -> PathBuf {
         self.path.to_owned()
     }
@@ -74,28 +37,31 @@ impl Workspace {
         }
     }
 
-    pub fn crates(&self) -> Result<BTreeMap<String, Crate>, DynError> {
-        let crates_dir = self.path.join(CRATES_DIRNAME);
-        let mut crates = BTreeMap::new();
+    pub fn krates_path(&self) -> PathBuf {
+        self.path().join(CRATES_DIRNAME)
+    }
 
-        for entry in fs::read_dir(crates_dir)? {
+    pub fn krates(&self) -> Result<BTreeMap<String, Krate>, DynError> {
+        let mut krates = BTreeMap::new();
+
+        for entry in fs::read_dir(self.krates_path())? {
             let entry = entry?;
             let path = entry.path();
             if path.is_dir() {
                 let name = entry.file_name().into_string().unwrap();
-                crates.insert(name.clone(), Crate::new(name, path));
+                krates.insert(name.clone(), Krate::new(name, path));
             }
         }
 
-        Ok(crates)
+        Ok(krates)
     }
 
     pub fn clean(&self) -> Result<(), DynError> {
         fs::remove_dir_all(self.tmp_path())?;
-        let crates = self.crates()?;
+        let krates = self.krates()?;
 
-        for c in crates.values() {
-            c.clean()?;
+        for krate in krates.values() {
+            krate.clean()?;
         }
 
         Ok(())
@@ -103,10 +69,10 @@ impl Workspace {
 
     pub fn create_dirs(&self) -> Result<(), DynError> {
         fs::create_dir_all(self.coverage_path())?;
-        let crates = self.crates()?;
+        let krates = self.krates()?;
 
-        for c in crates.values() {
-            c.create_dirs()?;
+        for krate in krates.values() {
+            krate.create_dirs()?;
         }
 
         Ok(())
@@ -117,22 +83,6 @@ impl Workspace {
         let toml_path = self.manifest_path();
         let toml = fs::read_to_string(toml_path)?;
         Ok(toml.parse::<Table>()?)
-    }
-}
-
-pub trait CratePaths {
-    fn path(&self) -> PathBuf;
-
-    fn tmp_path(&self) -> PathBuf {
-        self.path().join(TMP_DIRNAME)
-    }
-
-    fn coverage_path(&self) -> PathBuf {
-        self.tmp_path().join(COVERAGE_DIRNAME)
-    }
-
-    fn manifest_path(&self) -> PathBuf {
-        self.path().join(CARGO_TOML)
     }
 }
 
@@ -198,38 +148,38 @@ mod tests {
     }
 
     #[test]
-    fn it_initializes_a_crate() {
-        let c = Crate::new("test", PathBuf::from("fake-crate"));
-        assert_eq!(c.name, "test");
-        assert_eq!(c.path, PathBuf::from("fake-crate"));
+    fn it_initializes_a_krate() {
+        let krate = Krate::new("test", PathBuf::from("fake-crate"));
+        assert_eq!(krate.name, "test");
+        assert_eq!(krate.path, PathBuf::from("fake-crate"));
     }
 
     #[test]
-    fn it_gets_path_to_crate() {
-        let c = Crate::new("test", PathBuf::from("fake-crate"));
-        assert_eq!(c.path(), PathBuf::from("fake-crate"));
+    fn it_gets_path_to_krate() {
+        let krate = Krate::new("test", PathBuf::from("fake-crate"));
+        assert_eq!(krate.path(), PathBuf::from("fake-crate"));
     }
 
     #[test]
-    fn it_gets_path_to_crate_tmp_dir() {
-        let c = Crate::new("test", PathBuf::from("fake-crate"));
-        assert_eq!(c.tmp_path(), PathBuf::from("fake-crate").join("tmp"));
+    fn it_gets_path_to_krate_tmp_dir() {
+        let krate = Krate::new("test", PathBuf::from("fake-crate"));
+        assert_eq!(krate.tmp_path(), PathBuf::from("fake-crate").join("tmp"));
     }
 
     #[test]
-    fn it_gets_path_to_crate_coverage_dir() {
-        let c = Crate::new("test", PathBuf::from("fake-crate"));
+    fn it_gets_path_to_krate_coverage_dir() {
+        let krate = Krate::new("test", PathBuf::from("fake-crate"));
         assert_eq!(
-            c.coverage_path(),
+            krate.coverage_path(),
             PathBuf::from("fake-crate").join("tmp").join("coverage")
         );
     }
 
     #[test]
-    fn it_gets_path_to_crate_manifest_file() {
-        let c = Crate::new("test", PathBuf::from("fake-crate"));
+    fn it_gets_path_to_krate_manifest_file() {
+        let krate = Krate::new("test", PathBuf::from("fake-crate"));
         assert_eq!(
-            c.manifest_path(),
+            krate.manifest_path(),
             PathBuf::from("fake-crate").join("Cargo.toml")
         );
     }

@@ -1,4 +1,4 @@
-use crate::workspace::Crate;
+use crate::krate::{Krate, KratePaths};
 use regex::RegexBuilder;
 use std::collections::BTreeMap;
 use std::error::Error;
@@ -32,7 +32,7 @@ impl Readme {
         Ok(fs::write(&self.path, data)?)
     }
 
-    pub fn update_crates_list(&mut self, crates: BTreeMap<String, Crate>) -> Result<(), DynError> {
+    pub fn update_crates_list(&mut self, krates: BTreeMap<String, Krate>) -> Result<(), DynError> {
         self.load()?;
         let marker_start = "<!-- crate-list-start -->";
         let marker_end = "<!-- crate-list-end -->";
@@ -43,21 +43,21 @@ impl Readme {
             .multi_line(true)
             .build()?;
 
-        for c in crates.values() {
-            let manifest = c.manifest()?;
+        for krate in krates.values() {
+            let manifest = krate.manifest()?;
             let pkg = manifest
                 .get("package")
-                .ok_or("Cargo.toml is missing `package` section!")?;
+                .ok_or(format_section_missing_msg("package", krate))?;
             let name = pkg
                 .get("name")
-                .ok_or("Cargo.toml is missing `name` field!")?
+                .ok_or(format_field_missing_msg("name", krate))?
                 .as_str()
-                .ok_or("Could not convert `name` to str")?;
+                .ok_or(format_invalid_field_msg("name", krate))?;
             let description = pkg
                 .get("description")
-                .ok_or("Cargo.toml is missing `description` field!")?
+                .ok_or(format_field_missing_msg("description", krate))?
                 .as_str()
-                .ok_or("Could not convert `description` to str")?;
+                .ok_or(format_invalid_field_msg("description", krate))?;
             let entry = format!("\n* [{}](crates/{})\n\t* {}", name, name, description);
             entries.push_str(&entry);
         }
@@ -67,4 +67,32 @@ impl Readme {
         let updated = re.replace(&self.text, &entries);
         self.save(updated.as_ref().to_owned())
     }
+}
+
+// UTILS //////////////////////////////////////////////////////////////////////
+fn format_section_missing_msg(field: &str, krate: &Krate) -> String {
+    format!(
+        "Error: {}'s Cargo.toml is missing `{}` section! See: {}",
+        krate.name,
+        field,
+        krate.manifest_path().display()
+    )
+}
+
+fn format_field_missing_msg(field: &str, krate: &Krate) -> String {
+    format!(
+        "Error: {}'s Cargo.toml is missing `{}` field! See: {}",
+        krate.name,
+        field,
+        krate.manifest_path().display()
+    )
+}
+
+fn format_invalid_field_msg(field: &str, krate: &Krate) -> String {
+    format!(
+        "Error: Could not convert {}'s `{}` to str! See: {}",
+        krate.name,
+        field,
+        krate.manifest_path().display()
+    )
 }

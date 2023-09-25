@@ -1,3 +1,4 @@
+mod krate;
 mod readme;
 mod tasks;
 mod workspace;
@@ -154,10 +155,10 @@ fn init_tasks() -> Tasks {
                 println!(":::: Available Crates ::::");
                 println!("::::::::::::::::::::::::::");
 
-                let crates = workspace.crates()?;
+                let krates = workspace.krates()?;
 
-                for c in crates.values() {
-                    println!("* {}: {}", c.name, c.path.to_str().unwrap());
+                for krate in krates.values() {
+                    println!("* {}: {}", krate.name, krate.path.to_str().unwrap());
                 }
 
                 Ok(())
@@ -191,8 +192,8 @@ fn init_tasks() -> Tasks {
                 println!(":::: Updating Workspace README...");
                 println!(":::: Done: {}", workspace.readme.path.display());
 
-                let crates = workspace.crates()?;
-                workspace.readme.update_crates_list(crates)?;
+                let krates = workspace.krates()?;
+                workspace.readme.update_crates_list(krates)?;
 
                 println!();
                 println!(":::: Testing Examples...");
