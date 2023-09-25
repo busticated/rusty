@@ -7,5 +7,8 @@ edition = "2021"
 
 [dependencies]
 duct = "0.13.*"
+inquire = "0.6.*"
 regex = "1.*"
+strum = "0.25.*"
+strum_macros = "0.25.*"
 toml = "0.8.*"

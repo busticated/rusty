@@ -28,6 +28,20 @@ impl Readme {
         Ok(self)
     }
 
+    pub fn create<N: AsRef<str>, D: AsRef<str>>(
+        &self,
+        name: N,
+        description: D,
+    ) -> Result<(), DynError> {
+        let text = format!(
+            "# {}\n\n{}\n\n## Installation\n\n```shell\ncargo add {}\n```\n",
+            name.as_ref(),
+            description.as_ref(),
+            name.as_ref(),
+        );
+        self.save(text)
+    }
+
     pub fn save(&self, data: String) -> Result<(), DynError> {
         Ok(fs::write(&self.path, data)?)
     }

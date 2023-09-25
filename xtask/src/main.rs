@@ -7,6 +7,10 @@ mod workspace;
 use crate::tasks::{Task, Tasks};
 use crate::workspace::Workspace;
 use duct::cmd;
+use inquire::required;
+use inquire::validator::Validation as InquireValidation;
+use inquire::{Select as InquireSelect, Text as InquireText};
+use regex::RegexBuilder;
 use std::env;
 use std::error::Error;
 use std::path::PathBuf;
@@ -149,7 +153,47 @@ fn init_tasks() -> Tasks {
             },
         },
         Task {
-            name: "crates".into(),
+            name: "crate:add".into(),
+            description: "add new crate to workspace".into(),
+            run: |_args, workspace, _tasks| {
+                println!(":::::::::::::::::::");
+                println!(":::: Add Crate ::::");
+                println!(":::::::::::::::::::");
+
+                let question = InquireText::new("Crate name?");
+                let name = question
+                    .with_validator(required!())
+                    .with_validator(|input: &str| {
+                        let ptn = r"^[a-z0-9-]*$";
+                        let re = RegexBuilder::new(ptn).build()?;
+
+                        if re.is_match(input) {
+                            Ok(InquireValidation::Valid)
+                        } else {
+                            Ok(InquireValidation::Invalid(
+                                "name must be dash delimited lowercase alphanumeric - e.g. 'my-crate-01'".into(),
+                            ))
+                        }
+                    })
+                    .prompt()?;
+
+                // TODO (mirande): find work-around to set `description`
+                // see: https://github.com/rust-lang/cargo/issues/12736
+                let question = InquireText::new("What does your crate do?");
+                let description = question
+                    .with_validator(required!())
+                    .prompt()?;
+
+                let question = InquireSelect::new("Crate type?", vec!["--lib", "--bin"]);
+                let kind_flag = question.prompt()?;
+
+                workspace.add_krate(kind_flag, &name, &description)?;
+
+                Ok(())
+            },
+        },
+        Task {
+            name: "crate:list".into(),
             description: "list workspace crates".into(),
             run: |_, workspace, _| {
                 println!("::::::::::::::::::::::::::");

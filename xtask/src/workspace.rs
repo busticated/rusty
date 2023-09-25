@@ -1,4 +1,4 @@
-use crate::krate::{Krate, KratePaths};
+use crate::krate::{Krate, KrateKind, KratePaths};
 use crate::readme::Readme;
 use crate::toml::Toml;
 use duct::cmd;
@@ -52,12 +52,38 @@ impl Workspace {
             let entry = entry?;
             let path = entry.path();
             if path.is_dir() {
-                let name = entry.file_name().into_string().unwrap();
-                krates.insert(name.clone(), Krate::new(name, path));
+                let krate = Krate::from_path(path.clone())?;
+                krates.insert(krate.name.clone(), krate);
             }
         }
 
         Ok(krates)
+    }
+
+    pub fn add_krate<K: AsRef<str>, N: AsRef<str>, D: AsRef<str>>(
+        &self,
+        kind: K,
+        name: N,
+        description: D,
+    ) -> Result<Krate, DynError> {
+        let path = self.krates_path().join(name.as_ref());
+        let mut krate = Krate::new(name, description, path);
+
+        krate.kind = KrateKind::like(kind.as_ref())?;
+
+        cmd!(
+            &self.cargo,
+            "new",
+            &krate.path,
+            "--name",
+            &krate.name,
+            krate.kind.to_string()
+        )
+        .run()?;
+
+        krate.readme.create(&krate.name, &krate.description)?;
+
+        Ok(krate)
     }
 
     pub fn clean(&self) -> Result<(), DynError> {
@@ -147,42 +173,5 @@ mod tests {
         let workspace = Workspace::new();
         let root_path = root_path(get_cargo_cmd()).unwrap();
         assert_eq!(workspace.manifest_path(), root_path.join("Cargo.toml"));
-    }
-
-    #[test]
-    fn it_initializes_a_krate() {
-        let krate = Krate::new("test", PathBuf::from("fake-crate"));
-        assert_eq!(krate.name, "test");
-        assert_eq!(krate.path, PathBuf::from("fake-crate"));
-    }
-
-    #[test]
-    fn it_gets_path_to_krate() {
-        let krate = Krate::new("test", PathBuf::from("fake-crate"));
-        assert_eq!(krate.path(), PathBuf::from("fake-crate"));
-    }
-
-    #[test]
-    fn it_gets_path_to_krate_tmp_dir() {
-        let krate = Krate::new("test", PathBuf::from("fake-crate"));
-        assert_eq!(krate.tmp_path(), PathBuf::from("fake-crate").join("tmp"));
-    }
-
-    #[test]
-    fn it_gets_path_to_krate_coverage_dir() {
-        let krate = Krate::new("test", PathBuf::from("fake-crate"));
-        assert_eq!(
-            krate.coverage_path(),
-            PathBuf::from("fake-crate").join("tmp").join("coverage")
-        );
-    }
-
-    #[test]
-    fn it_gets_path_to_krate_manifest_file() {
-        let krate = Krate::new("test", PathBuf::from("fake-crate"));
-        assert_eq!(
-            krate.manifest_path(),
-            PathBuf::from("fake-crate").join("Cargo.toml")
-        );
     }
 }
