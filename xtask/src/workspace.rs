@@ -93,6 +93,7 @@ impl Workspace {
     pub fn clean(&self) -> Result<(), DynError> {
         fs::remove_dir_all(self.tmp_path())?;
         let crates = self.crates()?;
+
         for c in crates.values() {
             c.clean()?;
         }
@@ -103,6 +104,7 @@ impl Workspace {
     pub fn create_dirs(&self) -> Result<(), DynError> {
         fs::create_dir_all(self.coverage_path())?;
         let crates = self.crates()?;
+
         for c in crates.values() {
             c.create_dirs()?;
         }
@@ -151,6 +153,8 @@ fn root_path<T: AsRef<str>>(cargo: T) -> Result<PathBuf, DynError> {
 
     Ok(PathBuf::from(stdout.replace("Cargo.toml", "").trim()))
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 #[cfg(test)]
 mod tests {

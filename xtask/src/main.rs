@@ -274,6 +274,39 @@ fn init_tasks() -> Tasks {
                 Ok(())
             },
         },
+        Task {
+            name: "todo".into(),
+            description: "list open to-dos based on inline source code comments".into(),
+            run: |_, _, _| {
+                println!(":::::::::::::::");
+                println!(":::: TODOs ::::");
+                println!(":::::::::::::::");
+                // so we don't include this fn in the list (x_X)
+                let mut ptn = String::from("TODO");
+                ptn.push_str(" (.*)");
+
+                cmd!(
+                    "git",
+                    "grep",
+                    "-e",
+                    ptn,
+                    "--ignore-case",
+                    "--heading",
+                    "--break",
+                    "--context",
+                    "2",
+                    "--full-name",
+                    "--line-number",
+                    "--",
+                    ":!./target/*",
+                    ":!./tmp/*",
+                )
+                .run()?;
+
+                println!(":::: Done!");
+                Ok(())
+            },
+        },
     ]);
 
     tasks
