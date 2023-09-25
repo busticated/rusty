@@ -3,11 +3,10 @@
 //! # Examples
 //!
 //! ```rust
-//! use std::error::Error;
 //! use node_js_info::NodeJSInfo;
 //!
 //! #[tokio::main]
-//! async fn main() -> Result<(), Box<dyn Error>> {
+//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!   let info = NodeJSInfo::new("20.6.1").macos().arm64().fetch().await?;
 //!   assert_eq!(info.version, "20.6.1");
 //!   assert_eq!(info.filename, "node-v20.6.1-darwin-arm64.tar.gz");
@@ -30,6 +29,8 @@ use crate::arch::NodeJSArch;
 use crate::ext::NodeJSPkgExt;
 use crate::url::NodeJSURLFormatter;
 use crate::os::NodeJSOS;
+
+type DynError = Box<dyn Error>;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct NodeJSInfo {
@@ -75,6 +76,7 @@ impl NodeJSInfo {
     /// use node_js_info::NodeJSInfo;
     /// let info = NodeJSInfo::from_env("20.6.1");
     /// ```
+    // TODO (mirande): reexport ParseError? or introduce customer error and convert?
     pub fn from_env<T: AsRef<str>>(semver: T) -> Result<NodeJSInfo, ParseError> {
         let mut info = NodeJSInfo::new(semver);
         info.os = NodeJSOS::from_env().unwrap();
@@ -246,11 +248,10 @@ impl NodeJSInfo {
     /// # Examples
     ///
     /// ```rust
-    /// use std::error::Error;
     /// use node_js_info::NodeJSInfo;
     ///
     /// #[tokio::main]
-    /// async fn main() -> Result<(), Box<dyn Error>> {
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ///   let info = NodeJSInfo::new("20.6.1").macos().arm64().fetch().await?;
     ///   assert_eq!(info.version, "20.6.1");
     ///   assert_eq!(info.filename, "node-v20.6.1-darwin-arm64.tar.gz");
@@ -259,7 +260,7 @@ impl NodeJSInfo {
     ///   Ok(())
     /// }
     /// ```
-    pub async fn fetch(&mut self) -> Result<Self, Box<dyn Error>> {
+    pub async fn fetch(&mut self) -> Result<Self, DynError> {
         self.version = match Version::parse(self.version.as_str()) {
             Err(e) => return Err(Box::new(e)),
             Ok(v) => v.to_string(),
@@ -354,19 +355,19 @@ mod tests {
     fn it_sets_os() {
         let mut info = NodeJSInfo::new("1.0.0");
 
-        assert_eq!(&info.os, &NodeJSOS::Linux);
+        assert_eq!(info.os, NodeJSOS::Linux);
 
         info.windows();
 
-        assert_eq!(&info.os, &NodeJSOS::Windows);
+        assert_eq!(info.os, NodeJSOS::Windows);
 
         info.macos();
 
-        assert_eq!(&info.os, &NodeJSOS::Darwin);
+        assert_eq!(info.os, NodeJSOS::Darwin);
 
         info.linux();
 
-        assert_eq!(&info.os, &NodeJSOS::Linux);
+        assert_eq!(info.os, NodeJSOS::Linux);
     }
 
     #[test]
