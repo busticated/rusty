@@ -1,6 +1,7 @@
 mod krate;
 mod readme;
 mod tasks;
+mod toml;
 mod workspace;
 
 use crate::tasks::{Task, Tasks};

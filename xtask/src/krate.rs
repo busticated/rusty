@@ -1,4 +1,5 @@
 use crate::readme::Readme;
+use crate::toml::Toml;
 use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
@@ -15,6 +16,7 @@ pub struct Krate {
     pub name: String,
     pub path: PathBuf,
     pub readme: Readme,
+    pub toml: Toml,
 }
 
 impl KratePaths for Krate {
@@ -27,7 +29,13 @@ impl Krate {
     pub fn new<T: AsRef<str>>(name: T, path: PathBuf) -> Self {
         let name = name.as_ref().to_owned();
         let readme = Readme::new(path.clone());
-        Krate { name, path, readme }
+        let toml = Toml::new(path.clone());
+        Krate {
+            name,
+            path,
+            readme,
+            toml,
+        }
     }
 
     pub fn clean(&self) -> Result<(), DynError> {
@@ -39,9 +47,7 @@ impl Krate {
     }
 
     pub fn manifest(&self) -> Result<Table, DynError> {
-        let toml_path = self.manifest_path();
-        let toml = fs::read_to_string(toml_path)?;
-        Ok(toml.parse::<Table>()?)
+        self.toml.read()
     }
 }
 

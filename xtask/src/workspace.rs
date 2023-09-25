@@ -1,5 +1,6 @@
 use crate::krate::{Krate, KratePaths};
 use crate::readme::Readme;
+use crate::toml::Toml;
 use duct::cmd;
 use std::collections::BTreeMap;
 use std::env;
@@ -17,6 +18,7 @@ pub struct Workspace {
     pub path: PathBuf,
     pub cargo: String,
     pub readme: Readme,
+    pub toml: Toml,
 }
 
 impl KratePaths for Workspace {
@@ -30,10 +32,12 @@ impl Workspace {
         let cargo = get_cargo_cmd();
         let path = root_path(&cargo).unwrap();
         let readme = Readme::new(path.clone());
+        let toml = Toml::new(path.clone());
         Workspace {
             cargo,
             path,
             readme,
+            toml,
         }
     }
 
@@ -80,9 +84,7 @@ impl Workspace {
 
     #[allow(dead_code)]
     pub fn manifest(&self) -> Result<Table, DynError> {
-        let toml_path = self.manifest_path();
-        let toml = fs::read_to_string(toml_path)?;
-        Ok(toml.parse::<Table>()?)
+        self.toml.read()
     }
 }
 
