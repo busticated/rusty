@@ -44,6 +44,13 @@ fn try_main() -> Result<(), DynError> {
         args.remove(0); // drop task name / cmd
     }
 
+    println!("::::::::::::::::::::::");
+    println!(":::: Running Task ::::");
+    println!("::::::::::::::::::::::");
+    println!("Name: {}", cmd);
+    println!("Args: {:?}", args);
+    println!();
+
     match tasks.get(cmd.clone()) {
         Some(task) => task.exec(args, &mut workspace, &tasks),
         None => print_help(cmd, args, tasks),
@@ -55,8 +62,8 @@ fn print_help(cmd: String, _args: Vec<String>, tasks: Tasks) -> Result<(), DynEr
     println!(":::: Tasks & Options ::::");
     println!(":::::::::::::::::::::::::");
     println!();
-    println!(":::: Available Tasks:");
     println!("{}", tasks.help()?);
+    println!();
 
     if !cmd.is_empty() && cmd != "help" {
         let msg = format!("Unrecognized Command! Received: '{}'", cmd);
@@ -78,6 +85,7 @@ fn init_tasks() -> Tasks {
                 println!(":::::::::::::::::::::::::::::::::");
                 println!(":::: Checking Project for CI ::::");
                 println!(":::::::::::::::::::::::::::::::::");
+                println!();
 
                 tasks
                     .get("lint")
@@ -89,6 +97,7 @@ fn init_tasks() -> Tasks {
                     .exec(vec![], workspace, tasks)?;
 
                 println!(":::: Done!");
+                println!();
                 Ok(())
             },
         },
@@ -100,12 +109,14 @@ fn init_tasks() -> Tasks {
                 println!("::::::::::::::::::::::::::::");
                 println!(":::: Cleaning Workspace ::::");
                 println!("::::::::::::::::::::::::::::");
+                println!();
 
                 workspace.clean().unwrap_or(());
                 workspace.create_dirs()?;
                 cmd!(&workspace.cargo_cmd, "clean", "--release").run()?;
 
                 println!(":::: Done!");
+                println!();
                 Ok(())
             },
         },
@@ -125,9 +136,10 @@ fn init_tasks() -> Tasks {
                 let report = format!("{}/html/index.html", &coverage_root);
                 tasks.get("clean").unwrap().exec(vec![], workspace, tasks)?;
 
-                println!("::::::::::::::::::::::::::");
-                println!(":::: Running Coverage ::::");
-                println!("::::::::::::::::::::::::::");
+                println!("::::::::::::::::::::::::::::::");
+                println!(":::: Calculating Coverage ::::");
+                println!("::::::::::::::::::::::::::::::");
+                println!();
 
                 cmd!(&workspace.cargo_cmd, "test")
                     .env("CARGO_INCREMENTAL", "0")
@@ -138,10 +150,12 @@ fn init_tasks() -> Tasks {
                     )
                     .run()?;
 
-                println!(":::: Done!\n");
+                println!(":::: Done!");
+                println!();
                 println!(":::::::::::::::::::::::::::");
                 println!(":::: Generating Report ::::");
                 println!(":::::::::::::::::::::::::::");
+                println!();
 
                 cmd!(
                     "grcov",
@@ -187,6 +201,7 @@ fn init_tasks() -> Tasks {
                 println!(":::::::::::::::::::");
                 println!(":::: Add Crate ::::");
                 println!(":::::::::::::::::::");
+                println!();
 
                 let question = InquireText::new("Crate name?");
                 let name = question
@@ -215,6 +230,9 @@ fn init_tasks() -> Tasks {
 
                 workspace.add_krate(kind_flag, &name, &description)?;
 
+                println!(":::: Done!");
+                println!();
+
                 Ok(())
             },
         },
@@ -226,12 +244,17 @@ fn init_tasks() -> Tasks {
                 println!("::::::::::::::::::::::::::");
                 println!(":::: Available Crates ::::");
                 println!("::::::::::::::::::::::::::");
+                println!();
 
                 let krates = workspace.krates()?;
 
                 for krate in krates.values() {
                     println!("* {}: {}", krate.name, krate.path.to_str().unwrap());
                 }
+
+                println!();
+                println!(":::: Done!");
+                println!();
 
                 Ok(())
             },
@@ -245,11 +268,14 @@ fn init_tasks() -> Tasks {
                 println!(":::::::::::::::::::::::::::::::::::::::::::");
                 println!(":::: Building Project for Distribution ::::");
                 println!(":::::::::::::::::::::::::::::::::::::::::::");
+                println!();
 
                 cmd!(&workspace.cargo_cmd, "build", "--release").run()?;
 
                 println!(":::: Done!");
                 println!(":::: Artifacts: {}", dist_dir.display());
+                println!();
+
                 Ok(())
             },
         },
@@ -263,21 +289,22 @@ fn init_tasks() -> Tasks {
                 println!(":::::::::::::::::::::::::::");
                 println!(":::: Building All Docs ::::");
                 println!(":::::::::::::::::::::::::::");
-
                 println!();
+
                 println!(":::: Updating Workspace README...");
                 println!(":::: Done: {}", workspace.readme.path.display());
+                println!();
 
                 let krates = workspace.krates()?;
                 workspace.readme.update_crates_list(krates)?;
 
-                println!();
                 println!(":::: Testing Examples...");
+                println!();
 
                 cmd!(&workspace.cargo_cmd, "test", "--doc").run()?;
 
-                println!();
                 println!(":::: Rendering Docs...");
+                println!();
 
                 let mut args = vec!["doc", "--workspace", "--no-deps"];
 
@@ -288,6 +315,8 @@ fn init_tasks() -> Tasks {
                 cmd(&workspace.cargo_cmd, args).run()?;
 
                 println!(":::: Done!");
+                println!();
+
                 Ok(())
             },
         },
@@ -299,6 +328,7 @@ fn init_tasks() -> Tasks {
                 println!(":::::::::::::::::::::::::");
                 println!(":::: Linting Project ::::");
                 println!(":::::::::::::::::::::::::");
+                println!();
 
                 cmd!(
                     &workspace.cargo_cmd,
@@ -311,6 +341,8 @@ fn init_tasks() -> Tasks {
                 .run()?;
 
                 println!(":::: Done!");
+                println!();
+
                 Ok(())
             },
         },
@@ -322,6 +354,7 @@ fn init_tasks() -> Tasks {
                 println!("::::::::::::::::::::::::::::");
                 println!(":::: Setting up Project ::::");
                 println!("::::::::::::::::::::::::::::");
+                println!();
 
                 // TODO (mirande): "error: could not create link from
                 // 'C:\Users\runneradmin\.cargo\bin\rustup.exe'
@@ -335,6 +368,8 @@ fn init_tasks() -> Tasks {
                 cmd!(&workspace.cargo_cmd, "install", "grcov").run()?;
 
                 println!(":::: Done!");
+                println!();
+
                 Ok(())
             },
         },
@@ -346,10 +381,13 @@ fn init_tasks() -> Tasks {
                 println!(":::::::::::::::::::::::::");
                 println!(":::: Testing Project ::::");
                 println!(":::::::::::::::::::::::::");
+                println!();
 
                 cmd!(&workspace.cargo_cmd, "test").run()?;
 
                 println!(":::: Done!");
+                println!();
+
                 Ok(())
             },
         },
@@ -361,6 +399,8 @@ fn init_tasks() -> Tasks {
                 println!(":::::::::::::::");
                 println!(":::: TODOs ::::");
                 println!(":::::::::::::::");
+                println!();
+
                 // so we don't include this fn in the list (x_X)
                 let mut ptn = String::from("TODO");
                 ptn.push_str(" (.*)");
@@ -384,6 +424,8 @@ fn init_tasks() -> Tasks {
                 .run()?;
 
                 println!(":::: Done!");
+                println!();
+
                 Ok(())
             },
         },
