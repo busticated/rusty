@@ -93,7 +93,7 @@ fn init_tasks() -> Tasks {
 
                 workspace.clean().unwrap_or(());
                 workspace.create_dirs()?;
-                cmd!(&workspace.cargo, "clean").run()?;
+                cmd!(&workspace.cargo, "clean", "--release").run()?;
 
                 println!(":::: Done!");
                 Ok(())
