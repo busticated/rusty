@@ -117,8 +117,10 @@ fn init_tasks() -> Tasks {
             // https://github.com/mozilla/grcov/issues/1042
             name: "coverage".into(),
             description: "run tests and generate html code coverage report".into(),
-            flags: task_flags! {},
-            run: |_opts, workspace, tasks| {
+            flags: task_flags! {
+                "open" => "open coverage report for viewing"
+            },
+            run: |opts, workspace, tasks| {
                 let coverage_root = PathBuf::from("tmp/coverage").display().to_string();
                 let report = format!("{}/html/index.html", &coverage_root);
                 tasks.get("clean").unwrap().exec(vec![], workspace, tasks)?;
@@ -166,9 +168,13 @@ fn init_tasks() -> Tasks {
                 .run()?;
 
 
-                println!(":::: Done!");
-                println!(":::: Report: {}", report);
-                println!();
+                if opts.has("open"){
+                    cmd!("open", report).run()?;
+                } else {
+                    println!(":::: Done!");
+                    println!(":::: Report: {}", report);
+                    println!();
+                }
 
                 Ok(())
             },
@@ -250,8 +256,10 @@ fn init_tasks() -> Tasks {
         Task {
             name: "doc".into(),
             description: "build project documentation".into(),
-            flags: task_flags! {},
-            run: |_opts, workspace, _tasks| {
+            flags: task_flags! {
+                "open" => "open rendered docs for viewing"
+            },
+            run: |opts, workspace, _tasks| {
                 println!(":::::::::::::::::::::::::::");
                 println!(":::: Building All Docs ::::");
                 println!(":::::::::::::::::::::::::::");
@@ -271,14 +279,13 @@ fn init_tasks() -> Tasks {
                 println!();
                 println!(":::: Rendering Docs...");
 
-                cmd!(
-                    &workspace.cargo_cmd,
-                    "doc",
-                    "--workspace",
-                    "--no-deps",
-                    "--open"
-                )
-                .run()?;
+                let mut args = vec!["doc", "--workspace", "--no-deps"];
+
+                if opts.has("open") {
+                    args.push("--open");
+                }
+
+                cmd(&workspace.cargo_cmd, args).run()?;
 
                 println!(":::: Done!");
                 Ok(())
