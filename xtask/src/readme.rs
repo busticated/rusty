@@ -23,9 +23,18 @@ impl Readme {
         }
     }
 
-    pub fn load(&mut self) -> Result<&Self, DynError> {
-        self.text = fs::read_to_string(&self.path)?;
-        Ok(self)
+    pub fn from_path(path: PathBuf) -> Result<Self, DynError> {
+        let mut readme = Readme::new(path);
+        readme.load()
+    }
+
+    pub fn read(&self) -> Result<String, DynError> {
+        Ok(fs::read_to_string(&self.path)?)
+    }
+
+    pub fn load(&mut self) -> Result<Self, DynError> {
+        self.text = self.read()?;
+        Ok(self.clone())
     }
 
     pub fn create<N: AsRef<str>, D: AsRef<str>>(

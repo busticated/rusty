@@ -32,7 +32,7 @@ impl KratePaths for Krate {
 
 impl Krate {
     pub fn new<N: AsRef<str>, D: AsRef<str>>(name: N, description: D, path: PathBuf) -> Self {
-        let kind = KrateKind::Library;
+        let kind = KrateKind::Library; // TODO (mirande): lookup somehow instead of default'ing
         let name = name.as_ref().to_owned();
         let description = description.as_ref().to_owned();
         let readme = Readme::new(path.clone());
@@ -49,7 +49,7 @@ impl Krate {
 
     pub fn from_path(path: PathBuf) -> Result<Krate, DynError> {
         let toml = Toml::from_path(path.join(CARGO_TOML))?;
-        let readme = Readme::new(path.clone());
+        let readme = Readme::from_path(path.clone())?;
         let kind = KrateKind::Library;
         let mut krate = Krate {
             kind,
@@ -59,7 +59,7 @@ impl Krate {
             ..Default::default()
         };
 
-        krate.name = krate.toml.load()?.get_name()?;
+        krate.name = krate.toml.get_name()?;
         krate.description = krate.toml.get_description()?;
         Ok(krate)
     }
