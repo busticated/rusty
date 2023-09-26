@@ -1,4 +1,5 @@
 mod krate;
+mod options;
 mod readme;
 mod tasks;
 mod toml;
@@ -39,6 +40,10 @@ fn try_main() -> Result<(), DynError> {
         None => "".to_string(),
     };
 
+    if !args.is_empty() {
+        args.remove(0); // drop task name / cmd
+    }
+
     match tasks.get(cmd.clone()) {
         Some(task) => task.exec(args, &mut workspace, &tasks),
         None => print_help(cmd, args, tasks),
@@ -68,7 +73,8 @@ fn init_tasks() -> Tasks {
         Task {
             name: "ci".into(),
             description: "run checks for CI".into(),
-            run: |args, workspace, tasks| {
+            flags: task_flags! {},
+            run: |_opts, workspace, tasks| {
                 println!(":::::::::::::::::::::::::::::::::");
                 println!(":::: Checking Project for CI ::::");
                 println!(":::::::::::::::::::::::::::::::::");
@@ -76,11 +82,11 @@ fn init_tasks() -> Tasks {
                 tasks
                     .get("lint")
                     .unwrap()
-                    .exec(args.clone(), workspace, tasks)?;
+                    .exec(vec![], workspace, tasks)?;
                 tasks
                     .get("coverage")
                     .unwrap()
-                    .exec(args, workspace, tasks)?;
+                    .exec(vec![], workspace, tasks)?;
 
                 println!(":::: Done!");
                 Ok(())
@@ -89,7 +95,8 @@ fn init_tasks() -> Tasks {
         Task {
             name: "clean".into(),
             description: "delete temporary files".into(),
-            run: |_, workspace, _| {
+            flags: task_flags! {},
+            run: |_opts, workspace, _tasks| {
                 println!("::::::::::::::::::::::::::::");
                 println!(":::: Cleaning Workspace ::::");
                 println!("::::::::::::::::::::::::::::");
@@ -110,9 +117,11 @@ fn init_tasks() -> Tasks {
             // https://github.com/mozilla/grcov/issues/1042
             name: "coverage".into(),
             description: "run tests and generate html code coverage report".into(),
-            run: |args, workspace, tasks| {
-                let coverage_root = PathBuf::from("tmp/coverage");
-                tasks.get("clean").unwrap().exec(args, workspace, tasks)?;
+            flags: task_flags! {},
+            run: |_opts, workspace, tasks| {
+                let coverage_root = PathBuf::from("tmp/coverage").display().to_string();
+                let report = format!("{}/html/index.html", &coverage_root);
+                tasks.get("clean").unwrap().exec(vec![], workspace, tasks)?;
 
                 println!("::::::::::::::::::::::::::");
                 println!(":::: Running Coverage ::::");
@@ -123,7 +132,7 @@ fn init_tasks() -> Tasks {
                     .env("RUSTFLAGS", "-Cinstrument-coverage")
                     .env(
                         "LLVM_PROFILE_FILE",
-                        format!("{}/cargo-test-%p-%m.profraw", coverage_root.display()),
+                        format!("{}/cargo-test-%p-%m.profraw", &coverage_root),
                     )
                     .run()?;
 
@@ -156,15 +165,19 @@ fn init_tasks() -> Tasks {
                 )
                 .run()?;
 
+
                 println!(":::: Done!");
-                println!(":::: Report: {}/html/index.html", coverage_root.display());
+                println!(":::: Report: {}", report);
+                println!();
+
                 Ok(())
             },
         },
         Task {
             name: "crate:add".into(),
             description: "add new crate to workspace".into(),
-            run: |_args, workspace, _tasks| {
+            flags: task_flags! {},
+            run: |_opts, workspace, _tasks| {
                 println!(":::::::::::::::::::");
                 println!(":::: Add Crate ::::");
                 println!(":::::::::::::::::::");
@@ -202,7 +215,8 @@ fn init_tasks() -> Tasks {
         Task {
             name: "crate:list".into(),
             description: "list workspace crates".into(),
-            run: |_, workspace, _| {
+            flags: task_flags! {},
+            run: |_opts, workspace, _tasks| {
                 println!("::::::::::::::::::::::::::");
                 println!(":::: Available Crates ::::");
                 println!("::::::::::::::::::::::::::");
@@ -219,7 +233,8 @@ fn init_tasks() -> Tasks {
         Task {
             name: "dist".into(),
             description: "create release artifacts".into(),
-            run: |_, workspace, _| {
+            flags: task_flags! {},
+            run: |_opts, workspace, _tasks| {
                 let dist_dir = workspace.path().join("target/release");
                 println!(":::::::::::::::::::::::::::::::::::::::::::");
                 println!(":::: Building Project for Distribution ::::");
@@ -235,7 +250,8 @@ fn init_tasks() -> Tasks {
         Task {
             name: "doc".into(),
             description: "build project documentation".into(),
-            run: |_, workspace, _| {
+            flags: task_flags! {},
+            run: |_opts, workspace, _tasks| {
                 println!(":::::::::::::::::::::::::::");
                 println!(":::: Building All Docs ::::");
                 println!(":::::::::::::::::::::::::::");
@@ -271,7 +287,8 @@ fn init_tasks() -> Tasks {
         Task {
             name: "lint".into(),
             description: "run the linter (clippy)".into(),
-            run: |_, workspace, _| {
+            flags: task_flags! {},
+            run: |_opts, workspace, _tasks| {
                 println!(":::::::::::::::::::::::::");
                 println!(":::: Linting Project ::::");
                 println!(":::::::::::::::::::::::::");
@@ -293,7 +310,8 @@ fn init_tasks() -> Tasks {
         Task {
             name: "setup".into(),
             description: "bootstrap project for local development".into(),
-            run: |_, workspace, _| {
+            flags: task_flags! {},
+            run: |_opts, workspace, _tasks| {
                 println!("::::::::::::::::::::::::::::");
                 println!(":::: Setting up Project ::::");
                 println!("::::::::::::::::::::::::::::");
@@ -316,7 +334,8 @@ fn init_tasks() -> Tasks {
         Task {
             name: "test".into(),
             description: "run all tests".into(),
-            run: |_, workspace, _| {
+            flags: task_flags! {},
+            run: |_opts, workspace, _tasks| {
                 println!(":::::::::::::::::::::::::");
                 println!(":::: Testing Project ::::");
                 println!(":::::::::::::::::::::::::");
@@ -330,7 +349,8 @@ fn init_tasks() -> Tasks {
         Task {
             name: "todo".into(),
             description: "list open to-dos based on inline source code comments".into(),
-            run: |_, _, _| {
+            flags: task_flags! {},
+            run: |_opts, _workspace, _tasks| {
                 println!(":::::::::::::::");
                 println!(":::: TODOs ::::");
                 println!(":::::::::::::::");

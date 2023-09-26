@@ -1,3 +1,4 @@
+use crate::options::Options;
 use crate::workspace::Workspace;
 use std::collections::BTreeMap;
 use std::error::Error;
@@ -8,7 +9,8 @@ type DynError = Box<dyn Error>;
 pub struct Task {
     pub name: String,
     pub description: String,
-    pub run: fn(args: Vec<String>, &mut Workspace, &Tasks) -> Result<(), DynError>,
+    pub flags: BTreeMap<String, String>,
+    pub run: fn(opts: Options, &mut Workspace, &Tasks) -> Result<(), DynError>,
 }
 
 impl Task {
@@ -16,11 +18,13 @@ impl Task {
     pub fn new<N: AsRef<str>, D: AsRef<str>>(
         name: N,
         description: D,
-        run: fn(args: Vec<String>, &mut Workspace, &Tasks) -> Result<(), DynError>,
+        flags: BTreeMap<String, String>,
+        run: fn(args: Options, &mut Workspace, &Tasks) -> Result<(), DynError>,
     ) -> Self {
         Task {
             name: name.as_ref().to_owned(),
             description: description.as_ref().to_owned(),
+            flags,
             run,
         }
     }
@@ -31,7 +35,8 @@ impl Task {
         workspace: &mut Workspace,
         tasks: &Tasks,
     ) -> Result<(), DynError> {
-        (self.run)(args, workspace, tasks)?;
+        let opts = Options::new(args, self.flags.clone())?;
+        (self.run)(opts, workspace, tasks)?;
         Ok(())
     }
 }
@@ -87,7 +92,8 @@ mod tests {
 
     #[test]
     fn it_initializes_a_task() {
-        let task = Task::new("test", "my test task", |_, _, _| Ok(()));
+        let flags = BTreeMap::from([("foo".into(), "does the foo".into())]);
+        let task = Task::new("test", "my test task", flags, |_, _, _| Ok(()));
         assert_eq!(task.name, "test");
         assert_eq!(task.description, "my test task");
     }
@@ -96,7 +102,8 @@ mod tests {
     fn it_executes_a_task() {
         let tasks = Tasks::new();
         let mut workspace = Workspace::new("fake-cargo", std::path::PathBuf::from("fake-root"));
-        let task = Task::new("test", "my test task", |_, _, _| Ok(()));
+        let flags = BTreeMap::from([("foo".into(), "does the foo".into())]);
+        let task = Task::new("test", "my test task", flags, |_, _, _| Ok(()));
         task.exec(vec![], &mut workspace, &tasks).unwrap();
     }
 
@@ -109,8 +116,9 @@ mod tests {
     #[test]
     fn it_add_a_task() {
         let mut tasks = Tasks::new();
-        let task1 = Task::new("one", "task 01", |_, _, _| Ok(()));
-        let task2 = Task::new("two", "task 02", |_, _, _| Ok(()));
+        let flags = BTreeMap::from([("foo".into(), "does the foo".into())]);
+        let task1 = Task::new("one", "task 01", flags.clone(), |_, _, _| Ok(()));
+        let task2 = Task::new("two", "task 02", flags, |_, _, _| Ok(()));
 
         tasks.add(vec![task1, task2]);
 
@@ -122,8 +130,9 @@ mod tests {
     #[test]
     fn it_gets_a_task() {
         let mut tasks = Tasks::new();
-        let task1 = Task::new("one", "task 01", |_, _, _| Ok(()));
-        let task2 = Task::new("two", "task 02", |_, _, _| Ok(()));
+        let flags = BTreeMap::from([("foo".into(), "does the foo".into())]);
+        let task1 = Task::new("one", "task 01", flags.clone(), |_, _, _| Ok(()));
+        let task2 = Task::new("two", "task 02", flags, |_, _, _| Ok(()));
 
         tasks.add(vec![task1, task2]);
         let task = tasks.get("one").unwrap();
