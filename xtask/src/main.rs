@@ -4,6 +4,7 @@ mod tasks;
 mod toml;
 mod workspace;
 
+use crate::krate::KratePaths;
 use crate::tasks::{Task, Tasks};
 use crate::workspace::Workspace;
 use duct::cmd;
@@ -25,7 +26,9 @@ fn main() {
 }
 
 fn try_main() -> Result<(), DynError> {
-    let mut workspace = Workspace::new();
+    let cargo_cmd = get_cargo_cmd();
+    let root_path = get_root_path(&cargo_cmd).unwrap();
+    let mut workspace = Workspace::from_path(cargo_cmd, root_path)?;
     let mut args: Vec<String> = env::args().collect();
 
     args.remove(0); // drop executable path
@@ -93,7 +96,7 @@ fn init_tasks() -> Tasks {
 
                 workspace.clean().unwrap_or(());
                 workspace.create_dirs()?;
-                cmd!(&workspace.cargo, "clean", "--release").run()?;
+                cmd!(&workspace.cargo_cmd, "clean", "--release").run()?;
 
                 println!(":::: Done!");
                 Ok(())
@@ -115,7 +118,7 @@ fn init_tasks() -> Tasks {
                 println!(":::: Running Coverage ::::");
                 println!("::::::::::::::::::::::::::");
 
-                cmd!(&workspace.cargo, "test")
+                cmd!(&workspace.cargo_cmd, "test")
                     .env("CARGO_INCREMENTAL", "0")
                     .env("RUSTFLAGS", "-Cinstrument-coverage")
                     .env(
@@ -183,8 +186,6 @@ fn init_tasks() -> Tasks {
                     })
                     .prompt()?;
 
-                // TODO (mirande): find work-around to set `description`
-                // see: https://github.com/rust-lang/cargo/issues/12736
                 let question = InquireText::new("What does your crate do?");
                 let description = question
                     .with_validator(required!())
@@ -219,12 +220,12 @@ fn init_tasks() -> Tasks {
             name: "dist".into(),
             description: "create release artifacts".into(),
             run: |_, workspace, _| {
-                let dist_dir = workspace.path.join("target/release");
+                let dist_dir = workspace.path().join("target/release");
                 println!(":::::::::::::::::::::::::::::::::::::::::::");
                 println!(":::: Building Project for Distribution ::::");
                 println!(":::::::::::::::::::::::::::::::::::::::::::");
 
-                cmd!(&workspace.cargo, "build", "--release").run()?;
+                cmd!(&workspace.cargo_cmd, "build", "--release").run()?;
 
                 println!(":::: Done!");
                 println!(":::: Artifacts: {}", dist_dir.display());
@@ -249,13 +250,13 @@ fn init_tasks() -> Tasks {
                 println!();
                 println!(":::: Testing Examples...");
 
-                cmd!(&workspace.cargo, "test", "--doc").run()?;
+                cmd!(&workspace.cargo_cmd, "test", "--doc").run()?;
 
                 println!();
                 println!(":::: Rendering Docs...");
 
                 cmd!(
-                    &workspace.cargo,
+                    &workspace.cargo_cmd,
                     "doc",
                     "--workspace",
                     "--no-deps",
@@ -276,7 +277,7 @@ fn init_tasks() -> Tasks {
                 println!(":::::::::::::::::::::::::");
 
                 cmd!(
-                    &workspace.cargo,
+                    &workspace.cargo_cmd,
                     "clippy",
                     "--all-targets",
                     "--all-features",
@@ -306,7 +307,7 @@ fn init_tasks() -> Tasks {
                 // TODO (mirande): is there a way to includes these in Cargo.toml or similar?
                 cmd!("rustup", "component", "add", "clippy").run()?;
                 cmd!("rustup", "component", "add", "llvm-tools-preview").run()?;
-                cmd!(&workspace.cargo, "install", "grcov").run()?;
+                cmd!(&workspace.cargo_cmd, "install", "grcov").run()?;
 
                 println!(":::: Done!");
                 Ok(())
@@ -320,7 +321,7 @@ fn init_tasks() -> Tasks {
                 println!(":::: Testing Project ::::");
                 println!(":::::::::::::::::::::::::");
 
-                cmd!(&workspace.cargo, "test").run()?;
+                cmd!(&workspace.cargo_cmd, "test").run()?;
 
                 println!(":::: Done!");
                 Ok(())
@@ -362,4 +363,21 @@ fn init_tasks() -> Tasks {
     ]);
 
     tasks
+}
+
+fn get_cargo_cmd() -> String {
+    env::var("CARGO").unwrap_or_else(|_| "cargo".to_string())
+}
+
+fn get_root_path<T: AsRef<str>>(cargo_cmd: T) -> Result<PathBuf, DynError> {
+    let stdout = cmd!(
+        cargo_cmd.as_ref().to_owned(),
+        "locate-project",
+        "--workspace",
+        "--message-format",
+        "plain",
+    )
+    .read()?;
+
+    Ok(PathBuf::from(stdout.replace("Cargo.toml", "").trim()))
 }

@@ -3,11 +3,9 @@ use crate::readme::Readme;
 use crate::toml::Toml;
 use duct::cmd;
 use std::collections::BTreeMap;
-use std::env;
 use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
-use toml::Table;
 
 type DynError = Box<dyn Error>;
 
@@ -15,30 +13,45 @@ const CRATES_DIRNAME: &str = "crates";
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Workspace {
-    pub path: PathBuf,
-    pub cargo: String,
+    pub root_path: PathBuf,
+    pub cargo_cmd: String,
     pub readme: Readme,
     pub toml: Toml,
 }
 
 impl KratePaths for Workspace {
     fn path(&self) -> PathBuf {
-        self.path.to_owned()
+        self.root_path.to_owned()
     }
 }
 
 impl Workspace {
-    pub fn new() -> Self {
-        let cargo = get_cargo_cmd();
-        let path = root_path(&cargo).unwrap();
-        let readme = Readme::new(path.clone());
-        let toml = Toml::new(path.clone());
+    #[allow(dead_code)]
+    pub fn new<C: AsRef<str>>(cargo_cmd: C, root_path: PathBuf) -> Self {
+        let cargo_cmd = cargo_cmd.as_ref().to_owned();
+        let readme = Readme::new(root_path.clone());
+        let toml = Toml::new(root_path.clone());
         Workspace {
-            cargo,
-            path,
+            cargo_cmd,
+            root_path,
             readme,
             toml,
         }
+    }
+
+    pub fn from_path<C: AsRef<str>>(
+        cargo_cmd: C,
+        root_path: PathBuf,
+    ) -> Result<Workspace, DynError> {
+        let cargo_cmd = cargo_cmd.as_ref().to_owned();
+        let readme = Readme::from_path(root_path.clone())?;
+        let toml = Toml::from_path(root_path.clone())?;
+        Ok(Workspace {
+            cargo_cmd,
+            root_path,
+            readme,
+            toml,
+        })
     }
 
     pub fn krates_path(&self) -> PathBuf {
@@ -71,8 +84,10 @@ impl Workspace {
 
         krate.kind = KrateKind::like(kind.as_ref())?;
 
+        // TODO (mirande): find work-around to set `description`
+        // see: https://github.com/rust-lang/cargo/issues/12736
         cmd!(
-            &self.cargo,
+            &self.cargo_cmd,
             "new",
             &krate.path,
             "--name",
@@ -107,29 +122,6 @@ impl Workspace {
 
         Ok(())
     }
-
-    #[allow(dead_code)]
-    pub fn manifest(&self) -> Result<Table, DynError> {
-        self.toml.read()
-    }
-}
-
-// UTILS //////////////////////////////////////////////////////////////////////
-fn get_cargo_cmd() -> String {
-    env::var("CARGO").unwrap_or_else(|_| "cargo".to_string())
-}
-
-fn root_path<T: AsRef<str>>(cargo: T) -> Result<PathBuf, DynError> {
-    let stdout = cmd!(
-        cargo.as_ref().to_owned(),
-        "locate-project",
-        "--workspace",
-        "--message-format",
-        "plain",
-    )
-    .read()?;
-
-    Ok(PathBuf::from(stdout.replace("Cargo.toml", "").trim()))
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -140,38 +132,31 @@ mod tests {
 
     #[test]
     fn it_initializes_a_workspace() {
-        let workspace = Workspace::new();
-        assert!(!workspace.cargo.is_empty());
+        let workspace = Workspace::new("fake-cargo", PathBuf::from("fake-root"));
+        assert!(!workspace.cargo_cmd.is_empty());
     }
 
     #[test]
     fn it_gets_path_to_workspace() {
-        let workspace = Workspace::new();
-        let root_path = root_path(get_cargo_cmd()).unwrap();
-        assert_eq!(workspace.path(), root_path);
+        let workspace = Workspace::new("fake-cargo", PathBuf::from("fake-root"));
+        assert!(!workspace.cargo_cmd.is_empty());
+        assert_eq!(workspace.path(), PathBuf::from("fake-root"));
     }
 
     #[test]
     fn it_gets_path_to_workspace_tmp_dir() {
-        let workspace = Workspace::new();
-        let root_path = root_path(get_cargo_cmd()).unwrap();
+        let root_path = PathBuf::from("fake-root");
+        let workspace = Workspace::new("fake-cargo", root_path.clone());
         assert_eq!(workspace.tmp_path(), root_path.join("tmp"));
     }
 
     #[test]
     fn it_gets_path_to_workspace_coverage_dir() {
-        let workspace = Workspace::new();
-        let root_path = root_path(get_cargo_cmd()).unwrap();
+        let root_path = PathBuf::from("fake-root");
+        let workspace = Workspace::new("fake-cargo", root_path.clone());
         assert_eq!(
             workspace.coverage_path(),
             root_path.join("tmp").join("coverage")
         );
-    }
-
-    #[test]
-    fn it_gets_path_to_workspace_manifest_file() {
-        let workspace = Workspace::new();
-        let root_path = root_path(get_cargo_cmd()).unwrap();
-        assert_eq!(workspace.manifest_path(), root_path.join("Cargo.toml"));
     }
 }

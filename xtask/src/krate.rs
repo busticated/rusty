@@ -6,13 +6,11 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use strum::ParseError;
 use strum_macros::{Display, EnumString};
-use toml::Table;
 
 type DynError = Box<dyn Error>;
 
 const TMP_DIRNAME: &str = "tmp";
 const COVERAGE_DIRNAME: &str = "coverage";
-const CARGO_TOML: &str = "Cargo.toml";
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Krate {
@@ -48,7 +46,7 @@ impl Krate {
     }
 
     pub fn from_path(path: PathBuf) -> Result<Krate, DynError> {
-        let toml = Toml::from_path(path.join(CARGO_TOML))?;
+        let toml = Toml::from_path(path.clone())?;
         let readme = Readme::from_path(path.clone())?;
         let kind = KrateKind::Library;
         let mut krate = Krate {
@@ -71,10 +69,6 @@ impl Krate {
     pub fn create_dirs(&self) -> Result<(), DynError> {
         Ok(fs::create_dir_all(self.coverage_path())?)
     }
-
-    pub fn manifest(&self) -> Result<Table, DynError> {
-        self.toml.read()
-    }
 }
 
 pub trait KratePaths {
@@ -86,10 +80,6 @@ pub trait KratePaths {
 
     fn coverage_path(&self) -> PathBuf {
         self.tmp_path().join(COVERAGE_DIRNAME)
-    }
-
-    fn manifest_path(&self) -> PathBuf {
-        self.path().join(CARGO_TOML)
     }
 }
 
@@ -228,19 +218,6 @@ mod tests {
         assert_eq!(
             krate.coverage_path(),
             PathBuf::from("fake-crate").join("tmp").join("coverage")
-        );
-    }
-
-    #[test]
-    fn it_gets_path_to_krate_manifest_file() {
-        let krate = Krate::new(
-            "my-crate",
-            "my-crate's description",
-            PathBuf::from("fake-crate"),
-        );
-        assert_eq!(
-            krate.manifest_path(),
-            PathBuf::from("fake-crate").join("Cargo.toml")
         );
     }
 }

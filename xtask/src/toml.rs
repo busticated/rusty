@@ -5,6 +5,8 @@ use toml::Table;
 
 type DynError = Box<dyn Error>;
 
+const CARGO_TOML: &str = "Cargo.toml";
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Toml {
     path: PathBuf,
@@ -12,15 +14,15 @@ pub struct Toml {
 }
 
 impl Toml {
-    pub fn new(path: PathBuf) -> Self {
+    pub fn new(crate_root: PathBuf) -> Self {
         Toml {
-            path,
+            path: crate_root.join(CARGO_TOML),
             ..Default::default()
         }
     }
 
-    pub fn from_path(path: PathBuf) -> Result<Self, DynError> {
-        let mut toml = Toml::new(path);
+    pub fn from_path(crate_root: PathBuf) -> Result<Self, DynError> {
+        let mut toml = Toml::new(crate_root);
         toml.load()
     }
 
