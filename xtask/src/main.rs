@@ -93,12 +93,18 @@ fn init_tasks() -> Tasks {
 
                 workspace.clean().unwrap_or(());
                 workspace.create_dirs()?;
+                cmd!(&workspace.cargo, "clean").run()?;
 
                 println!(":::: Done!");
                 Ok(())
             },
         },
         Task {
+            // TODO (mirande): oof. coverage is a bit h0rked atm - see:
+            // https://github.com/mozilla/grcov/issues/1103
+            // https://github.com/mozilla/grcov/issues/556
+            // https://github.com/mozilla/grcov/issues/802
+            // https://github.com/mozilla/grcov/issues/1042
             name: "coverage".into(),
             description: "run tests and generate html code coverage report".into(),
             run: |args, workspace, tasks| {
