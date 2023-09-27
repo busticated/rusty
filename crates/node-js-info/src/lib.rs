@@ -76,7 +76,7 @@ impl NodeJSInfo {
     /// use node_js_info::NodeJSInfo;
     /// let info = NodeJSInfo::from_env("20.6.1");
     /// ```
-    // TODO (mirande): reexport ParseError? or introduce customer error and convert?
+    // TODO (busticated): reexport ParseError? or introduce customer error and convert?
     pub fn from_env<T: AsRef<str>>(semver: T) -> Result<NodeJSInfo, ParseError> {
         let mut info = NodeJSInfo::new(semver);
         info.os = NodeJSOS::from_env().unwrap();
@@ -272,7 +272,7 @@ impl NodeJSInfo {
             Ok(r) => r,
         };
 
-        // TODO (mirande): handle 5xx errors
+        // TODO (busticated): handle 5xx errors
         if res.status().as_u16() >= 400 {
             return Err(format!("Unrecognized version! Received: {}", self.version))?
         }
