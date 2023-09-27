@@ -1,3 +1,4 @@
+use regex::Regex;
 use std::collections::BTreeMap;
 use std::error::Error;
 
@@ -13,9 +14,10 @@ pub struct Options {
 #[allow(dead_code)]
 impl Options {
     pub fn new(args: Vec<String>, flags: TaskFlags) -> Result<Self, DynError> {
+        let re = Regex::new(r"^-*")?;
         let args = args
             .iter()
-            .map(|x| x.trim().replace('-', "").to_lowercase())
+            .map(|x| re.replace_all(x.to_lowercase().trim(), "").to_string())
             .collect();
 
         for arg in &args {
@@ -44,4 +46,37 @@ macro_rules! task_flags {
     ($($k:expr => $v:expr),* $(,)?) => {{
         std::collections::BTreeMap::from([$(($k.to_string(), $v.to_string()),)*])
     }};
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_initializes() {
+        let flags = task_flags! {};
+        let args = vec![];
+        let opts = Options::new(args, flags).unwrap();
+        assert_eq!(opts.flags.len(), 0);
+        assert_eq!(opts.args.len(), 0);
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "called `Result::unwrap()` on an `Err` value: \"Unrecognized argument! nope\""
+    )]
+    fn it_fails_to_initialize_when_args_has_unrecognized_items() {
+        let flags = task_flags! {};
+        let args = vec!["nope".into()];
+        Options::new(args, flags).unwrap();
+    }
+
+    #[test]
+    fn it_checks_if_flag_is_set() {
+        let flags = task_flags! { "test-ok" => "it's a test" };
+        let args = vec!["--test-ok".into()];
+        let opts = Options::new(args, flags).unwrap();
+        assert!(opts.has("test-ok"));
+        assert!(!opts.has("nope"));
+    }
 }

@@ -106,12 +106,8 @@ impl KrateKind {
     pub fn like<N: AsRef<str>>(name: N) -> Result<KrateKind, ParseError> {
         let n = name.as_ref();
         match n {
-            "lib" => Ok(KrateKind::Library),
-            "--lib" => Ok(KrateKind::Library),
-            "library" => Ok(KrateKind::Library),
-            "bin" => Ok(KrateKind::Binary),
-            "--bin" => Ok(KrateKind::Binary),
-            "binary" => Ok(KrateKind::Binary),
+            "library" | "lib" | "--lib" => Ok(KrateKind::Library),
+            "binary" | "bin" | "--bin" => Ok(KrateKind::Binary),
             _ => KrateKind::from_str(n),
         }
     }
@@ -152,6 +148,10 @@ mod tests {
 
     #[test]
     fn it_initializes_a_krate_kind_with_kind_like() {
+        let krate = KrateKind::like("library").unwrap();
+
+        assert_eq!(krate, KrateKind::Library);
+
         let krate = KrateKind::like("lib").unwrap();
 
         assert_eq!(krate, KrateKind::Library);
@@ -159,6 +159,10 @@ mod tests {
         let krate = KrateKind::like("--lib").unwrap();
 
         assert_eq!(krate, KrateKind::Library);
+
+        let krate = KrateKind::like("binary").unwrap();
+
+        assert_eq!(krate, KrateKind::Binary);
 
         let krate = KrateKind::like("bin").unwrap();
 
