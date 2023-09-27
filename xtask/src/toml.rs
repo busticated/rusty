@@ -36,6 +36,30 @@ impl Toml {
         Ok(self.clone())
     }
 
+    pub fn create<N: AsRef<str>, D: AsRef<str>>(
+        &self,
+        name: N,
+        description: D,
+    ) -> Result<(), DynError> {
+        let name = name.as_ref();
+        let description = description.as_ref();
+        let lines = vec![
+            "[package]".to_string(),
+            format!("name = \"{}\"", name),
+            format!("description = \"{}\"", description),
+            "version = \"0.1.0\"".to_string(),
+            "edition.workspace = true".to_string(),
+            "license.workspace = true".to_string(),
+            "authors.workspace = true\n".to_string(),
+            "[dependencies]".to_string(),
+        ];
+        self.save(lines.join("\n"))
+    }
+
+    pub fn save(&self, data: String) -> Result<(), DynError> {
+        Ok(fs::write(&self.path, data)?)
+    }
+
     pub fn get_name(&self) -> Result<String, DynError> {
         let pkg = self
             .data

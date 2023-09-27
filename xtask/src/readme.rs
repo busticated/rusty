@@ -42,13 +42,19 @@ impl Readme {
         name: N,
         description: D,
     ) -> Result<(), DynError> {
-        let text = format!(
-            "# {}\n\n{}\n\n## Installation\n\n```shell\ncargo add {}\n```\n",
-            name.as_ref(),
-            description.as_ref(),
-            name.as_ref(),
-        );
-        self.save(text)
+        let name = name.as_ref();
+        let description = description.as_ref();
+        let lines = vec![
+            format!("# {}\n", name),
+            format!("[![Latest Version](https://img.shields.io/crates/v/{}.svg)](https://crates.io/crates/{})", name, name),
+            format!("[![Documentation](https://docs.rs/{}/badge.svg)](https://docs.rs/{})\n", name, name),
+            format!("{}\n", description),
+            "## Installation\n".to_string(),
+            "```shell".to_string(),
+            format!("cargo add {}", name),
+            "```".to_string(),
+        ];
+        self.save(lines.join("\n"))
     }
 
     pub fn save(&self, data: String) -> Result<(), DynError> {

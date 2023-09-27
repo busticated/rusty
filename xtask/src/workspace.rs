@@ -84,8 +84,6 @@ impl Workspace {
 
         krate.kind = KrateKind::like(kind.as_ref())?;
 
-        // TODO (mirande): find work-around to set `description`
-        // see: https://github.com/rust-lang/cargo/issues/12736
         cmd!(
             &self.cargo_cmd,
             "new",
@@ -97,6 +95,7 @@ impl Workspace {
         .run()?;
 
         krate.readme.create(&krate.name, &krate.description)?;
+        krate.toml.create(&krate.name, &krate.description)?;
 
         Ok(krate)
     }
