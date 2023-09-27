@@ -28,13 +28,12 @@ fn main() {
 
 fn try_main() -> Result<(), DynError> {
     let cargo_cmd = get_cargo_cmd();
-    let root_path = get_root_path(&cargo_cmd).unwrap();
+    let root_path = get_root_path(&cargo_cmd)?;
     let mut workspace = Workspace::from_path(cargo_cmd, root_path)?;
     let mut args: Vec<String> = env::args().collect();
 
     args.remove(0); // drop executable path
 
-    let tasks = init_tasks();
     let cmd = match args.get(0) {
         Some(x) => x.clone(),
         None => "".to_string(),
@@ -51,6 +50,7 @@ fn try_main() -> Result<(), DynError> {
     println!("Args: {:?}", args);
     println!();
 
+    let tasks = init_tasks();
     match tasks.get(cmd.clone()) {
         Some(task) => task.exec(args, &mut workspace, &tasks),
         None => print_help(cmd, args, tasks),
@@ -111,7 +111,7 @@ fn init_tasks() -> Tasks {
                 println!("::::::::::::::::::::::::::::");
                 println!();
 
-                workspace.clean().unwrap_or(());
+                workspace.clean().unwrap_or(()); // ignore error
                 workspace.create_dirs()?;
                 cmd!(&workspace.cargo_cmd, "clean", "--release").run()?;
 
@@ -132,14 +132,15 @@ fn init_tasks() -> Tasks {
                 "open" => "open coverage report for viewing"
             },
             run: |opts, workspace, tasks| {
-                let coverage_root = PathBuf::from("tmp/coverage").display().to_string();
-                let report = format!("{}/html/index.html", &coverage_root);
-                tasks.get("clean").unwrap().exec(vec![], workspace, tasks)?;
-
                 println!("::::::::::::::::::::::::::::::");
                 println!(":::: Calculating Coverage ::::");
                 println!("::::::::::::::::::::::::::::::");
                 println!();
+
+                let coverage_root = PathBuf::from("tmp/coverage").display().to_string();
+                let report = format!("{}/html/index.html", &coverage_root);
+
+                tasks.get("clean").unwrap().exec(vec![], workspace, tasks)?;
 
                 cmd!(&workspace.cargo_cmd, "test")
                     .env("CARGO_INCREMENTAL", "0")
@@ -249,7 +250,7 @@ fn init_tasks() -> Tasks {
                 let krates = workspace.krates()?;
 
                 for krate in krates.values() {
-                    println!("* {}: {}", krate.name, krate.path.to_str().unwrap());
+                    println!("* {}: {}", krate.name, krate.path.display());
                 }
 
                 println!();
@@ -264,12 +265,12 @@ fn init_tasks() -> Tasks {
             description: "create release artifacts".into(),
             flags: task_flags! {},
             run: |_opts, workspace, _tasks| {
-                let dist_dir = workspace.path().join("target/release");
                 println!(":::::::::::::::::::::::::::::::::::::::::::");
                 println!(":::: Building Project for Distribution ::::");
                 println!(":::::::::::::::::::::::::::::::::::::::::::");
                 println!();
 
+                let dist_dir = workspace.path().join("target/release");
                 cmd!(&workspace.cargo_cmd, "build", "--release").run()?;
 
                 println!(":::: Done!");
@@ -290,7 +291,6 @@ fn init_tasks() -> Tasks {
                 println!(":::: Building All Docs ::::");
                 println!(":::::::::::::::::::::::::::");
                 println!();
-
                 println!(":::: Updating Workspace README...");
                 println!(":::: Done: {}", workspace.readme.path.display());
                 println!();
