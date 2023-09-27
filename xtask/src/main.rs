@@ -121,7 +121,7 @@ fn init_tasks() -> Tasks {
             },
         },
         Task {
-            // TODO (mirande): oof. coverage is a bit h0rked atm - see:
+            // TODO (busticated): oof. coverage is a bit h0rked atm - see:
             // https://github.com/mozilla/grcov/issues/1103
             // https://github.com/mozilla/grcov/issues/556
             // https://github.com/mozilla/grcov/issues/802
@@ -356,13 +356,13 @@ fn init_tasks() -> Tasks {
                 println!("::::::::::::::::::::::::::::");
                 println!();
 
-                // TODO (mirande): "error: could not create link from
+                // TODO (busticated): "error: could not create link from
                 // 'C:\Users\runneradmin\.cargo\bin\rustup.exe'
                 // to 'C:\Users\runneradmin\.cargo\bin\cargo.exe'"
                 // see: https://github.com/rust-lang/rustup/issues/1367
                 //cmd!("rustup", "update").run()?;
                 cmd!("rustup", "toolchain", "list", "--verbose").run()?;
-                // TODO (mirande): is there a way to includes these in Cargo.toml or similar?
+                // TODO (busticated): is there a way to includes these in Cargo.toml or similar?
                 cmd!("rustup", "component", "add", "clippy").run()?;
                 cmd!("rustup", "component", "add", "llvm-tools-preview").run()?;
                 cmd!(&workspace.cargo_cmd, "install", "grcov").run()?;

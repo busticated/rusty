@@ -30,7 +30,7 @@ impl KratePaths for Krate {
 
 impl Krate {
     pub fn new<N: AsRef<str>, D: AsRef<str>>(name: N, description: D, path: PathBuf) -> Self {
-        let kind = KrateKind::Library; // TODO (mirande): lookup somehow instead of default'ing
+        let kind = KrateKind::Library; // TODO (busticated): lookup somehow instead of default'ing
         let name = name.as_ref().to_owned();
         let description = description.as_ref().to_owned();
         let readme = Readme::new(path.clone());
