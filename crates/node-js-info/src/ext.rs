@@ -1,19 +1,12 @@
-#[allow(unused_imports)]
+use crate::error::NodeJSInfoError;
+use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-use strum_macros::{Display, EnumString};
 
-#[derive(Clone, Debug, Display, EnumString, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum NodeJSPkgExt {
-    #[strum(serialize = "tar.gz")]
     Targz,
-
-    #[strum(serialize = "tar.xz")]
     Tarxz,
-
-    #[strum(serialize = "zip")]
     Zip,
-
-    #[strum(serialize = "msi")]
     Msi,
 }
 
@@ -26,6 +19,32 @@ impl Default for NodeJSPkgExt {
 impl NodeJSPkgExt {
     pub fn new() -> NodeJSPkgExt {
         NodeJSPkgExt::Targz
+    }
+}
+impl Display for NodeJSPkgExt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let arch = match self {
+            NodeJSPkgExt::Targz => "tar.gz",
+            NodeJSPkgExt::Tarxz => "tar.xz",
+            NodeJSPkgExt::Zip => "zip",
+            NodeJSPkgExt::Msi => "msi",
+        };
+
+        write!(f, "{}", arch)
+    }
+}
+
+impl FromStr for NodeJSPkgExt {
+    type Err = NodeJSInfoError;
+
+    fn from_str(s: &str) -> Result<NodeJSPkgExt, NodeJSInfoError> {
+        match s {
+            "tar.gz" => Ok(NodeJSPkgExt::Targz),
+            "tar.xz" => Ok(NodeJSPkgExt::Tarxz),
+            "zip" => Ok(NodeJSPkgExt::Zip),
+            "msi" => Ok(NodeJSPkgExt::Msi),
+            _ => Err(NodeJSInfoError::UnrecognizedExt(s.to_string())),
+        }
     }
 }
 
@@ -47,7 +66,28 @@ mod tests {
 
     #[test]
     fn it_initializes_from_str() {
+        let ext = NodeJSPkgExt::from_str("tar.gz").unwrap();
+
+        assert_eq!(ext, NodeJSPkgExt::Targz);
+
         let ext = NodeJSPkgExt::from_str("tar.xz").unwrap();
+
         assert_eq!(ext, NodeJSPkgExt::Tarxz);
+
+        let ext = NodeJSPkgExt::from_str("zip").unwrap();
+
+        assert_eq!(ext, NodeJSPkgExt::Zip);
+
+        let ext = NodeJSPkgExt::from_str("msi").unwrap();
+
+        assert_eq!(ext, NodeJSPkgExt::Msi);
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "called `Result::unwrap()` on an `Err` value: UnrecognizedExt(\"NOPE!\")"
+    )]
+    fn it_fails_when_arch_is_unrecognized() {
+        NodeJSPkgExt::from_str("NOPE!").unwrap();
     }
 }

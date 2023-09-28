@@ -1,17 +1,12 @@
+use crate::error::NodeJSInfoError;
 use std::env::consts::OS;
+use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-use strum::ParseError;
-use strum_macros::{Display, EnumString};
 
-#[derive(Clone, Debug, Display, EnumString, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum NodeJSOS {
-    #[strum(serialize = "linux")]
     Linux,
-
-    #[strum(serialize = "darwin")]
     Darwin,
-
-    #[strum(serialize = "win")]
     Windows,
 }
 
@@ -26,17 +21,33 @@ impl NodeJSOS {
         NodeJSOS::Linux
     }
 
-    pub fn like<N: AsRef<str>>(name: N) -> Result<NodeJSOS, ParseError> {
-        let n = name.as_ref();
-        match n {
-            "macos" => Ok(NodeJSOS::Darwin),
-            "windows" => Ok(NodeJSOS::Windows),
-            _ => NodeJSOS::from_str(n),
-        }
+    pub fn from_env() -> Result<NodeJSOS, NodeJSInfoError> {
+        NodeJSOS::from_str(OS)
     }
+}
 
-    pub fn from_env() -> Result<NodeJSOS, ParseError> {
-        NodeJSOS::like(OS)
+impl Display for NodeJSOS {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let os = match self {
+            NodeJSOS::Linux => "linux",
+            NodeJSOS::Darwin => "darwin",
+            NodeJSOS::Windows => "win",
+        };
+
+        write!(f, "{}", os)
+    }
+}
+
+impl FromStr for NodeJSOS {
+    type Err = NodeJSInfoError;
+
+    fn from_str(s: &str) -> Result<NodeJSOS, NodeJSInfoError> {
+        match s {
+            "linux" => Ok(NodeJSOS::Linux),
+            "darwin" | "macos" => Ok(NodeJSOS::Darwin),
+            "windows" | "win" => Ok(NodeJSOS::Windows),
+            _ => Err(NodeJSInfoError::UnrecognizedOs(s.to_string())),
+        }
     }
 }
 
@@ -59,34 +70,36 @@ mod tests {
     #[test]
     fn it_initializes_from_str() {
         let os = NodeJSOS::from_str("linux").unwrap();
+
         assert_eq!(os, NodeJSOS::Linux);
-    }
 
-    #[test]
-    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: VariantNotFound")]
-    fn it_fails_when_os_cannot_be_determined_from_str() {
-        NodeJSOS::from_str("NOPE!").unwrap();
-    }
-
-    #[test]
-    fn it_initializes_with_os_like() {
-        let os = NodeJSOS::like("macos").unwrap();
+        let os = NodeJSOS::from_str("darwin").unwrap();
 
         assert_eq!(os, NodeJSOS::Darwin);
 
-        let os = NodeJSOS::like("linux").unwrap();
+        let os = NodeJSOS::from_str("macos").unwrap();
 
-        assert_eq!(os, NodeJSOS::Linux);
-    }
+        assert_eq!(os, NodeJSOS::Darwin);
 
-    #[test]
-    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: VariantNotFound")]
-    fn it_fails_when_os_is_unrecognized() {
-        NodeJSOS::like("NOPE!").unwrap();
+        let os = NodeJSOS::from_str("windows").unwrap();
+
+        assert_eq!(os, NodeJSOS::Windows);
+
+        let os = NodeJSOS::from_str("win").unwrap();
+
+        assert_eq!(os, NodeJSOS::Windows);
     }
 
     #[test]
     fn it_initializes_using_current_environment() {
         NodeJSOS::from_env().unwrap();
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "called `Result::unwrap()` on an `Err` value: UnrecognizedOs(\"NOPE!\")"
+    )]
+    fn it_fails_when_os_cannot_be_determined_from_str() {
+        NodeJSOS::from_str("NOPE!").unwrap();
     }
 }

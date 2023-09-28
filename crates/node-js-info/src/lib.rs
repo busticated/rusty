@@ -2,19 +2,17 @@
 
 mod os;
 mod arch;
+mod error;
 mod ext;
 mod url;
 
 use std::string::ToString;
-use std::error::Error;
 use semver::Version;
-use strum::ParseError;
 pub use crate::os::NodeJSOS;
 pub use crate::arch::NodeJSArch;
+pub use crate::error::NodeJSInfoError;
 use crate::ext::NodeJSPkgExt;
 use crate::url::NodeJSURLFormatter;
-
-type DynError = Box<dyn Error>;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct NodeJSInfo {
@@ -66,11 +64,10 @@ impl NodeJSInfo {
     /// use node_js_info::NodeJSInfo;
     /// let info = NodeJSInfo::from_env("20.6.1");
     /// ```
-    // TODO (busticated): reexport ParseError? or introduce customer error and convert?
-    pub fn from_env<T: AsRef<str>>(semver: T) -> Result<NodeJSInfo, ParseError> {
+    pub fn from_env<T: AsRef<str>>(semver: T) -> Result<NodeJSInfo, NodeJSInfoError> {
         let mut info = NodeJSInfo::new(semver);
-        info.os = NodeJSOS::from_env().unwrap();
-        info.arch = NodeJSArch::from_env().unwrap();
+        info.os = NodeJSOS::from_env()?;
+        info.arch = NodeJSArch::from_env()?;
         info.ext = match info.os {
             NodeJSOS::Windows => NodeJSPkgExt::Zip,
             _ => NodeJSPkgExt::Targz,
@@ -251,7 +248,7 @@ impl NodeJSInfo {
     /// # Examples
     ///
     /// ```rust
-    /// use node_js_info::NodeJSInfo;
+    /// use node_js_info::{NodeJSInfo, NodeJSInfoError};
     /// let info = NodeJSInfo::new("20.6.1");
     /// assert_eq!(info.to_json_string(), "{\"version\":\"20.6.1\",\"os\":\"linux\",\"arch\":\"x64\",\"filename\":\"node-v20.6.1-linux-x64.tar.gz\",\"sha256\":\"\",\"url\":\"\"}");
     /// ```
@@ -274,10 +271,10 @@ impl NodeJSInfo {
     /// # Examples
     ///
     /// ```rust
-    /// use node_js_info::NodeJSInfo;
+    /// use node_js_info::{NodeJSInfo, NodeJSInfoError};
     ///
     /// #[tokio::main]
-    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// async fn main() -> Result<(), NodeJSInfoError> {
     ///   let info = NodeJSInfo::new("20.6.1").macos().arm64().fetch().await?;
     ///   assert_eq!(info.version, "20.6.1");
     ///   assert_eq!(info.filename, "node-v20.6.1-darwin-arm64.tar.gz");
@@ -286,25 +283,25 @@ impl NodeJSInfo {
     ///   Ok(())
     /// }
     /// ```
-    pub async fn fetch(&mut self) -> Result<Self, DynError> {
+    pub async fn fetch(&mut self) -> Result<Self, NodeJSInfoError> {
         self.version = match Version::parse(self.version.as_str()) {
-            Err(e) => return Err(Box::new(e)),
+            Err(_) => return Err(NodeJSInfoError::InvalidVersion(self.version.clone())),
             Ok(v) => v.to_string(),
         };
 
         let info_url = self.url_fmt.info(&self.version);
         let res = match reqwest::get(info_url.as_str()).await {
-            Err(e) => return Err(Box::new(e)),
+            Err(e) => return Err(NodeJSInfoError::HttpError(e)),
             Ok(r) => r,
         };
 
         // TODO (busticated): handle 5xx errors
         if res.status().as_u16() >= 400 {
-            return Err(format!("Unrecognized version! Received: {}", self.version))?
+            return Err(NodeJSInfoError::UnrecognizedVersion(self.version.clone()));
         }
 
         let body = match res.text().await {
-            Err(e) => return Err(Box::new(e)),
+            Err(e) => return Err(NodeJSInfoError::HttpError(e)),
             Ok(b) => b,
         };
 
@@ -314,7 +311,7 @@ impl NodeJSInfo {
         });
 
         let mut specs = match info {
-            None => return Err(format!("Unrecognized configuration! Using: {}", filename))?,
+            None => return Err(NodeJSInfoError::UnrecognizedConfiguration(filename))?,
             Some(s) => s.split_whitespace(),
         };
 
@@ -508,14 +505,14 @@ mod tests {
     }
 
     #[tokio::test]
-    #[should_panic(expected = "unexpected character 'N' while parsing major version number")]
+    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: InvalidVersion(\"NOPE!\")")]
     async fn it_fails_to_fetch_info_when_version_is_invalid() {
         let mut info = NodeJSInfo::new("NOPE!");
         info.fetch().await.unwrap();
     }
 
     #[tokio::test]
-    #[should_panic(expected = "Unrecognized version! Received: 1.0.0")]
+    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: UnrecognizedVersion(\"1.0.0\")")]
     async fn it_fails_to_fetch_info_when_version_is_unrecognized() {
         let version = "1.0.0";
         let mut info = NodeJSInfo::new(version);
@@ -531,7 +528,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[should_panic(expected = "Unrecognized configuration! Using: node-v20.6.1-linux-x64.zip")]
+    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: UnrecognizedConfiguration(\"node-v20.6.1-linux-x64.zip\")")]
     async fn it_fails_to_fetch_info_when_configuration_is_unrecognized() {
         let version = "20.6.1";
         let mut server = Server::new_async().await;

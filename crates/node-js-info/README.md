@@ -14,10 +14,10 @@ cargo add node-js-info
 ## Examples
 
 ```rust
-use node_js_info::NodeJSInfo;
+use node_js_info::{NodeJSInfo, NodeJSInfoError};
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<(), NodeJSInfoError> {
   let info = NodeJSInfo::new("20.6.1").macos().arm64().fetch().await?;
   assert_eq!(info.version, "20.6.1");
   assert_eq!(info.filename, "node-v20.6.1-darwin-arm64.tar.gz");
