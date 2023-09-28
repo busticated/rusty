@@ -218,7 +218,7 @@ impl NodeJSInfo {
         self
     }
 
-    /// Sets instance `ext` field to `.zip`
+    /// Sets instance `ext` field to `zip`
     ///
     /// # Examples
     ///
@@ -228,6 +228,19 @@ impl NodeJSInfo {
     /// ```
     pub fn zip(&mut self) -> &mut Self {
         self.ext = NodeJSPkgExt::Zip;
+        self
+    }
+
+    /// Sets instance `ext` field to `msi`
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use node_js_info::NodeJSInfo;
+    /// let info = NodeJSInfo::new("20.6.1").msi();
+    /// ```
+    pub fn msi(&mut self) -> &mut Self {
+        self.ext = NodeJSPkgExt::Msi;
         self
     }
 
@@ -282,7 +295,7 @@ impl NodeJSInfo {
             Ok(b) => b,
         };
 
-        let filename = format!("node-v{}-{}-{}.{}", self.version, self.os, self.arch, self.ext);
+        let filename = self.filename();
         let info = body.lines().find(|&line| {
             line.contains(filename.as_str())
         });
@@ -296,6 +309,18 @@ impl NodeJSInfo {
         self.sha256 = specs.nth(0).unwrap().to_string();
         self.url = self.url_fmt.pkg(&self.version, &self.filename);
         Ok(self.to_owned())
+    }
+
+    /// PRIVATE - Formats filename string - e.g. `node-v20.6.1-linux-x64.tar.gz`
+    fn filename(&self) -> String {
+        let arch = self.arch.to_string();
+        let ext = self.ext.to_string();
+
+        if self.ext == NodeJSPkgExt::Msi {
+            return format!("node-v{}-{}.{}", self.version, arch, ext);
+        }
+
+        format!("node-v{}-{}-{}.{}", self.version, self.os, arch, ext)
     }
 }
 
@@ -410,6 +435,10 @@ mod tests {
         info.tar_xz();
 
         assert_eq!(info.ext, NodeJSPkgExt::Tarxz);
+
+        info.msi();
+
+        assert_eq!(info.ext, NodeJSPkgExt::Msi);
     }
 
     #[test]
@@ -422,6 +451,17 @@ mod tests {
         info1.windows();
 
         assert_ne!(info1, info2);
+    }
+
+    #[test]
+    fn it_formats_filename() {
+        let info = NodeJSInfo::new("1.0.0").macos().x64().zip().to_owned();
+
+        assert_eq!(info.filename(), "node-v1.0.0-darwin-x64.zip");
+
+        let info = NodeJSInfo::new("1.0.0").windows().x64().msi().to_owned();
+
+        assert_eq!(info.filename(), "node-v1.0.0-x64.msi");
     }
 
     #[tokio::test]
@@ -478,6 +518,24 @@ mod tests {
         assert_eq!(info.filename, "node-v20.6.1-linux-x64.tar.gz");
         assert_eq!(info.url, format!("{}{}", server.url(), "/download/release/v20.6.1/node-v20.6.1-linux-x64.tar.gz"));
         assert_eq!(info.sha256, "26dd13a6f7253f0ab9bcab561353985a297d927840771d905566735b792868da");
+    }
+
+    #[tokio::test]
+    async fn it_fetches_node_js_info_when_ext_is_msi() {
+        let version = "20.6.1";
+        let mut info = NodeJSInfo::new(version).arm64().msi().to_owned();
+        let mut server = Server::new_async().await;
+        let mock = setup_server_mock(version, &mut info, &mut server)
+            .with_body(get_fake_info())
+            .create_async()
+            .await;
+
+        info.fetch().await.unwrap();
+        mock.assert_async().await;
+
+        assert_eq!(info.filename, "node-v20.6.1-arm64.msi");
+        assert_eq!(info.url, format!("{}{}", server.url(), "/download/release/v20.6.1/node-v20.6.1-arm64.msi"));
+        assert_eq!(info.sha256, "9471bd6dc491e09c31b0f831f5953284b8a6842ed4ccb98f5c62d13e6086c471");
     }
 
     fn setup_server_mock(version: &str, info: &mut NodeJSInfo, server: &mut Server) -> Mock {

@@ -12,6 +12,9 @@ pub enum NodeJSPkgExt {
 
     #[strum(serialize = "zip")]
     Zip,
+
+    #[strum(serialize = "msi")]
+    Msi,
 }
 
 impl Default for NodeJSPkgExt {
