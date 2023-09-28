@@ -1,4 +1,5 @@
 //! Asynchronously retrieve Node.js release info by version and platform
+//! from the [releases download server](https://nodejs.org/download/release/)
 //!
 //! # Examples
 //!
@@ -25,27 +26,33 @@ use std::string::ToString;
 use std::error::Error;
 use semver::Version;
 use strum::ParseError;
-use crate::arch::NodeJSArch;
+pub use crate::os::NodeJSOS;
+pub use crate::arch::NodeJSArch;
 use crate::ext::NodeJSPkgExt;
 use crate::url::NodeJSURLFormatter;
-use crate::os::NodeJSOS;
 
 type DynError = Box<dyn Error>;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct NodeJSInfo {
+    /// The operating system for the Node.js distributable you are targeting
     pub os: NodeJSOS,
+    /// The CPU architecture for the Node.js distributable you are targeting
     pub arch: NodeJSArch,
-    pub ext: NodeJSPkgExt,
+    /// The version of Node.js you are targeting as a [semver](https://semver.org) string
     pub version: String,
+    /// The filename of the Node.js distributable (populated after fetching)
     pub filename: String,
+    /// The hash for the Node.js distributable (populated after fetching)
     pub sha256: String,
+    /// The fully qualified url for the Node.js distributable (populated after fetching)
     pub url: String,
-    pub url_fmt: NodeJSURLFormatter,
+    ext: NodeJSPkgExt,
+    url_fmt: NodeJSURLFormatter,
 }
 
 impl NodeJSInfo {
-    /// Create a new instance using default settings
+    /// Creates a new instance using default settings
     ///
     /// # Arguments
     ///
@@ -64,7 +71,7 @@ impl NodeJSInfo {
         }
     }
 
-    /// Create a new instance mirroring current environment based on `std::env::consts::OS` and `std::env::consts::ARCH`
+    /// Creates a new instance mirroring current environment based on `std::env::consts::OS` and `std::env::consts::ARCH`
     ///
     /// # Arguments
     ///
@@ -256,7 +263,7 @@ impl NodeJSInfo {
         self.clone()
     }
 
-    /// Fetch Node.js metadata from releases download server
+    /// Fetches Node.js metadata from the [releases download server](https://nodejs.org/download/release/)
     ///
     /// # Examples
     ///
@@ -311,7 +318,6 @@ impl NodeJSInfo {
         Ok(self.to_owned())
     }
 
-    /// PRIVATE - Formats filename string - e.g. `node-v20.6.1-linux-x64.tar.gz`
     fn filename(&self) -> String {
         let arch = self.arch.to_string();
         let ext = self.ext.to_string();
