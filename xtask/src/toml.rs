@@ -50,7 +50,8 @@ impl Toml {
             "version = \"0.1.0\"".to_string(),
             "edition.workspace = true".to_string(),
             "license.workspace = true".to_string(),
-            "authors.workspace = true\n".to_string(),
+            "authors.workspace = true".to_string(),
+            "repository.workspace = true\n".to_string(),
             "[dependencies]".to_string(),
         ];
         self.save(lines.join("\n"))
