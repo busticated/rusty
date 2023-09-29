@@ -40,6 +40,7 @@ impl Task {
         Ok(())
     }
 }
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Tasks {
     map: BTreeMap<String, Task>,
@@ -63,9 +64,10 @@ impl Tasks {
     }
 
     pub fn help(&self) -> Result<String, DynError> {
-        let separator = " ".to_string();
+        let separator = ".".to_string();
         let mut lines = String::new();
         let mut max_col_width = 0;
+        let padding = 4;
 
         for name in self.map.keys() {
             let char_count = name.char_indices().count();
@@ -77,9 +79,19 @@ impl Tasks {
 
         for task in self.map.values() {
             let char_count = task.name.char_indices().count();
-            let spaces = separator.repeat(max_col_width - char_count + 4);
+            let spaces = separator.repeat(max_col_width - char_count + padding);
             let line = format!("> {}{}{}\n", task.name, spaces, task.description);
-            lines.push_str(&line)
+
+            lines.push_str(&line);
+
+            for (name, description) in task.flags.iter() {
+                let separator = " ".to_string();
+                let spaces = separator.repeat(max_col_width + padding);
+                let line = format!("\n{}  > --{} | {}\n", spaces, name, description);
+                lines.push_str(&line);
+            }
+
+            lines.push('\n');
         }
 
         Ok(lines)
@@ -89,6 +101,7 @@ impl Tasks {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::task_flags;
 
     #[test]
     fn it_initializes_a_task() {
@@ -140,5 +153,47 @@ mod tests {
         assert_eq!(task.name, "one");
         assert_eq!(task.description, "task 01");
         assert_eq!(tasks.map.len(), 2);
+    }
+
+    #[test]
+    fn it_gets_help_text() {
+        let mut tasks = Tasks::new();
+        tasks.add(vec![
+            Task {
+                name: "one".into(),
+                description: "task 01".into(),
+                flags: task_flags! {
+                    "foo" => "does the foo",
+                    "bar" => "enables bar",
+                },
+                run: |_, _, _| Ok(()),
+            },
+            Task {
+                name: "two".into(),
+                description: "task 02".into(),
+                flags: task_flags! {
+                    "baz" => "invokes a baz",
+                },
+                run: |_, _, _| Ok(()),
+            },
+        ]);
+
+        assert_eq!(
+            tasks.help().unwrap(),
+            [
+                "> one....task 01",
+                "",
+                "         > --bar | enables bar",
+                "",
+                "         > --foo | does the foo",
+                "",
+                "> two....task 02",
+                "",
+                "         > --baz | invokes a baz",
+                "",
+                "",
+            ]
+            .join("\n")
+        );
     }
 }

@@ -65,7 +65,7 @@ fn print_help(cmd: String, _args: Vec<String>, tasks: Tasks) -> Result<(), DynEr
     println!("{}", tasks.help()?);
     println!();
 
-    if !cmd.is_empty() && cmd != "help" {
+    if !(cmd.is_empty() || cmd == "help" || cmd == "--help") {
         let msg = format!("Unrecognized Command! Received: '{}'", cmd);
         return Err(msg.into());
     }
