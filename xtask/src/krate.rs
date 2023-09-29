@@ -1,11 +1,10 @@
 use crate::readme::Readme;
 use crate::toml::Toml;
 use std::error::Error;
+use std::fmt::{Display, Formatter};
 use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
-use strum::ParseError;
-use strum_macros::{Display, EnumString};
 
 type DynError = Box<dyn Error>;
 
@@ -83,12 +82,9 @@ pub trait KratePaths {
     }
 }
 
-#[derive(Clone, Debug, Display, EnumString, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum KrateKind {
-    #[strum(serialize = "--lib")]
     Library,
-
-    #[strum(serialize = "--bin")]
     Binary,
 }
 
@@ -102,13 +98,27 @@ impl KrateKind {
     pub fn new() -> KrateKind {
         KrateKind::Library
     }
+}
 
-    pub fn like<N: AsRef<str>>(name: N) -> Result<KrateKind, ParseError> {
-        let n = name.as_ref();
-        match n {
-            "library" | "lib" | "--lib" => Ok(KrateKind::Library),
+impl Display for KrateKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let arch = match self {
+            KrateKind::Binary => "--bin",
+            KrateKind::Library => "--lib",
+        };
+
+        write!(f, "{}", arch)
+    }
+}
+
+impl FromStr for KrateKind {
+    type Err = DynError;
+
+    fn from_str(s: &str) -> Result<KrateKind, DynError> {
+        match s {
             "binary" | "bin" | "--bin" => Ok(KrateKind::Binary),
-            _ => KrateKind::from_str(n),
+            "library" | "lib" | "--lib" => Ok(KrateKind::Library),
+            _ => Err(format!("Unrecognized input: {}", s).into()),
         }
     }
 }
@@ -131,9 +141,25 @@ mod tests {
 
     #[test]
     fn it_initializes_a_krate_kind_from_str() {
+        let krate = KrateKind::from_str("library").unwrap();
+
+        assert_eq!(krate, KrateKind::Library);
+
+        let krate = KrateKind::from_str("lib").unwrap();
+
+        assert_eq!(krate, KrateKind::Library);
+
         let krate = KrateKind::from_str("--lib").unwrap();
 
         assert_eq!(krate, KrateKind::Library);
+
+        let krate = KrateKind::from_str("binary").unwrap();
+
+        assert_eq!(krate, KrateKind::Binary);
+
+        let krate = KrateKind::from_str("bin").unwrap();
+
+        assert_eq!(krate, KrateKind::Binary);
 
         let krate = KrateKind::from_str("--bin").unwrap();
 
@@ -141,42 +167,11 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: VariantNotFound")]
+    #[should_panic(
+        expected = "called `Result::unwrap()` on an `Err` value: \"Unrecognized input: NOPE!\""
+    )]
     fn it_fails_to_initialize_when_krate_kind_cannot_be_determined_from_str() {
         KrateKind::from_str("NOPE!").unwrap();
-    }
-
-    #[test]
-    fn it_initializes_a_krate_kind_with_kind_like() {
-        let krate = KrateKind::like("library").unwrap();
-
-        assert_eq!(krate, KrateKind::Library);
-
-        let krate = KrateKind::like("lib").unwrap();
-
-        assert_eq!(krate, KrateKind::Library);
-
-        let krate = KrateKind::like("--lib").unwrap();
-
-        assert_eq!(krate, KrateKind::Library);
-
-        let krate = KrateKind::like("binary").unwrap();
-
-        assert_eq!(krate, KrateKind::Binary);
-
-        let krate = KrateKind::like("bin").unwrap();
-
-        assert_eq!(krate, KrateKind::Binary);
-
-        let krate = KrateKind::like("--bin").unwrap();
-
-        assert_eq!(krate, KrateKind::Binary);
-    }
-
-    #[test]
-    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: VariantNotFound")]
-    fn it_fails_when_krate_kind_is_unrecognized() {
-        KrateKind::like("NOPE!").unwrap();
     }
 
     #[test]

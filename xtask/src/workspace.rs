@@ -6,6 +6,7 @@ use std::collections::BTreeMap;
 use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 type DynError = Box<dyn Error>;
 
@@ -82,7 +83,7 @@ impl Workspace {
         let path = self.krates_path().join(name.as_ref());
         let mut krate = Krate::new(name, description, path);
 
-        krate.kind = KrateKind::like(kind.as_ref())?;
+        krate.kind = KrateKind::from_str(kind.as_ref())?;
 
         cmd!(
             &self.cargo_cmd,
