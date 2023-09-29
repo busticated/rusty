@@ -7,9 +7,11 @@ fn it_provides_expected_resources() {
     let info = NodeJSInfo::new(VERSION);
     let os = NodeJSOS::Linux;
     let arch = NodeJSArch::X64;
+    let ext = NodeJSPkgExt::Targz;
     assert_eq!(info.version, VERSION);
     assert_eq!(info.os, os);
     assert_eq!(info.arch, arch);
+    assert_eq!(info.ext, ext);
 }
 
 #[tokio::test]

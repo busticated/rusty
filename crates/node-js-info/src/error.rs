@@ -10,7 +10,7 @@ pub enum NodeJSInfoError {
     /// unrecognized - see: [`NodeJSArch`](crate::NodeJSArch) for options
     UnrecognizedArch(String),
     /// The file extension of the Node.js distributable you are targeting is
-    /// unrecognized - see: [`NodeJSInfo`](crate::NodeJSInfo) for options
+    /// unrecognized - see: [`NodeJSPkgExt`](crate::NodeJSPkgExt) for options
     UnrecognizedExt(String),
     /// The version string provided is invalid - see: [semver](https://semver.org)
     InvalidVersion(String),

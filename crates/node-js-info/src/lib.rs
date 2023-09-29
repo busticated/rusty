@@ -11,7 +11,7 @@ use semver::Version;
 pub use crate::os::NodeJSOS;
 pub use crate::arch::NodeJSArch;
 pub use crate::error::NodeJSInfoError;
-use crate::ext::NodeJSPkgExt;
+pub use crate::ext::NodeJSPkgExt;
 use crate::url::NodeJSURLFormatter;
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -20,6 +20,8 @@ pub struct NodeJSInfo {
     pub os: NodeJSOS,
     /// The CPU architecture for the Node.js distributable you are targeting
     pub arch: NodeJSArch,
+    /// The file extension for the Node.js distributable you are targeting
+    pub ext: NodeJSPkgExt,
     /// The version of Node.js you are targeting as a [semver](https://semver.org) string
     pub version: String,
     /// The filename of the Node.js distributable (populated after fetching)
@@ -28,7 +30,6 @@ pub struct NodeJSInfo {
     pub sha256: String,
     /// The fully qualified url for the Node.js distributable (populated after fetching)
     pub url: String,
-    ext: NodeJSPkgExt,
     url_fmt: NodeJSURLFormatter,
 }
 
