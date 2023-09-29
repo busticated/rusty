@@ -6,8 +6,7 @@ on:
       - ".github/workflows/**.yml"
       - "**/Cargo.toml"
       - "**.rs"
-  schedule:
-    - cron: '0 16 * * WED'
+  workflow_dispatch:
 
 jobs:
   test:
