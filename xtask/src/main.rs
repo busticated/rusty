@@ -292,11 +292,18 @@ fn init_tasks() -> Tasks {
                 println!(":::::::::::::::::::::::::::");
                 println!();
                 println!(":::: Updating Workspace README...");
-                println!(":::: Done: {}", workspace.readme.path.display());
-                println!();
 
                 let krates = workspace.krates()?;
+                let readme_path = workspace.readme.path.clone();
+
                 workspace.readme.update_crates_list(krates)?;
+
+                println!(":::: Done: {:?}", readme_path);
+                println!();
+
+                if opts.has("open") {
+                    cmd!("open", readme_path.to_str().unwrap()).run()?;
+                }
 
                 println!(":::: Testing Examples...");
                 println!();
