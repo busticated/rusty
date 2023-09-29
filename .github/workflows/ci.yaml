@@ -2,6 +2,10 @@ name: Run CI/CD Jobs
 
 on:
   push:
+    paths:
+      - ".github/workflows/**.yml"
+      - "**/Cargo.toml"
+      - "**.rs"
   schedule:
     - cron: '0 16 * * WED'
 
