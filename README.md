@@ -1,6 +1,6 @@
 # Rusty
 
-[![Actions Status](https://github.com/busticated/rusty/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/busticated/rusty/actions) [![Rust Version Support](https://img.shields.io/badge/rust%20version-%3E%3D1.72.1-orange)](https://releases.rs/) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/busticated/rusty/blob/master/LICENSE)
+[![CI Status](https://github.com/busticated/rusty/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/busticated/rusty/actions) [![Rust Version Support](https://img.shields.io/badge/rust%20version-%3E%3D1.72.1-orange)](https://releases.rs/) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/busticated/rusty/blob/master/LICENSE)
 
 A `cargo` workspace ([docs](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html)) monorepo ([info](https://en.wikipedia.org/wiki/Monorepo)) hosting a collection of Rust utility crates.
 
@@ -20,8 +20,8 @@ A `cargo` workspace ([docs](https://doc.rust-lang.org/book/ch14-03-cargo-workspa
 ## Crates
 
 <!-- crate-list-start -->
-* [node-js-info](crates/node-js-info)
-	* Asynchronously retrieve Node.js release info by version and platform
+* [node-js-release-info](crates/node-js-release-info)
+	* Asynchronously retrieve Node.js release info by version and platform from the [downloads server](https://nodejs.org/download/release/)
 <!-- crate-list-end -->
 
 ## Development

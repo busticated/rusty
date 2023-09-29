@@ -122,6 +122,7 @@ mod tests {
                 "",
                 "[![Latest Version](https://img.shields.io/crates/v/my-crate.svg)](https://crates.io/crates/my-crate)",
                 "[![Documentation](https://docs.rs/my-crate/badge.svg)](https://docs.rs/my-crate)",
+                "[![CI Status](https://github.com/busticated/rusty/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/busticated/rusty/actions)",
                 "",
                 "my-crate description",
                 "",
