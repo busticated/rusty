@@ -41,6 +41,14 @@ impl Toml {
         name: N,
         description: D,
     ) -> Result<(), DynError> {
+        self.save(self.render(name, description))
+    }
+
+    pub fn save(&self, data: String) -> Result<(), DynError> {
+        Ok(fs::write(&self.path, data)?)
+    }
+
+    pub fn render<N: AsRef<str>, D: AsRef<str>>(&self, name: N, description: D) -> String {
         let name = name.as_ref();
         let description = description.as_ref();
         let lines = vec![
@@ -51,14 +59,11 @@ impl Toml {
             "edition.workspace = true".to_string(),
             "license.workspace = true".to_string(),
             "authors.workspace = true".to_string(),
-            "repository.workspace = true\n".to_string(),
+            "repository.workspace = true".to_string(),
+            "".to_string(),
             "[dependencies]".to_string(),
         ];
-        self.save(lines.join("\n"))
-    }
-
-    pub fn save(&self, data: String) -> Result<(), DynError> {
-        Ok(fs::write(&self.path, data)?)
+        lines.join("\n")
     }
 
     pub fn get_name(&self) -> Result<String, DynError> {
@@ -113,4 +118,39 @@ fn format_invalid_field_msg(field: &str, path: &Path) -> String {
         field,
         path.display()
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_initializes() {
+        let fake_crate_root = PathBuf::from("fake-crate-root");
+        let toml = Toml::new(fake_crate_root);
+        assert_eq!(toml.data.len(), 0);
+        assert_eq!(toml.path, PathBuf::from("fake-crate-root/Cargo.toml"));
+    }
+
+    #[test]
+    fn it_renders() {
+        let fake_crate_root = PathBuf::from("fake-crate-root");
+        let toml = Toml::new(fake_crate_root);
+        assert_eq!(
+            toml.render("my-crate", "my-crate description"),
+            [
+                "[package]",
+                "name = \"my-crate\"",
+                "description = \"my-crate description\"",
+                "version = \"0.1.0\"",
+                "edition.workspace = true",
+                "license.workspace = true",
+                "authors.workspace = true",
+                "repository.workspace = true",
+                "",
+                "[dependencies]",
+            ]
+            .join("\n")
+        );
+    }
 }

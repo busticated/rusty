@@ -42,23 +42,31 @@ impl Readme {
         name: N,
         description: D,
     ) -> Result<(), DynError> {
-        let name = name.as_ref();
-        let description = description.as_ref();
-        let lines = vec![
-            format!("# {}\n", name),
-            format!("[![Latest Version](https://img.shields.io/crates/v/{}.svg)](https://crates.io/crates/{})", name, name),
-            format!("[![Documentation](https://docs.rs/{}/badge.svg)](https://docs.rs/{})\n", name, name),
-            format!("{}\n", description),
-            "## Installation\n".to_string(),
-            "```shell".to_string(),
-            format!("cargo add {}", name),
-            "```".to_string(),
-        ];
-        self.save(lines.join("\n"))
+        self.save(self.render(name, description))
     }
 
     pub fn save(&self, data: String) -> Result<(), DynError> {
         Ok(fs::write(&self.path, data)?)
+    }
+
+    pub fn render<N: AsRef<str>, D: AsRef<str>>(&self, name: N, description: D) -> String {
+        let name = name.as_ref();
+        let description = description.as_ref();
+        let lines = vec![
+            format!("# {}", name),
+            "".to_string(),
+            format!("[![Latest Version](https://img.shields.io/crates/v/{}.svg)](https://crates.io/crates/{})", name, name),
+            format!("[![Documentation](https://docs.rs/{}/badge.svg)](https://docs.rs/{})", name, name),
+            "".to_string(),
+            format!("{}", description),
+            "".to_string(),
+            "## Installation".to_string(),
+            "".to_string(),
+            "```shell".to_string(),
+            format!("cargo add {}", name),
+            "```".to_string(),
+        ];
+        lines.join("\n")
     }
 
     pub fn update_crates_list(
@@ -87,5 +95,41 @@ impl Readme {
         entries.push_str(marker_end);
         let updated = re.replace(&self.text, &entries);
         self.save(updated.as_ref().to_owned())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_initializes() {
+        let fake_crate_root = PathBuf::from("fake-crate-root");
+        let readme = Readme::new(fake_crate_root);
+        assert_eq!(readme.text, "");
+        assert_eq!(readme.path, PathBuf::from("fake-crate-root/README.md"));
+    }
+
+    #[test]
+    fn it_renders() {
+        let fake_crate_root = PathBuf::from("fake-crate-root");
+        let readme = Readme::new(fake_crate_root);
+        assert_eq!(
+            readme.render("my-crate", "my-crate description"),
+            [
+                "# my-crate",
+                "",
+                "[![Latest Version](https://img.shields.io/crates/v/my-crate.svg)](https://crates.io/crates/my-crate)",
+                "[![Documentation](https://docs.rs/my-crate/badge.svg)](https://docs.rs/my-crate)",
+                "",
+                "my-crate description",
+                "",
+                "## Installation",
+                "",
+                "```shell",
+                "cargo add my-crate",
+                "```",
+            ].join("\n")
+        );
     }
 }
