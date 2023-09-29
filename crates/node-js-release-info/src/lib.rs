@@ -10,12 +10,12 @@ use std::string::ToString;
 use semver::Version;
 pub use crate::os::NodeJSOS;
 pub use crate::arch::NodeJSArch;
-pub use crate::error::NodeJSInfoError;
+pub use crate::error::NodeJSRelInfoError;
 pub use crate::ext::NodeJSPkgExt;
 use crate::url::NodeJSURLFormatter;
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct NodeJSInfo {
+pub struct NodeJSRelInfo {
     /// The operating system for the Node.js distributable you are targeting
     pub os: NodeJSOS,
     /// The CPU architecture for the Node.js distributable you are targeting
@@ -33,7 +33,7 @@ pub struct NodeJSInfo {
     url_fmt: NodeJSURLFormatter,
 }
 
-impl NodeJSInfo {
+impl NodeJSRelInfo {
     /// Creates a new instance using default settings
     ///
     /// # Arguments
@@ -43,11 +43,11 @@ impl NodeJSInfo {
     /// # Examples
     ///
     /// ```rust
-    /// use node_js_info::NodeJSInfo;
-    /// let info = NodeJSInfo::new("20.6.1");
+    /// use node_js_release_info::NodeJSRelInfo;
+    /// let info = NodeJSRelInfo::new("20.6.1");
     /// ```
     pub fn new<T: AsRef<str>>(semver: T) -> Self {
-        NodeJSInfo {
+        NodeJSRelInfo {
             version: semver.as_ref().to_owned(),
             ..Default::default()
         }
@@ -62,11 +62,11 @@ impl NodeJSInfo {
     /// # Examples
     ///
     /// ```rust
-    /// use node_js_info::NodeJSInfo;
-    /// let info = NodeJSInfo::from_env("20.6.1");
+    /// use node_js_release_info::NodeJSRelInfo;
+    /// let info = NodeJSRelInfo::from_env("20.6.1");
     /// ```
-    pub fn from_env<T: AsRef<str>>(semver: T) -> Result<NodeJSInfo, NodeJSInfoError> {
-        let mut info = NodeJSInfo::new(semver);
+    pub fn from_env<T: AsRef<str>>(semver: T) -> Result<NodeJSRelInfo, NodeJSRelInfoError> {
+        let mut info = NodeJSRelInfo::new(semver);
         info.os = NodeJSOS::from_env()?;
         info.arch = NodeJSArch::from_env()?;
         info.ext = match info.os {
@@ -81,8 +81,8 @@ impl NodeJSInfo {
     /// # Examples
     ///
     /// ```rust
-    /// use node_js_info::NodeJSInfo;
-    /// let info = NodeJSInfo::new("20.6.1").macos();
+    /// use node_js_release_info::NodeJSRelInfo;
+    /// let info = NodeJSRelInfo::new("20.6.1").macos();
     /// ```
     pub fn macos(&mut self) -> &mut Self {
         self.os = NodeJSOS::Darwin;
@@ -94,8 +94,8 @@ impl NodeJSInfo {
     /// # Examples
     ///
     /// ```rust
-    /// use node_js_info::NodeJSInfo;
-    /// let info = NodeJSInfo::new("20.6.1").linux();
+    /// use node_js_release_info::NodeJSRelInfo;
+    /// let info = NodeJSRelInfo::new("20.6.1").linux();
     /// ```
     pub fn linux(&mut self) -> &mut Self {
         self.os = NodeJSOS::Linux;
@@ -107,8 +107,8 @@ impl NodeJSInfo {
     /// # Examples
     ///
     /// ```rust
-    /// use node_js_info::NodeJSInfo;
-    /// let info = NodeJSInfo::new("20.6.1").windows();
+    /// use node_js_release_info::NodeJSRelInfo;
+    /// let info = NodeJSRelInfo::new("20.6.1").windows();
     /// ```
     pub fn windows(&mut self) -> &mut Self {
         self.os = NodeJSOS::Windows;
@@ -120,8 +120,8 @@ impl NodeJSInfo {
     /// # Examples
     ///
     /// ```rust
-    /// use node_js_info::NodeJSInfo;
-    /// let info = NodeJSInfo::new("20.6.1").x64();
+    /// use node_js_release_info::NodeJSRelInfo;
+    /// let info = NodeJSRelInfo::new("20.6.1").x64();
     /// ```
     pub fn x64(&mut self) -> &mut Self {
         self.arch = NodeJSArch::X64;
@@ -133,8 +133,8 @@ impl NodeJSInfo {
     /// # Examples
     ///
     /// ```rust
-    /// use node_js_info::NodeJSInfo;
-    /// let info = NodeJSInfo::new("20.6.1").x86();
+    /// use node_js_release_info::NodeJSRelInfo;
+    /// let info = NodeJSRelInfo::new("20.6.1").x86();
     /// ```
     pub fn x86(&mut self) -> &mut Self {
         self.arch = NodeJSArch::X86;
@@ -146,8 +146,8 @@ impl NodeJSInfo {
     /// # Examples
     ///
     /// ```rust
-    /// use node_js_info::NodeJSInfo;
-    /// let info = NodeJSInfo::new("20.6.1").arm64();
+    /// use node_js_release_info::NodeJSRelInfo;
+    /// let info = NodeJSRelInfo::new("20.6.1").arm64();
     /// ```
     pub fn arm64(&mut self) -> &mut Self {
         self.arch = NodeJSArch::ARM64;
@@ -159,8 +159,8 @@ impl NodeJSInfo {
     /// # Examples
     ///
     /// ```rust
-    /// use node_js_info::NodeJSInfo;
-    /// let info = NodeJSInfo::new("20.6.1").armv7l();
+    /// use node_js_release_info::NodeJSRelInfo;
+    /// let info = NodeJSRelInfo::new("20.6.1").armv7l();
     /// ```
     pub fn armv7l(&mut self) -> &mut Self {
         self.arch = NodeJSArch::ARMV7L;
@@ -172,8 +172,8 @@ impl NodeJSInfo {
     /// # Examples
     ///
     /// ```rust
-    /// use node_js_info::NodeJSInfo;
-    /// let info = NodeJSInfo::new("20.6.1").ppc64le();
+    /// use node_js_release_info::NodeJSRelInfo;
+    /// let info = NodeJSRelInfo::new("20.6.1").ppc64le();
     /// ```
     pub fn ppc64le(&mut self) -> &mut Self {
         self.arch = NodeJSArch::PPC64LE;
@@ -185,8 +185,8 @@ impl NodeJSInfo {
     /// # Examples
     ///
     /// ```rust
-    /// use node_js_info::NodeJSInfo;
-    /// let info = NodeJSInfo::new("20.6.1").tar_gz();
+    /// use node_js_release_info::NodeJSRelInfo;
+    /// let info = NodeJSRelInfo::new("20.6.1").tar_gz();
     /// ```
     pub fn tar_gz(&mut self) -> &mut Self {
         self.ext = NodeJSPkgExt::Targz;
@@ -198,8 +198,8 @@ impl NodeJSInfo {
     /// # Examples
     ///
     /// ```rust
-    /// use node_js_info::NodeJSInfo;
-    /// let info = NodeJSInfo::new("20.6.1").tar_xz();
+    /// use node_js_release_info::NodeJSRelInfo;
+    /// let info = NodeJSRelInfo::new("20.6.1").tar_xz();
     /// ```
     pub fn tar_xz(&mut self) -> &mut Self {
         self.ext = NodeJSPkgExt::Tarxz;
@@ -211,8 +211,8 @@ impl NodeJSInfo {
     /// # Examples
     ///
     /// ```rust
-    /// use node_js_info::NodeJSInfo;
-    /// let info = NodeJSInfo::new("20.6.1").zip();
+    /// use node_js_release_info::NodeJSRelInfo;
+    /// let info = NodeJSRelInfo::new("20.6.1").zip();
     /// ```
     pub fn zip(&mut self) -> &mut Self {
         self.ext = NodeJSPkgExt::Zip;
@@ -224,8 +224,8 @@ impl NodeJSInfo {
     /// # Examples
     ///
     /// ```rust
-    /// use node_js_info::NodeJSInfo;
-    /// let info = NodeJSInfo::new("20.6.1").msi();
+    /// use node_js_release_info::NodeJSRelInfo;
+    /// let info = NodeJSRelInfo::new("20.6.1").msi();
     /// ```
     pub fn msi(&mut self) -> &mut Self {
         self.ext = NodeJSPkgExt::Msi;
@@ -237,8 +237,8 @@ impl NodeJSInfo {
     /// # Examples
     ///
     /// ```rust
-    /// use node_js_info::NodeJSInfo;
-    /// let info = NodeJSInfo::new("20.6.1").windows().x64().zip().to_owned();
+    /// use node_js_release_info::NodeJSRelInfo;
+    /// let info = NodeJSRelInfo::new("20.6.1").windows().x64().zip().to_owned();
     /// ```
     pub fn to_owned(&self) -> Self {
         self.clone()
@@ -249,8 +249,8 @@ impl NodeJSInfo {
     /// # Examples
     ///
     /// ```rust
-    /// use node_js_info::{NodeJSInfo, NodeJSInfoError};
-    /// let info = NodeJSInfo::new("20.6.1");
+    /// use node_js_release_info::{NodeJSRelInfo, NodeJSRelInfoError};
+    /// let info = NodeJSRelInfo::new("20.6.1");
     /// assert_eq!(info.to_json_string(), "{\"version\":\"20.6.1\",\"os\":\"linux\",\"arch\":\"x64\",\"filename\":\"node-v20.6.1-linux-x64.tar.gz\",\"sha256\":\"\",\"url\":\"\"}");
     /// ```
     // TODO (busticated): should probably just use serde
@@ -272,11 +272,11 @@ impl NodeJSInfo {
     /// # Examples
     ///
     /// ```rust
-    /// use node_js_info::{NodeJSInfo, NodeJSInfoError};
+    /// use node_js_release_info::{NodeJSRelInfo, NodeJSRelInfoError};
     ///
     /// #[tokio::main]
-    /// async fn main() -> Result<(), NodeJSInfoError> {
-    ///   let info = NodeJSInfo::new("20.6.1").macos().arm64().fetch().await?;
+    /// async fn main() -> Result<(), NodeJSRelInfoError> {
+    ///   let info = NodeJSRelInfo::new("20.6.1").macos().arm64().fetch().await?;
     ///   assert_eq!(info.version, "20.6.1");
     ///   assert_eq!(info.filename, "node-v20.6.1-darwin-arm64.tar.gz");
     ///   assert_eq!(info.sha256, "d8ba8018d45b294429b1a7646ccbeaeb2af3cdf45b5c91dabbd93e2a2035cb46");
@@ -284,25 +284,25 @@ impl NodeJSInfo {
     ///   Ok(())
     /// }
     /// ```
-    pub async fn fetch(&mut self) -> Result<Self, NodeJSInfoError> {
+    pub async fn fetch(&mut self) -> Result<Self, NodeJSRelInfoError> {
         self.version = match Version::parse(self.version.as_str()) {
-            Err(_) => return Err(NodeJSInfoError::InvalidVersion(self.version.clone())),
+            Err(_) => return Err(NodeJSRelInfoError::InvalidVersion(self.version.clone())),
             Ok(v) => v.to_string(),
         };
 
         let info_url = self.url_fmt.info(&self.version);
         let res = match reqwest::get(info_url.as_str()).await {
-            Err(e) => return Err(NodeJSInfoError::HttpError(e)),
+            Err(e) => return Err(NodeJSRelInfoError::HttpError(e)),
             Ok(r) => r,
         };
 
         // TODO (busticated): handle 5xx errors
         if res.status().as_u16() >= 400 {
-            return Err(NodeJSInfoError::UnrecognizedVersion(self.version.clone()));
+            return Err(NodeJSRelInfoError::UnrecognizedVersion(self.version.clone()));
         }
 
         let body = match res.text().await {
-            Err(e) => return Err(NodeJSInfoError::HttpError(e)),
+            Err(e) => return Err(NodeJSRelInfoError::HttpError(e)),
             Ok(b) => b,
         };
 
@@ -312,7 +312,7 @@ impl NodeJSInfo {
         });
 
         let mut specs = match info {
-            None => return Err(NodeJSInfoError::UnrecognizedConfiguration(filename))?,
+            None => return Err(NodeJSRelInfoError::UnrecognizedConfiguration(filename))?,
             Some(s) => s.split_whitespace(),
         };
 
@@ -343,7 +343,7 @@ mod tests {
 
     #[test]
     fn it_initializes(){
-        let info = NodeJSInfo::new("1.0.0");
+        let info = NodeJSRelInfo::new("1.0.0");
         assert_eq!(info.os, NodeJSOS::Linux);
         assert_eq!(info.arch, NodeJSArch::X64);
         assert_eq!(info.ext, NodeJSPkgExt::Targz);
@@ -355,7 +355,7 @@ mod tests {
 
     #[test]
     fn it_initializes_with_defaults() {
-        let info = NodeJSInfo::default();
+        let info = NodeJSRelInfo::default();
         assert_eq!(info.os, NodeJSOS::Linux);
         assert_eq!(info.arch, NodeJSArch::X64);
         assert_eq!(info.ext, NodeJSPkgExt::Targz);
@@ -368,27 +368,27 @@ mod tests {
     #[test]
     #[cfg_attr(not(target_os = "macos"), ignore)]
     fn it_initializes_using_current_environment_on_macos() {
-        let info = NodeJSInfo::from_env("1.0.0").unwrap();
+        let info = NodeJSRelInfo::from_env("1.0.0").unwrap();
         assert_eq!(info.ext, NodeJSPkgExt::Targz);
     }
 
     #[test]
     #[cfg_attr(not(target_os = "linux"), ignore)]
     fn it_initializes_using_current_environment_on_linux() {
-        let info = NodeJSInfo::from_env("1.0.0").unwrap();
+        let info = NodeJSRelInfo::from_env("1.0.0").unwrap();
         assert_eq!(info.ext, NodeJSPkgExt::Targz);
     }
 
     #[test]
     #[cfg_attr(not(target_os = "windows"), ignore)]
     fn it_initializes_using_current_environment_on_windows() {
-        let info = NodeJSInfo::from_env("1.0.0").unwrap();
+        let info = NodeJSRelInfo::from_env("1.0.0").unwrap();
         assert_eq!(info.ext, NodeJSPkgExt::Zip);
     }
 
     #[test]
     fn it_sets_os() {
-        let mut info = NodeJSInfo::new("1.0.0");
+        let mut info = NodeJSRelInfo::new("1.0.0");
 
         assert_eq!(info.os, NodeJSOS::Linux);
 
@@ -407,7 +407,7 @@ mod tests {
 
     #[test]
     fn it_sets_arch() {
-        let mut info = NodeJSInfo::new("1.0.0");
+        let mut info = NodeJSRelInfo::new("1.0.0");
 
         info.x86();
 
@@ -432,7 +432,7 @@ mod tests {
 
     #[test]
     fn it_sets_ext() {
-        let mut info = NodeJSInfo::new("1.0.0");
+        let mut info = NodeJSRelInfo::new("1.0.0");
 
         info.zip();
 
@@ -453,7 +453,7 @@ mod tests {
 
     #[test]
     fn it_gets_owned_copy() {
-        let mut info1 = NodeJSInfo::new("1.0.0");
+        let mut info1 = NodeJSRelInfo::new("1.0.0");
         let info2 = info1.to_owned();
 
         assert_eq!(info1, info2);
@@ -465,7 +465,7 @@ mod tests {
 
     #[test]
     fn it_gets_json_string() {
-        let mut info = NodeJSInfo::new("1.0.0").macos().x64().zip().to_owned();
+        let mut info = NodeJSRelInfo::new("1.0.0").macos().x64().zip().to_owned();
         info.sha256 = "fake-sha256".into();
         info.url = "https://example.com/fake-url".into();
         let json = info.to_json_string();
@@ -496,11 +496,11 @@ mod tests {
 
     #[test]
     fn it_formats_filename() {
-        let info = NodeJSInfo::new("1.0.0").macos().x64().zip().to_owned();
+        let info = NodeJSRelInfo::new("1.0.0").macos().x64().zip().to_owned();
 
         assert_eq!(info.filename(), "node-v1.0.0-darwin-x64.zip");
 
-        let info = NodeJSInfo::new("1.0.0").windows().x64().msi().to_owned();
+        let info = NodeJSRelInfo::new("1.0.0").windows().x64().msi().to_owned();
 
         assert_eq!(info.filename(), "node-v1.0.0-x64.msi");
     }
@@ -508,7 +508,7 @@ mod tests {
     #[tokio::test]
     #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: InvalidVersion(\"NOPE!\")")]
     async fn it_fails_to_fetch_info_when_version_is_invalid() {
-        let mut info = NodeJSInfo::new("NOPE!");
+        let mut info = NodeJSRelInfo::new("NOPE!");
         info.fetch().await.unwrap();
     }
 
@@ -516,7 +516,7 @@ mod tests {
     #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: UnrecognizedVersion(\"1.0.0\")")]
     async fn it_fails_to_fetch_info_when_version_is_unrecognized() {
         let version = "1.0.0";
-        let mut info = NodeJSInfo::new(version);
+        let mut info = NodeJSRelInfo::new(version);
         let mut server = Server::new_async().await;
         let mock = setup_server_mock(version, &mut info, &mut server)
             .with_body(get_fake_info())
@@ -533,7 +533,7 @@ mod tests {
     async fn it_fails_to_fetch_info_when_configuration_is_unrecognized() {
         let version = "20.6.1";
         let mut server = Server::new_async().await;
-        let mut info = NodeJSInfo::new(version).linux().zip().to_owned();
+        let mut info = NodeJSRelInfo::new(version).linux().zip().to_owned();
         let mock = setup_server_mock(version, &mut info, &mut server)
             .with_body(get_fake_info())
             .create_async()
@@ -544,9 +544,9 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn it_fetches_node_js_info() {
+    async fn it_fetches_node_js_release_info() {
         let version = "20.6.1";
-        let mut info = NodeJSInfo::new(version);
+        let mut info = NodeJSRelInfo::new(version);
         let mut server = Server::new_async().await;
         let mock = setup_server_mock(version, &mut info, &mut server)
             .with_body(get_fake_info())
@@ -562,9 +562,9 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn it_fetches_node_js_info_when_ext_is_msi() {
+    async fn it_fetches_node_js_release_info_when_ext_is_msi() {
         let version = "20.6.1";
-        let mut info = NodeJSInfo::new(version).arm64().msi().to_owned();
+        let mut info = NodeJSRelInfo::new(version).arm64().msi().to_owned();
         let mut server = Server::new_async().await;
         let mock = setup_server_mock(version, &mut info, &mut server)
             .with_body(get_fake_info())
@@ -579,7 +579,7 @@ mod tests {
         assert_eq!(info.sha256, "9471bd6dc491e09c31b0f831f5953284b8a6842ed4ccb98f5c62d13e6086c471");
     }
 
-    fn setup_server_mock(version: &str, info: &mut NodeJSInfo, server: &mut Server) -> Mock {
+    fn setup_server_mock(version: &str, info: &mut NodeJSRelInfo, server: &mut Server) -> Mock {
         info.url_fmt.host = server.host_with_port();
         info.url_fmt.protocol = "http:".to_string();
         server.mock("GET", info.url_fmt.info_pathname(version).as_str())

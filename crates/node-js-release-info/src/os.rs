@@ -1,4 +1,4 @@
-use crate::error::NodeJSInfoError;
+use crate::error::NodeJSRelInfoError;
 use std::env::consts::OS;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
@@ -21,7 +21,7 @@ impl NodeJSOS {
         NodeJSOS::Linux
     }
 
-    pub fn from_env() -> Result<NodeJSOS, NodeJSInfoError> {
+    pub fn from_env() -> Result<NodeJSOS, NodeJSRelInfoError> {
         NodeJSOS::from_str(OS)
     }
 }
@@ -39,14 +39,14 @@ impl Display for NodeJSOS {
 }
 
 impl FromStr for NodeJSOS {
-    type Err = NodeJSInfoError;
+    type Err = NodeJSRelInfoError;
 
-    fn from_str(s: &str) -> Result<NodeJSOS, NodeJSInfoError> {
+    fn from_str(s: &str) -> Result<NodeJSOS, NodeJSRelInfoError> {
         match s {
             "linux" => Ok(NodeJSOS::Linux),
             "darwin" | "macos" => Ok(NodeJSOS::Darwin),
             "windows" | "win" => Ok(NodeJSOS::Windows),
-            _ => Err(NodeJSInfoError::UnrecognizedOs(s.to_string())),
+            _ => Err(NodeJSRelInfoError::UnrecognizedOs(s.to_string())),
         }
     }
 }

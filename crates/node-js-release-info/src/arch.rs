@@ -1,4 +1,4 @@
-use crate::error::NodeJSInfoError;
+use crate::error::NodeJSRelInfoError;
 use std::env::consts::ARCH;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
@@ -23,7 +23,7 @@ impl NodeJSArch {
         NodeJSArch::X64
     }
 
-    pub fn from_env() -> Result<NodeJSArch, NodeJSInfoError> {
+    pub fn from_env() -> Result<NodeJSArch, NodeJSRelInfoError> {
         NodeJSArch::from_str(ARCH)
     }
 }
@@ -43,16 +43,16 @@ impl Display for NodeJSArch {
 }
 
 impl FromStr for NodeJSArch {
-    type Err = NodeJSInfoError;
+    type Err = NodeJSRelInfoError;
 
-    fn from_str(s: &str) -> Result<NodeJSArch, NodeJSInfoError> {
+    fn from_str(s: &str) -> Result<NodeJSArch, NodeJSRelInfoError> {
         match s {
             "x64" | "x86_64" => Ok(NodeJSArch::X64),
             "x86" => Ok(NodeJSArch::X86),
             "arm64" | "aarch64" => Ok(NodeJSArch::ARM64),
             "arm" => Ok(NodeJSArch::ARMV7L),
             "ppc64le" | "powerpc64" => Ok(NodeJSArch::PPC64LE),
-            _ => Err(NodeJSInfoError::UnrecognizedArch(s.to_string())),
+            _ => Err(NodeJSRelInfoError::UnrecognizedArch(s.to_string())),
         }
     }
 }

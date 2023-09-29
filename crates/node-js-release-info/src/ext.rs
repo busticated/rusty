@@ -1,4 +1,4 @@
-use crate::error::NodeJSInfoError;
+use crate::error::NodeJSRelInfoError;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
@@ -35,15 +35,15 @@ impl Display for NodeJSPkgExt {
 }
 
 impl FromStr for NodeJSPkgExt {
-    type Err = NodeJSInfoError;
+    type Err = NodeJSRelInfoError;
 
-    fn from_str(s: &str) -> Result<NodeJSPkgExt, NodeJSInfoError> {
+    fn from_str(s: &str) -> Result<NodeJSPkgExt, NodeJSRelInfoError> {
         match s {
             "tar.gz" => Ok(NodeJSPkgExt::Targz),
             "tar.xz" => Ok(NodeJSPkgExt::Tarxz),
             "zip" => Ok(NodeJSPkgExt::Zip),
             "msi" => Ok(NodeJSPkgExt::Msi),
-            _ => Err(NodeJSInfoError::UnrecognizedExt(s.to_string())),
+            _ => Err(NodeJSRelInfoError::UnrecognizedExt(s.to_string())),
         }
     }
 }

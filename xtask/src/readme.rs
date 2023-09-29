@@ -57,6 +57,7 @@ impl Readme {
             "".to_string(),
             format!("[![Latest Version](https://img.shields.io/crates/v/{}.svg)](https://crates.io/crates/{})", name, name),
             format!("[![Documentation](https://docs.rs/{}/badge.svg)](https://docs.rs/{})", name, name),
+            "[![CI Status](https://github.com/busticated/rusty/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/busticated/rusty/actions)".to_string(),
             "".to_string(),
             format!("{}", description),
             "".to_string(),

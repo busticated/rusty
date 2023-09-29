@@ -2,7 +2,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter, Result};
 
 #[derive(Debug)]
-pub enum NodeJSInfoError {
+pub enum NodeJSRelInfoError {
     /// The operating system for the Node.js distributable you are targeting is
     /// unrecognized - see: [`NodeJSOS`](crate::NodeJSOS) for options
     UnrecognizedOs(String),
@@ -22,30 +22,30 @@ pub enum NodeJSInfoError {
     HttpError(reqwest::Error),
 }
 
-impl Error for NodeJSInfoError {}
+impl Error for NodeJSRelInfoError {}
 
-impl Display for NodeJSInfoError {
+impl Display for NodeJSRelInfoError {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let message = match self {
-            NodeJSInfoError::UnrecognizedOs(input) => {
+            NodeJSRelInfoError::UnrecognizedOs(input) => {
                 format!("Unrecognized OS! Received: '{}'", input)
             }
-            NodeJSInfoError::UnrecognizedArch(input) => {
+            NodeJSRelInfoError::UnrecognizedArch(input) => {
                 format!("Unrecognized Arch! Received: '{}'", input)
             }
-            NodeJSInfoError::UnrecognizedExt(input) => {
+            NodeJSRelInfoError::UnrecognizedExt(input) => {
                 format!("Unrecognized File Extension! Received: '{}'", input)
             }
-            NodeJSInfoError::InvalidVersion(input) => {
+            NodeJSRelInfoError::InvalidVersion(input) => {
                 format!("Invalid Version! Received: '{}'", input)
             }
-            NodeJSInfoError::UnrecognizedVersion(input) => {
+            NodeJSRelInfoError::UnrecognizedVersion(input) => {
                 format!("Unrecognized Version! Received: '{}'", input)
             }
-            NodeJSInfoError::UnrecognizedConfiguration(input) => {
+            NodeJSRelInfoError::UnrecognizedConfiguration(input) => {
                 format!("Unrecognized Configuration! Received: '{}'", input)
             }
-            NodeJSInfoError::HttpError(e) => {
+            NodeJSRelInfoError::HttpError(e) => {
                 return write!(f, "{}", e)
             }
         };
@@ -54,9 +54,9 @@ impl Display for NodeJSInfoError {
     }
 }
 
-impl From<reqwest::Error> for NodeJSInfoError {
+impl From<reqwest::Error> for NodeJSRelInfoError {
     fn from(e: reqwest::Error) -> Self {
-        NodeJSInfoError::HttpError(e)
+        NodeJSRelInfoError::HttpError(e)
     }
 }
 
@@ -66,7 +66,7 @@ mod tests {
 
     #[test]
     fn it_prints_expected_message_when_os_is_unrecognized() {
-        let err = NodeJSInfoError::UnrecognizedOs("unknown-os".to_string());
+        let err = NodeJSRelInfoError::UnrecognizedOs("unknown-os".to_string());
         assert_eq!(
             format!("{err}"),
             "Error: Unrecognized OS! Received: 'unknown-os'"
@@ -75,7 +75,7 @@ mod tests {
 
     #[test]
     fn it_prints_expected_message_when_arch_is_unrecognized() {
-        let err = NodeJSInfoError::UnrecognizedArch("unknown-arch".to_string());
+        let err = NodeJSRelInfoError::UnrecognizedArch("unknown-arch".to_string());
         assert_eq!(
             format!("{err}"),
             "Error: Unrecognized Arch! Received: 'unknown-arch'"
@@ -84,7 +84,7 @@ mod tests {
 
     #[test]
     fn it_prints_expected_message_when_extension_is_unrecognized() {
-        let err = NodeJSInfoError::UnrecognizedExt("unknown-ext".to_string());
+        let err = NodeJSRelInfoError::UnrecognizedExt("unknown-ext".to_string());
         assert_eq!(
             format!("{err}"),
             "Error: Unrecognized File Extension! Received: 'unknown-ext'"
@@ -93,7 +93,7 @@ mod tests {
 
     #[test]
     fn it_prints_expected_message_when_version_is_invalid() {
-        let err = NodeJSInfoError::InvalidVersion("invalid-ver".to_string());
+        let err = NodeJSRelInfoError::InvalidVersion("invalid-ver".to_string());
         assert_eq!(
             format!("{err}"),
             "Error: Invalid Version! Received: 'invalid-ver'"
@@ -102,7 +102,7 @@ mod tests {
 
     #[test]
     fn it_prints_expected_message_when_version_is_unrecognized() {
-        let err = NodeJSInfoError::UnrecognizedVersion("unknown-ver".to_string());
+        let err = NodeJSRelInfoError::UnrecognizedVersion("unknown-ver".to_string());
         assert_eq!(
             format!("{err}"),
             "Error: Unrecognized Version! Received: 'unknown-ver'"
@@ -111,7 +111,7 @@ mod tests {
 
     #[test]
     fn it_prints_expected_message_when_configuration_is_unrecognized() {
-        let err = NodeJSInfoError::UnrecognizedConfiguration("unknown-cfg".to_string());
+        let err = NodeJSRelInfoError::UnrecognizedConfiguration("unknown-cfg".to_string());
         assert_eq!(
             format!("{err}"),
             "Error: Unrecognized Configuration! Received: 'unknown-cfg'"
@@ -127,7 +127,7 @@ mod tests {
         );
     }
 
-    async fn fake_http_error() -> std::result::Result<(), NodeJSInfoError> {
+    async fn fake_http_error() -> std::result::Result<(), NodeJSRelInfoError> {
         reqwest::get("not-a-url").await?;
         Ok(())
     }

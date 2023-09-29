@@ -75,7 +75,7 @@ mod tests {
     }
 
     #[test]
-    fn it_formats_url_for_node_js_info() {
+    fn it_formats_url_for_node_js_release_info() {
         let url_fmt = NodeJSURLFormatter::new();
         assert_eq!(
             url_fmt.info("1.0.0"),
