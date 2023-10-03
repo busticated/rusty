@@ -1,4 +1,4 @@
-use crate::krate::{Krate, KrateKind, KratePaths};
+use crate::krate::{Krate, KratePaths};
 use crate::readme::Readme;
 use crate::toml::Toml;
 use duct::cmd;
@@ -6,7 +6,6 @@ use std::collections::BTreeMap;
 use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
-use std::str::FromStr;
 
 type DynError = Box<dyn Error>;
 
@@ -14,7 +13,7 @@ const CRATES_DIRNAME: &str = "crates";
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Workspace {
-    pub root_path: PathBuf,
+    pub path: PathBuf,
     pub cargo_cmd: String,
     pub readme: Readme,
     pub toml: Toml,
@@ -22,34 +21,31 @@ pub struct Workspace {
 
 impl KratePaths for Workspace {
     fn path(&self) -> PathBuf {
-        self.root_path.to_owned()
+        self.path.to_owned()
     }
 }
 
 impl Workspace {
     #[allow(dead_code)]
-    pub fn new<C: AsRef<str>>(cargo_cmd: C, root_path: PathBuf) -> Self {
+    pub fn new<C: AsRef<str>>(cargo_cmd: C, path: PathBuf) -> Self {
         let cargo_cmd = cargo_cmd.as_ref().to_owned();
-        let readme = Readme::new(root_path.clone());
-        let toml = Toml::new(root_path.clone());
+        let readme = Readme::new(path.clone());
+        let toml = Toml::new(path.clone());
         Workspace {
             cargo_cmd,
-            root_path,
+            path,
             readme,
             toml,
         }
     }
 
-    pub fn from_path<C: AsRef<str>>(
-        cargo_cmd: C,
-        root_path: PathBuf,
-    ) -> Result<Workspace, DynError> {
+    pub fn from_path<C: AsRef<str>>(cargo_cmd: C, path: PathBuf) -> Result<Workspace, DynError> {
         let cargo_cmd = cargo_cmd.as_ref().to_owned();
-        let readme = Readme::from_path(root_path.clone())?;
-        let toml = Toml::from_path(root_path.clone())?;
+        let readme = Readme::from_path(path.clone())?;
+        let toml = Toml::from_path(path.clone())?;
         Ok(Workspace {
             cargo_cmd,
-            root_path,
+            path,
             readme,
             toml,
         })
@@ -81,9 +77,7 @@ impl Workspace {
         description: D,
     ) -> Result<Krate, DynError> {
         let path = self.krates_path().join(name.as_ref());
-        let mut krate = Krate::new(name, description, path);
-
-        krate.kind = KrateKind::from_str(kind.as_ref())?;
+        let krate = Krate::new(kind, name, description, path);
 
         cmd!(
             &self.cargo_cmd,
@@ -145,18 +139,15 @@ mod tests {
 
     #[test]
     fn it_gets_path_to_workspace_tmp_dir() {
-        let root_path = PathBuf::from("fake-root");
-        let workspace = Workspace::new("fake-cargo", root_path.clone());
-        assert_eq!(workspace.tmp_path(), root_path.join("tmp"));
+        let path = PathBuf::from("fake-root");
+        let workspace = Workspace::new("fake-cargo", path.clone());
+        assert_eq!(workspace.tmp_path(), path.join("tmp"));
     }
 
     #[test]
     fn it_gets_path_to_workspace_coverage_dir() {
-        let root_path = PathBuf::from("fake-root");
-        let workspace = Workspace::new("fake-cargo", root_path.clone());
-        assert_eq!(
-            workspace.coverage_path(),
-            root_path.join("tmp").join("coverage")
-        );
+        let path = PathBuf::from("fake-root");
+        let workspace = Workspace::new("fake-cargo", path.clone());
+        assert_eq!(workspace.coverage_path(), path.join("tmp").join("coverage"));
     }
 }
