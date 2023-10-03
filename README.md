@@ -20,6 +20,8 @@ A `cargo` workspace ([docs](https://doc.rust-lang.org/book/ch14-03-cargo-workspa
 ## Crates
 
 <!-- crate-list-start -->
+* [detect-newline-style](crates/detect-newline-style)
+	* Determine a string's preferred newline character
 * [node-js-release-info](crates/node-js-release-info)
 	* Asynchronously retrieve Node.js release info by version and platform from the [downloads server](https://nodejs.org/download/release/)
 <!-- crate-list-end -->
