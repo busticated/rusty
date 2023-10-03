@@ -10,6 +10,8 @@ type DynError = Box<dyn Error>;
 
 const TMP_DIRNAME: &str = "tmp";
 const COVERAGE_DIRNAME: &str = "coverage";
+const SRC_DIRNAME: &str = "src";
+const LIB_FILENAME: &str = "lib.rs";
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Krate {
@@ -28,8 +30,13 @@ impl KratePaths for Krate {
 }
 
 impl Krate {
-    pub fn new<N: AsRef<str>, D: AsRef<str>>(name: N, description: D, path: PathBuf) -> Self {
-        let kind = KrateKind::Library; // TODO (busticated): lookup somehow instead of default'ing
+    pub fn new<K: AsRef<str>, N: AsRef<str>, D: AsRef<str>>(
+        kind: K,
+        name: N,
+        description: D,
+        path: PathBuf,
+    ) -> Self {
+        let kind = KrateKind::new(kind.as_ref());
         let name = name.as_ref().to_owned();
         let description = description.as_ref().to_owned();
         let readme = Readme::new(path.clone());
@@ -47,7 +54,7 @@ impl Krate {
     pub fn from_path(path: PathBuf) -> Result<Krate, DynError> {
         let toml = Toml::from_path(path.clone())?;
         let readme = Readme::from_path(path.clone())?;
-        let kind = KrateKind::Library;
+        let kind = KrateKind::from_path(path.clone())?;
         let mut krate = Krate {
             kind,
             path,
@@ -82,21 +89,32 @@ pub trait KratePaths {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub enum KrateKind {
+    #[default]
     Library,
     Binary,
 }
 
-impl Default for KrateKind {
-    fn default() -> Self {
-        KrateKind::new()
-    }
-}
-
 impl KrateKind {
-    pub fn new() -> KrateKind {
-        KrateKind::Library
+    pub fn new<K: AsRef<str>>(kind: K) -> KrateKind {
+        let kind = KrateKind::from_str(kind.as_ref());
+
+        if kind.is_err() {
+            return KrateKind::Library;
+        }
+
+        kind.unwrap()
+    }
+
+    pub fn from_path(path: PathBuf) -> Result<KrateKind, DynError> {
+        let path = path.join(SRC_DIRNAME).join(LIB_FILENAME);
+
+        if path.try_exists().is_err() {
+            return Ok(KrateKind::Binary);
+        }
+
+        Ok(KrateKind::Library)
     }
 }
 
@@ -115,7 +133,7 @@ impl FromStr for KrateKind {
     type Err = DynError;
 
     fn from_str(s: &str) -> Result<KrateKind, DynError> {
-        match s {
+        match s.to_lowercase().trim() {
             "binary" | "bin" | "--bin" => Ok(KrateKind::Binary),
             "library" | "lib" | "--lib" => Ok(KrateKind::Library),
             _ => Err(format!("Unrecognized input: {}", s).into()),
@@ -129,7 +147,13 @@ mod tests {
 
     #[test]
     fn it_initializes_a_krate_kind() {
-        let krate = KrateKind::new();
+        let krate = KrateKind::new("bin");
+        assert_eq!(krate, KrateKind::Binary);
+    }
+
+    #[test]
+    fn it_initializes_a_krate_kind_as_a_library_if_lookup_fails() {
+        let krate = KrateKind::new("NOPE!");
         assert_eq!(krate, KrateKind::Library);
     }
 
@@ -141,6 +165,10 @@ mod tests {
 
     #[test]
     fn it_initializes_a_krate_kind_from_str() {
+        let krate = KrateKind::from_str("Library").unwrap();
+
+        assert_eq!(krate, KrateKind::Library);
+
         let krate = KrateKind::from_str("library").unwrap();
 
         assert_eq!(krate, KrateKind::Library);
@@ -152,6 +180,10 @@ mod tests {
         let krate = KrateKind::from_str("--lib").unwrap();
 
         assert_eq!(krate, KrateKind::Library);
+
+        let krate = KrateKind::from_str("Binary").unwrap();
+
+        assert_eq!(krate, KrateKind::Binary);
 
         let krate = KrateKind::from_str("binary").unwrap();
 
@@ -177,6 +209,7 @@ mod tests {
     #[test]
     fn it_initializes_a_krate() {
         let krate = Krate::new(
+            "lib",
             "my-crate",
             "my-crate's description",
             PathBuf::from("fake-crate"),
@@ -190,6 +223,7 @@ mod tests {
     #[test]
     fn it_gets_path_to_krate() {
         let krate = Krate::new(
+            "lib",
             "my-crate",
             "my-crate's description",
             PathBuf::from("fake-crate"),
@@ -200,6 +234,7 @@ mod tests {
     #[test]
     fn it_gets_path_to_krate_tmp_dir() {
         let krate = Krate::new(
+            "lib",
             "my-crate",
             "my-crate's description",
             PathBuf::from("fake-crate"),
@@ -210,6 +245,7 @@ mod tests {
     #[test]
     fn it_gets_path_to_krate_coverage_dir() {
         let krate = Krate::new(
+            "lib",
             "my-crate",
             "my-crate's description",
             PathBuf::from("fake-crate"),
