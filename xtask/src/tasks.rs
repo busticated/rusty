@@ -80,14 +80,14 @@ impl Tasks {
         for task in self.map.values() {
             let char_count = task.name.char_indices().count();
             let spaces = separator.repeat(max_col_width - char_count + padding);
-            let line = format!("> {}{}{}\n", task.name, spaces, task.description);
+            let line = format!(">> {}{}{}\n", task.name, spaces, task.description);
 
             lines.push_str(&line);
 
             for (name, description) in task.flags.iter() {
                 let separator = " ".to_string();
                 let spaces = separator.repeat(max_col_width + padding);
-                let line = format!("\n{}  > --{} | {}\n", spaces, name, description);
+                let line = format!("\n{}   >> --{} | {}\n", spaces, name, description);
                 lines.push_str(&line);
             }
 
@@ -181,15 +181,15 @@ mod tests {
         assert_eq!(
             tasks.help().unwrap(),
             [
-                "> one....task 01",
+                ">> one....task 01",
                 "",
-                "         > --bar | enables bar",
+                "          >> --bar | enables bar",
                 "",
-                "         > --foo | does the foo",
+                "          >> --foo | does the foo",
                 "",
-                "> two....task 02",
+                ">> two....task 02",
                 "",
-                "         > --baz | invokes a baz",
+                "          >> --baz | invokes a baz",
                 "",
                 "",
             ]
