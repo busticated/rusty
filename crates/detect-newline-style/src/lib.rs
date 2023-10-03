@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 use regex::RegexBuilder;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
@@ -9,13 +11,31 @@ const CRLF: &str = "\r\n";
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum LineEnding {
+    /// CR-style line ending (`"\r"`) rarely used, mostly on older systems
+    /// (e.g. classic MacOS - OS-X before 10.0)
     CR,
+    /// LF-style line ending (`"\n"`) typically used on *nix and MacOS
     #[default]
     LF,
+    /// CRLF-style line ending (`"\r\n"`) typically used on Windows
     CRLF,
 }
 
 impl LineEnding {
+    /// Creates a new instance - you'll almost certainly rather use one of the
+    /// [`find*`](crate::LineEnding::find) associated fns below :)
+    ///
+    /// # Arguments
+    ///
+    /// * `kind` - The line ending style you want
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use detect_newline_style::LineEnding;
+    /// let eol = LineEnding::new("\n");
+    /// assert_eq!(eol, LineEnding::LF);
+    /// ```
     pub fn new<K: AsRef<str>>(kind: K) -> LineEnding {
         let kind = LineEnding::from_str(kind.as_ref());
 
@@ -26,6 +46,20 @@ impl LineEnding {
         kind.unwrap()
     }
 
+    /// Determines which newline style a given string uses (CR, LF, or CRLF)
+    ///
+    /// # Arguments
+    ///
+    /// * `text` - The text you want to analyze
+    /// * `default` - The default newline style to use when text has no preference
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use detect_newline_style::LineEnding;
+    /// let eol = LineEnding::find("one\ntwo\r\nthree\n", LineEnding::CRLF);
+    /// assert_eq!(eol, LineEnding::LF);
+    /// ```
     pub fn find<S: AsRef<str>>(text: S, default: LineEnding) -> LineEnding {
         let text = text.as_ref();
         let ptn = r"(?:\r\n?|\n)";
@@ -63,14 +97,62 @@ impl LineEnding {
         default
     }
 
+    /// Determines which newline style a given string uses (CR, LF, or CRLF)
+    /// defaulting to CRLF-style endings
+    ///
+    /// # Arguments
+    ///
+    /// * `text` - The text you want to analyze
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use detect_newline_style::LineEnding;
+    /// let eol = LineEnding::find_or_use_crlf("one\ntwo\r\nthree\n");
+    /// assert_eq!(eol, LineEnding::LF);
+    /// let eol = LineEnding::find_or_use_crlf("one\ntwo\r\nthree\r");
+    /// assert_eq!(eol, LineEnding::CRLF);
+    /// ```
     pub fn find_or_use_crlf<S: AsRef<str>>(s: S) -> LineEnding {
         LineEnding::find(s, LineEnding::CRLF)
     }
 
+    /// Determines which newline style a given string uses (CR, LF, or CRLF)
+    /// defaulting to LF-style endings
+    ///
+    /// # Arguments
+    ///
+    /// * `text` - The text you want to analyze
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use detect_newline_style::LineEnding;
+    /// let eol = LineEnding::find_or_use_lf("one\r\ntwo\nthree\r\n");
+    /// assert_eq!(eol, LineEnding::CRLF);
+    /// let eol = LineEnding::find_or_use_lf("one\ntwo\r\nthree\r");
+    /// assert_eq!(eol, LineEnding::LF);
+    /// ```
     pub fn find_or_use_lf<S: AsRef<str>>(s: S) -> LineEnding {
         LineEnding::find(s, LineEnding::LF)
     }
 
+    /// Determines which newline style a given string uses (CR, LF, or CRLF)
+    /// defaulting to CR-style endings
+    ///
+    /// # Arguments
+    ///
+    /// * `text` - The text you want to analyze
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use detect_newline_style::LineEnding;
+    /// let eol = LineEnding::find_or_use_cr("one\ntwo\r\nthree\n");
+    /// assert_eq!(eol, LineEnding::LF);
+    /// let eol = LineEnding::find_or_use_cr("one\ntwo\r\nthree\r");
+    /// assert_eq!(eol, LineEnding::CR);
+    /// ```
     pub fn find_or_use_cr<S: AsRef<str>>(s: S) -> LineEnding {
         LineEnding::find(s, LineEnding::CR)
     }
