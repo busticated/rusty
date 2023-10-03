@@ -250,7 +250,7 @@ fn init_tasks() -> Tasks {
                 let krates = workspace.krates()?;
 
                 for krate in krates.values() {
-                    println!("* {}: {}", krate.name, krate.path.display());
+                    println!("* {}: {} [{}]\n  >> {}\n", krate.name, krate.description, krate.kind, krate.path.display());
                 }
 
                 println!();
