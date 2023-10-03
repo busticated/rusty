@@ -2,6 +2,17 @@
 name = "detect-newline-style"
 description = "Determine a string's preferred newline character"
 version = "0.1.0"
+keywords = [
+	"eol",
+	"newline",
+	"line-ending",
+	"text"
+]
+categories = [
+	"encoding",
+	"filesystem",
+	"text-processing"
+]
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
