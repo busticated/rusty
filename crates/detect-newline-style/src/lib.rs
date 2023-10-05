@@ -244,6 +244,20 @@ mod tests {
     }
 
     #[test]
+    fn it_uses_default_when_text_has_no_line_breaks() {
+        let input = "no line breaks";
+        let eol = LineEnding::find(input, LineEnding::LF);
+        assert_eq!(eol, LineEnding::LF);
+    }
+
+    #[test]
+    fn it_uses_default_when_text_is_empty() {
+        let input = "";
+        let eol = LineEnding::find(input, LineEnding::LF);
+        assert_eq!(eol, LineEnding::LF);
+    }
+
+    #[test]
     fn it_finds_preferred_line_ending_defaulting_to_cr_endings() {
         let input = "\rthis\rprefers\r\nobsolete endings\n";
         let eol = LineEnding::find_or_use_cr(input);
