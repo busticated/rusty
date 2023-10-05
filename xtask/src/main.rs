@@ -250,7 +250,8 @@ fn init_tasks() -> Tasks {
                 let krates = workspace.krates()?;
 
                 for krate in krates.values() {
-                    println!("* {}: {} [{}]\n  >> {}\n", krate.name, krate.description, krate.kind, krate.path.display());
+                    let kind = krate.kind.to_string().replace('-', "");
+                    println!("* {} [{}]\n  ?? {}\n  >> {}\n", krate.name, kind, krate.description, krate.path.display());
                 }
 
                 println!();
