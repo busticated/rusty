@@ -109,6 +109,29 @@ mod tests {
     }
 
     #[test]
+    fn it_serializes_to_str() {
+        let text = format!("{}", NodeJSArch::X64);
+
+        assert_eq!(text, "x64");
+
+        let text = format!("{}", NodeJSArch::X86);
+
+        assert_eq!(text, "x86");
+
+        let text = format!("{}", NodeJSArch::ARM64);
+
+        assert_eq!(text, "arm64");
+
+        let text = format!("{}", NodeJSArch::ARMV7L);
+
+        assert_eq!(text, "armv7l");
+
+        let text = format!("{}", NodeJSArch::PPC64LE);
+
+        assert_eq!(text, "ppc64le");
+    }
+
+    #[test]
     fn it_initializes_using_current_environment() {
         NodeJSArch::from_env().unwrap();
     }

@@ -91,6 +91,21 @@ mod tests {
     }
 
     #[test]
+    fn it_serializes_to_str() {
+        let text = format!("{}", NodeJSOS::Linux);
+
+        assert_eq!(text, "linux");
+
+        let text = format!("{}", NodeJSOS::Darwin);
+
+        assert_eq!(text, "darwin");
+
+        let text = format!("{}", NodeJSOS::Windows);
+
+        assert_eq!(text, "win");
+    }
+
+    #[test]
     fn it_initializes_using_current_environment() {
         NodeJSOS::from_env().unwrap();
     }
