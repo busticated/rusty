@@ -2,6 +2,7 @@ use std::error::Error;
 use std::fs;
 use std::path::{Path, PathBuf};
 use toml::Table;
+use semver::Version;
 
 type DynError = Box<dyn Error>;
 
@@ -9,7 +10,7 @@ const CARGO_TOML: &str = "Cargo.toml";
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Toml {
-    path: PathBuf,
+    pub path: PathBuf,
     data: Table,
 }
 
@@ -64,6 +65,20 @@ impl Toml {
             "[dependencies]".to_string(),
         ];
         lines.join("\n")
+    }
+
+    pub fn get_version(&self) -> Result<Version, DynError> {
+        let pkg = self
+            .data
+            .get("package")
+            .ok_or(format_section_missing_msg("package", &self.path))?;
+        let version = pkg
+            .get("version")
+            .ok_or(format_field_missing_msg("version", &self.path))?
+            .as_str()
+            .ok_or(format_invalid_field_msg("version", &self.path))?;
+
+        Ok(Version::parse(version)?)
     }
 
     pub fn get_name(&self) -> Result<String, DynError> {

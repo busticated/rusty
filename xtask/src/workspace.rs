@@ -70,14 +70,15 @@ impl Workspace {
         Ok(krates)
     }
 
-    pub fn add_krate<K: AsRef<str>, N: AsRef<str>, D: AsRef<str>>(
+    pub fn add_krate<K: AsRef<str>, V: AsRef<str>, N: AsRef<str>, D: AsRef<str>>(
         &self,
         kind: K,
+        version: V,
         name: N,
         description: D,
     ) -> Result<Krate, DynError> {
         let path = self.krates_path().join(name.as_ref());
-        let krate = Krate::new(kind, name, description, path);
+        let krate = Krate::new(kind, version, name, description, path);
 
         cmd!(
             &self.cargo_cmd,

@@ -229,7 +229,7 @@ fn init_tasks() -> Tasks {
                 let question = InquireSelect::new("Crate type?", vec!["--lib", "--bin"]);
                 let kind_flag = question.prompt()?;
 
-                workspace.add_krate(kind_flag, &name, &description)?;
+                workspace.add_krate(kind_flag, "0.1.0", &name, &description)?;
 
                 println!(":::: Done!");
                 println!();

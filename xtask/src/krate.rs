@@ -5,6 +5,7 @@ use std::fmt::{Display, Formatter};
 use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
+use semver::Version;
 
 type DynError = Box<dyn Error>;
 
@@ -13,11 +14,12 @@ const COVERAGE_DIRNAME: &str = "coverage";
 const SRC_DIRNAME: &str = "src";
 const LIB_FILENAME: &str = "lib.rs";
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Krate {
+    pub kind: KrateKind,
+    pub version: Version,
     pub name: String,
     pub description: String,
-    pub kind: KrateKind,
     pub path: PathBuf,
     pub readme: Readme,
     pub toml: Toml,
@@ -29,20 +31,44 @@ impl KratePaths for Krate {
     }
 }
 
+impl Default for Krate {
+    fn default() -> Self {
+        let kind = KrateKind::default();
+        let version = Version::new(0, 1, 0);
+        let name = String::default();
+        let description = String::default();
+        let path = PathBuf::default();
+        let readme = Readme::default();
+        let toml = Toml::default();
+        Krate {
+            kind,
+            version,
+            name,
+            description,
+            path,
+            readme,
+            toml,
+        }
+    }
+}
+
 impl Krate {
-    pub fn new<K: AsRef<str>, N: AsRef<str>, D: AsRef<str>>(
+    pub fn new<K: AsRef<str>, V: AsRef<str>, N: AsRef<str>, D: AsRef<str>>(
         kind: K,
+        version: V,
         name: N,
         description: D,
         path: PathBuf,
     ) -> Self {
         let kind = KrateKind::new(kind.as_ref());
+        let version = Version::parse(version.as_ref()).unwrap_or(Version::new(0, 1, 0));
         let name = name.as_ref().to_owned();
         let description = description.as_ref().to_owned();
         let readme = Readme::new(path.clone());
         let toml = Toml::new(path.clone());
         Krate {
             kind,
+            version,
             name,
             description,
             path,
@@ -55,16 +81,19 @@ impl Krate {
         let toml = Toml::from_path(path.clone())?;
         let readme = Readme::from_path(path.clone())?;
         let kind = KrateKind::from_path(path.clone())?;
-        let mut krate = Krate {
+        let name = toml.get_name()?;
+        let description = toml.get_description()?;
+        let version = toml.get_version()?;
+        let krate = Krate {
             kind,
+            version,
+            name,
+            description,
             path,
-            toml,
             readme,
-            ..Default::default()
+            toml,
         };
 
-        krate.name = krate.toml.get_name()?;
-        krate.description = krate.toml.get_description()?;
         Ok(krate)
     }
 
@@ -210,20 +239,35 @@ mod tests {
     fn it_initializes_a_krate() {
         let krate = Krate::new(
             "lib",
+            "1.0.0",
             "my-crate",
             "my-crate's description",
             PathBuf::from("fake-crate"),
         );
+        assert_eq!(krate.kind, KrateKind::Library);
+        assert_eq!(krate.version, Version::new(1, 0, 0));
         assert_eq!(krate.name, "my-crate");
         assert_eq!(krate.description, "my-crate's description");
         assert_eq!(krate.path, PathBuf::from("fake-crate"));
+    }
+
+    #[test]
+    fn it_initializes_a_default_krate() {
+        let krate = Krate::default();
         assert_eq!(krate.kind, KrateKind::Library);
+        assert_eq!(krate.version, Version::new(0, 1, 0));
+        assert_eq!(krate.name, "");
+        assert_eq!(krate.description, "");
+        assert_eq!(krate.path, PathBuf::from(""));
+        assert_eq!(krate.readme.path, PathBuf::from(""));
+        assert_eq!(krate.toml.path, PathBuf::from(""));
     }
 
     #[test]
     fn it_gets_path_to_krate() {
         let krate = Krate::new(
             "lib",
+            "0.1.0",
             "my-crate",
             "my-crate's description",
             PathBuf::from("fake-crate"),
@@ -235,6 +279,7 @@ mod tests {
     fn it_gets_path_to_krate_tmp_dir() {
         let krate = Krate::new(
             "lib",
+            "0.1.0",
             "my-crate",
             "my-crate's description",
             PathBuf::from("fake-crate"),
@@ -246,6 +291,7 @@ mod tests {
     fn it_gets_path_to_krate_coverage_dir() {
         let krate = Krate::new(
             "lib",
+            "0.1.0",
             "my-crate",
             "my-crate's description",
             PathBuf::from("fake-crate"),

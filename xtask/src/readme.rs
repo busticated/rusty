@@ -11,8 +11,8 @@ const README_MD: &str = "README.md";
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Readme {
-    pub text: String,
     pub path: PathBuf,
+    text: String,
 }
 
 impl Readme {
