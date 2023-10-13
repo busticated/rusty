@@ -1,17 +1,17 @@
 use std::error::Error;
 use std::fs;
 use std::path::{Path, PathBuf};
-use toml::Table;
+use toml_edit::Document;
 use semver::Version;
 
 type DynError = Box<dyn Error>;
 
 const CARGO_TOML: &str = "Cargo.toml";
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default)]
 pub struct Toml {
     pub path: PathBuf,
-    data: Table,
+    data: Document,
 }
 
 impl Toml {
@@ -27,9 +27,9 @@ impl Toml {
         toml.load()
     }
 
-    pub fn read(&self) -> Result<Table, DynError> {
-        let data = fs::read_to_string(&self.path)?;
-        Ok(data.parse::<Table>()?)
+    pub fn read(&self) -> Result<Document, DynError> {
+        let text = fs::read_to_string(&self.path)?;
+        Ok(text.parse::<Document>()?)
     }
 
     pub fn load(&mut self) -> Result<Self, DynError> {
@@ -167,5 +167,26 @@ mod tests {
             ]
             .join("\n")
         );
+    }
+
+    #[test]
+    fn it_gets_version_field() {
+        let fake_crate_root = PathBuf::from(""); // points at xtask/Cargo.toml
+        let toml = Toml::new(fake_crate_root).load().unwrap();
+        assert_eq!(toml.get_version().unwrap(), Version::new(0, 1, 0));
+    }
+
+    #[test]
+    fn it_gets_name_field() {
+        let fake_crate_root = PathBuf::from("");
+        let toml = Toml::new(fake_crate_root).load().unwrap();
+        assert_eq!(toml.get_name().unwrap(), "xtask");
+    }
+
+    #[test]
+    fn it_gets_description_field() {
+        let fake_crate_root = PathBuf::from("");
+        let toml = Toml::new(fake_crate_root).load().unwrap();
+        assert_eq!(toml.get_description().unwrap(), "internal-only crate used to orchestrate repo tasks");
     }
 }

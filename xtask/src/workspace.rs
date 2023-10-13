@@ -11,7 +11,7 @@ type DynError = Box<dyn Error>;
 
 const CRATES_DIRNAME: &str = "crates";
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default)]
 pub struct Workspace {
     pub path: PathBuf,
     pub cargo_cmd: String,

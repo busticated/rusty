@@ -14,7 +14,7 @@ const COVERAGE_DIRNAME: &str = "coverage";
 const SRC_DIRNAME: &str = "src";
 const LIB_FILENAME: &str = "lib.rs";
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct Krate {
     pub kind: KrateKind,
     pub version: Version,
