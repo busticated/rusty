@@ -97,6 +97,16 @@ impl Krate {
         Ok(krate)
     }
 
+    pub fn id(&self) -> String {
+        format!("{}@{}", &self.name, self.version)
+    }
+
+    pub fn set_version(&mut self, version: Version) -> Result<(), DynError> {
+        self.version = version;
+        self.toml.set_version(&self.version)?;
+        Ok(())
+    }
+
     pub fn clean(&self) -> Result<(), DynError> {
         Ok(fs::remove_dir_all(self.tmp_path())?)
     }
@@ -261,6 +271,22 @@ mod tests {
         assert_eq!(krate.path, PathBuf::from(""));
         assert_eq!(krate.readme.path, PathBuf::from(""));
         assert_eq!(krate.toml.path, PathBuf::from(""));
+    }
+
+    #[test]
+    fn it_sets_krate_version() {
+        let mut krate = Krate::new(
+            "lib",
+            "0.1.0",
+            "my-crate",
+            "my-crate's description",
+            PathBuf::from("fake-crate"),
+        );
+
+        krate.set_version(Version::new(1, 0, 0)).unwrap();
+
+        assert_eq!(krate.version.to_string(), "1.0.0");
+        assert_eq!(krate.toml.get_version().unwrap().to_string(), "1.0.0");
     }
 
     #[test]

@@ -1,17 +1,22 @@
+mod git;
 mod krate;
 mod options;
 mod readme;
+mod semver;
 mod tasks;
 mod toml;
 mod workspace;
 
-use crate::krate::KratePaths;
+use crate::git::Git;
+use crate::krate::{Krate, KratePaths};
 use crate::tasks::{Task, Tasks};
+use crate::semver::VersionChoice;
 use crate::workspace::Workspace;
 use duct::cmd;
 use inquire::required;
+use inquire::list_option::ListOption as InquireListOption;
 use inquire::validator::Validation as InquireValidation;
-use inquire::{Select as InquireSelect, Text as InquireText};
+use inquire::{MultiSelect as InquireMultiSelect, Select as InquireSelect, Text as InquireText};
 use regex::RegexBuilder;
 use std::env;
 use std::error::Error;
@@ -258,6 +263,62 @@ fn init_tasks() -> Tasks {
                 println!(":::: Done!");
                 println!();
 
+                Ok(())
+            },
+        },
+        Task {
+            name: "crate:release".into(),
+            description: "prepate crates for publishing".into(),
+            flags: task_flags! {
+                "dry-run" => "run thru steps but do not save changes"
+            },
+            run: |opts, workspace, _tasks| {
+                println!("::::::::::::::::::::::::::");
+                println!(":::: Releasing Crates ::::");
+                println!("::::::::::::::::::::::::::");
+                println!();
+
+                let git = Git::new(&opts);
+                let mut krates = workspace.krates()?;
+                let question = InquireMultiSelect::new("Which crates should be published?", krates.keys().cloned().collect());
+                let to_publish = question
+                    .with_validator(|selections: &[InquireListOption<&String>]| {
+                        if selections.is_empty() {
+                            return Ok(InquireValidation::Invalid("Please select at least one crate!".into()));
+                        }
+
+                        Ok(InquireValidation::Valid)
+                    })
+                    .prompt()?;
+
+                krates.retain(|_, v| to_publish.contains(&v.name));
+                let mut krates = krates.values().cloned().collect::<Vec<Krate>>();
+
+                for krate in krates.iter_mut() {
+                    let version = krate.toml.get_version()?;
+                    let options = VersionChoice::options(&version);
+                    let message = format!("Version for `{}` [current: {}]", krate.name, version);
+                    let question = InquireSelect::new(&message, options);
+                    let choice = question.prompt()?;
+                    krate.set_version(choice.get_version())?;
+                    if opts.has("dry-run") {
+                        println!("Skipping: Version bump for {}", krate.toml.path.display());
+                    } else {
+                        krate.toml.save()?;
+                    }
+                    git.add(&krate.toml.path, [""]).run()?;
+                }
+
+                let tags: Vec<String> = krates.iter().map(|k| k.id()).collect();
+                let message = format!("Release:\n{}", tags.join("\n"));
+                git.commit(message, [""]).run()?;
+
+                for tag in tags {
+                    git.tag(tag, [""]).run()?;
+                }
+
+                println!(":::: Done!");
+                println!();
                 Ok(())
             },
         },

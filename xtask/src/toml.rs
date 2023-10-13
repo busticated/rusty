@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fs;
 use std::path::{Path, PathBuf};
-use toml_edit::Document;
+use toml_edit::{Document, value as toml_value};
 use semver::Version;
 
 type DynError = Box<dyn Error>;
@@ -81,6 +81,11 @@ impl Toml {
             .ok_or(format_invalid_field_msg("version", &self.path))?;
 
         Ok(Version::parse(version)?)
+    }
+
+    pub fn set_version(&mut self, version: &Version) -> Result<(), DynError> {
+        self.data["package"]["version"] = toml_value(version.to_string());
+        Ok(())
     }
 
     pub fn get_name(&self) -> Result<String, DynError> {
