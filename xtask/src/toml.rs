@@ -38,15 +38,17 @@ impl Toml {
     }
 
     pub fn create<N: AsRef<str>, D: AsRef<str>>(
-        &self,
+        &mut self,
         name: N,
         description: D,
     ) -> Result<(), DynError> {
-        self.save(self.render(name, description))
+        let text = self.render(name, description);
+        self.data = text.parse::<Document>()?;
+        self.save()
     }
 
-    pub fn save(&self, data: String) -> Result<(), DynError> {
-        Ok(fs::write(&self.path, data)?)
+    pub fn save(&self) -> Result<(), DynError> {
+        Ok(fs::write(&self.path, self.data.to_string())?)
     }
 
     pub fn render<N: AsRef<str>, D: AsRef<str>>(&self, name: N, description: D) -> String {

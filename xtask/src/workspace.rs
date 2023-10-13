@@ -78,7 +78,7 @@ impl Workspace {
         description: D,
     ) -> Result<Krate, DynError> {
         let path = self.krates_path().join(name.as_ref());
-        let krate = Krate::new(kind, version, name, description, path);
+        let mut krate = Krate::new(kind, version, name, description, path);
 
         cmd!(
             &self.cargo_cmd,

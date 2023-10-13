@@ -38,15 +38,16 @@ impl Readme {
     }
 
     pub fn create<N: AsRef<str>, D: AsRef<str>>(
-        &self,
+        &mut self,
         name: N,
         description: D,
     ) -> Result<(), DynError> {
-        self.save(self.render(name, description))
+        self.text = self.render(name, description);
+        self.save()
     }
 
-    pub fn save(&self, data: String) -> Result<(), DynError> {
-        Ok(fs::write(&self.path, data)?)
+    pub fn save(&self) -> Result<(), DynError> {
+        Ok(fs::write(&self.path, &self.text)?)
     }
 
     pub fn render<N: AsRef<str>, D: AsRef<str>>(&self, name: N, description: D) -> String {
@@ -95,7 +96,8 @@ impl Readme {
         entries.push('\n');
         entries.push_str(marker_end);
         let updated = re.replace(&self.text, &entries);
-        self.save(updated.as_ref().to_owned())
+        self.text = updated.as_ref().to_owned();
+        self.save()
     }
 }
 
