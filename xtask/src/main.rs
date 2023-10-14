@@ -267,6 +267,54 @@ fn init_tasks() -> Tasks {
             },
         },
         Task {
+            name: "crate:publish".into(),
+            description: "publish released crates to crates.io".into(),
+            flags: task_flags! {
+                "dry-run" => "run thru steps but do not publish"
+            },
+            run: |opts, workspace, _tasks| {
+                println!(":::::::::::::::::::::::::::");
+                println!(":::: Publishing Crates ::::");
+                println!(":::::::::::::::::::::::::::");
+                println!();
+
+                let krates = workspace.krates()?;
+                let tag_text = cmd!("git", "tag", "--points-at", "HEAD").read()?;
+                let mut tags = vec![];
+
+                for line in tag_text.lines() {
+                    if line.contains('@') {
+                        tags.push(line);
+                    }
+                }
+
+                if tags.is_empty() {
+                    println!(":::: Nothing to publish");
+                    println!(":::: Done!");
+                    println!();
+                    return Ok(())
+                }
+
+                for tag in tags {
+                    let (name, _ver) = tag.split_once('@').unwrap_or_else(|| panic!("Invalid Tag: `{}`!", tag));
+                    let krate = krates.get(name).unwrap_or_else(|| panic!("Could Not Find Crate: `{}`!", name));
+                    let message = format!("Publishing: {} at v{}", &krate.name, &krate.version);
+
+                    if opts.has("dry-run") {
+                        println!("{} [skip]", &message);
+                    } else {
+                        println!("{}", &message);
+                        cmd!(&workspace.cargo_cmd, "publish", "--package", &krate.name).run()?;
+                    }
+                }
+
+                println!();
+                println!(":::: Done!");
+                println!();
+                Ok(())
+            },
+        },
+        Task {
             name: "crate:release".into(),
             description: "prepate crates for publishing".into(),
             flags: task_flags! {
