@@ -16,7 +16,7 @@ impl<'a> Git<'a> {
     pub fn cmd(&self, args: Vec<OsString>) -> Expression {
         let mut args = args.clone();
 
-        if self.opts.has("dry-run"){
+        if self.opts.has("dry-run") {
             args.insert(0, "skipping:".into());
             args.insert(1, "git".into());
             // TODO (mirande): windows? see: https://stackoverflow.com/a/61857874/579167
@@ -33,8 +33,18 @@ impl<'a> Git<'a> {
         UU: IntoIterator,
         UU::Item: Into<OsString>,
     {
-        let mut args = args1.into_iter().map(Into::<OsString>::into).collect::<Vec<_>>();
-        args.extend(args2.into_iter().map(Into::<OsString>::into).collect::<Vec<_>>());
+        let mut args = args1
+            .into_iter()
+            .map(Into::<OsString>::into)
+            .collect::<Vec<_>>();
+
+        args.extend(
+            args2
+                .into_iter()
+                .map(Into::<OsString>::into)
+                .collect::<Vec<_>>(),
+        );
+
         args.retain(|a| !a.is_empty());
         args
     }
@@ -57,7 +67,7 @@ impl<'a> Git<'a> {
     {
         self.build_args(
             vec![OsString::from("add"), path.as_ref().to_owned().into()],
-            arguments
+            arguments,
         )
     }
 
@@ -77,10 +87,7 @@ impl<'a> Git<'a> {
         U: IntoIterator,
         U::Item: Into<OsString>,
     {
-        self.build_args(
-            vec!["commit", "--message", message.as_ref()],
-            arguments
-        )
+        self.build_args(vec!["commit", "--message", message.as_ref()], arguments)
     }
 
     pub fn tag<T, U>(&self, tag: T, arguments: U) -> Expression
@@ -101,11 +108,10 @@ impl<'a> Git<'a> {
     {
         self.build_args(
             vec!["tag", tag.as_ref(), "--message", tag.as_ref()],
-            arguments
+            arguments,
         )
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -140,7 +146,10 @@ mod tests {
         let opts = Options::new(vec![], task_flags! {}).unwrap();
         let git = Git::new(&opts);
         let args = git.commit_raw("my message", ["--one", "--two"]);
-        assert_eq!(args, ["commit", "--message", "my message", "--one", "--two"]);
+        assert_eq!(
+            args,
+            ["commit", "--message", "my message", "--one", "--two"]
+        );
     }
 
     #[test]
@@ -148,6 +157,9 @@ mod tests {
         let opts = Options::new(vec![], task_flags! {}).unwrap();
         let git = Git::new(&opts);
         let args = git.tag_raw("my tag", ["--one", "--two"]);
-        assert_eq!(args, ["tag", "my tag", "--message", "my tag", "--one", "--two"]);
+        assert_eq!(
+            args,
+            ["tag", "my tag", "--message", "my tag", "--one", "--two"]
+        );
     }
 }

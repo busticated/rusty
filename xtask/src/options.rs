@@ -11,7 +11,6 @@ pub struct Options {
     pub flags: TaskFlags,
 }
 
-#[allow(dead_code)]
 impl Options {
     pub fn new(args: Vec<String>, flags: TaskFlags) -> Result<Self, DynError> {
         let re = Regex::new(r"^-*")?;

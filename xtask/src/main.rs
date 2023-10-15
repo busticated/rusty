@@ -32,9 +32,6 @@ fn main() {
 }
 
 fn try_main() -> Result<(), DynError> {
-    let cargo_cmd = get_cargo_cmd();
-    let root_path = get_root_path(&cargo_cmd)?;
-    let mut workspace = Workspace::from_path(cargo_cmd, root_path)?;
     let mut args: Vec<String> = env::args().collect();
 
     args.remove(0); // drop executable path
@@ -57,8 +54,13 @@ fn try_main() -> Result<(), DynError> {
 
     let tasks = init_tasks();
     match tasks.get(cmd.clone()) {
-        Some(task) => task.exec(args, &mut workspace, &tasks),
         None => print_help(cmd, args, tasks),
+        Some(task) => {
+            let cargo_cmd = get_cargo_cmd();
+            let root_path = get_root_path(&cargo_cmd)?;
+            let mut workspace = Workspace::from_path(cargo_cmd, root_path)?;
+            task.exec(args, &mut workspace, &tasks)
+        }
     }
 }
 

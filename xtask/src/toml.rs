@@ -194,6 +194,9 @@ mod tests {
     fn it_gets_description_field() {
         let fake_crate_root = PathBuf::from("");
         let toml = Toml::new(fake_crate_root).load().unwrap();
-        assert_eq!(toml.get_description().unwrap(), "internal-only crate used to orchestrate repo tasks");
+        assert_eq!(
+            toml.get_description().unwrap(),
+            "internal-only crate used to orchestrate repo tasks"
+        );
     }
 }
