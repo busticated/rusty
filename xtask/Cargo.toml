@@ -1,5 +1,6 @@
 [package]
 name = "xtask"
+description = "internal-only crate used to orchestrate repo tasks"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,4 +10,5 @@ edition = "2021"
 duct = "0.13.*"
 inquire = "0.6.*"
 regex = "1.*"
-toml = "0.8.*"
+semver = "1.*"
+toml_edit = "0.20.*"

@@ -84,6 +84,25 @@ mod tests {
     }
 
     #[test]
+    fn it_serializes_to_str() {
+        let text = format!("{}", NodeJSPkgExt::Targz);
+
+        assert_eq!(text, "tar.gz");
+
+        let text = format!("{}", NodeJSPkgExt::Tarxz);
+
+        assert_eq!(text, "tar.xz");
+
+        let text = format!("{}", NodeJSPkgExt::Zip);
+
+        assert_eq!(text, "zip");
+
+        let text = format!("{}", NodeJSPkgExt::Msi);
+
+        assert_eq!(text, "msi");
+    }
+
+    #[test]
     #[should_panic(
         expected = "called `Result::unwrap()` on an `Err` value: UnrecognizedExt(\"NOPE!\")"
     )]

@@ -9,8 +9,47 @@ on:
   workflow_dispatch:
 
 jobs:
+  info:
+    name: Harvest Commit Info
+    runs-on: ubuntu-latest
+    outputs:
+      tags: ${{ steps.info.outputs.tags }}
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v3
+        with:
+          fetch-tags: true
+      - name: Set Info
+        id: info
+        run: ./bin/ci-set-commit-info.sh
+
+  debug:
+    name: Debug
+    needs: info
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log Info
+        run: |
+          echo ":::: GIT REF: ${{github.ref}}"
+          echo ":::: GIT REF_NAME: ${{github.ref_name}}"
+          echo ":::: TAGS: ${{needs.info.outputs.tags}}"
+      - name: Test Tag Check
+        if: contains(needs.info.outputs.tags, '@')
+        run: |
+          echo ":::: FOUND TAGS"
+
   test:
     name: Run Tests
+    needs: [info, debug]
     uses: ./.github/workflows/test.yaml
     secrets: inherit
+
+  publish:
+    name: Publish Crates
+    needs: [info, debug, test]
+    if: github.ref_name == 'main' && contains(needs.info.outputs.tags, '@')
+    uses: ./.github/workflows/publish.yaml
+    secrets: inherit
+    with:
+      tags: ${{needs.info.outputs.tags}}
 

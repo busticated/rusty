@@ -1,16 +1,17 @@
 use std::error::Error;
 use std::fs;
 use std::path::{Path, PathBuf};
-use toml::Table;
+use toml_edit::{Document, value as toml_value};
+use semver::Version;
 
 type DynError = Box<dyn Error>;
 
 const CARGO_TOML: &str = "Cargo.toml";
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default)]
 pub struct Toml {
-    path: PathBuf,
-    data: Table,
+    pub path: PathBuf,
+    data: Document,
 }
 
 impl Toml {
@@ -26,9 +27,9 @@ impl Toml {
         toml.load()
     }
 
-    pub fn read(&self) -> Result<Table, DynError> {
-        let data = fs::read_to_string(&self.path)?;
-        Ok(data.parse::<Table>()?)
+    pub fn read(&self) -> Result<Document, DynError> {
+        let text = fs::read_to_string(&self.path)?;
+        Ok(text.parse::<Document>()?)
     }
 
     pub fn load(&mut self) -> Result<Self, DynError> {
@@ -37,15 +38,17 @@ impl Toml {
     }
 
     pub fn create<N: AsRef<str>, D: AsRef<str>>(
-        &self,
+        &mut self,
         name: N,
         description: D,
     ) -> Result<(), DynError> {
-        self.save(self.render(name, description))
+        let text = self.render(name, description);
+        self.data = text.parse::<Document>()?;
+        self.save()
     }
 
-    pub fn save(&self, data: String) -> Result<(), DynError> {
-        Ok(fs::write(&self.path, data)?)
+    pub fn save(&self) -> Result<(), DynError> {
+        Ok(fs::write(&self.path, self.data.to_string())?)
     }
 
     pub fn render<N: AsRef<str>, D: AsRef<str>>(&self, name: N, description: D) -> String {
@@ -64,6 +67,25 @@ impl Toml {
             "[dependencies]".to_string(),
         ];
         lines.join("\n")
+    }
+
+    pub fn get_version(&self) -> Result<Version, DynError> {
+        let pkg = self
+            .data
+            .get("package")
+            .ok_or(format_section_missing_msg("package", &self.path))?;
+        let version = pkg
+            .get("version")
+            .ok_or(format_field_missing_msg("version", &self.path))?
+            .as_str()
+            .ok_or(format_invalid_field_msg("version", &self.path))?;
+
+        Ok(Version::parse(version)?)
+    }
+
+    pub fn set_version(&mut self, version: &Version) -> Result<(), DynError> {
+        self.data["package"]["version"] = toml_value(version.to_string());
+        Ok(())
     }
 
     pub fn get_name(&self) -> Result<String, DynError> {
@@ -151,6 +173,30 @@ mod tests {
                 "[dependencies]",
             ]
             .join("\n")
+        );
+    }
+
+    #[test]
+    fn it_gets_version_field() {
+        let fake_crate_root = PathBuf::from(""); // points at xtask/Cargo.toml
+        let toml = Toml::new(fake_crate_root).load().unwrap();
+        assert_eq!(toml.get_version().unwrap(), Version::new(0, 1, 0));
+    }
+
+    #[test]
+    fn it_gets_name_field() {
+        let fake_crate_root = PathBuf::from("");
+        let toml = Toml::new(fake_crate_root).load().unwrap();
+        assert_eq!(toml.get_name().unwrap(), "xtask");
+    }
+
+    #[test]
+    fn it_gets_description_field() {
+        let fake_crate_root = PathBuf::from("");
+        let toml = Toml::new(fake_crate_root).load().unwrap();
+        assert_eq!(
+            toml.get_description().unwrap(),
+            "internal-only crate used to orchestrate repo tasks"
         );
     }
 }

@@ -111,6 +111,22 @@ Run `cargo xtask help` to see any other docs-related commands that are available
 </p>
 </details>
 
+<details id="develop-publish-crate">
+<summary><b>How to publish crates</b></summary>
+<p>
+
+To publish a crate to the [crates.io](https://crates.io) registry, follow these steps:
+
+1. Checkout the `main` branch: `git checkout main`
+2. Run `cargo xtask crate:release` and follow the prompts
+3. Verify all checks pass: `cargo xtask ci`
+4. Push to remote: `git push origin main --follow-tags`
+
+Each crate you select for publishing will be assigned its new version and all changes will be committed and tagged in `git`. The assigned tag will be formatted like `name@version` (e.g. `detect-newline-style@1.0.0`). After pushing to the remote, CI will execute the publishing steps and if all goes well, your crate will be available on [crates.io](https://crates.io).
+
+</p>
+</details>
+
 <details id="develop-todo">
 <summary><b>How to view and add TODO source code comments</b></summary>
 <p>

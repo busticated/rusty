@@ -1,17 +1,22 @@
+mod git;
 mod krate;
 mod options;
 mod readme;
+mod semver;
 mod tasks;
 mod toml;
 mod workspace;
 
-use crate::krate::KratePaths;
+use crate::git::Git;
+use crate::krate::{Krate, KratePaths};
 use crate::tasks::{Task, Tasks};
+use crate::semver::VersionChoice;
 use crate::workspace::Workspace;
 use duct::cmd;
 use inquire::required;
+use inquire::list_option::ListOption as InquireListOption;
 use inquire::validator::Validation as InquireValidation;
-use inquire::{Select as InquireSelect, Text as InquireText};
+use inquire::{MultiSelect as InquireMultiSelect, Select as InquireSelect, Text as InquireText};
 use regex::RegexBuilder;
 use std::env;
 use std::error::Error;
@@ -27,9 +32,6 @@ fn main() {
 }
 
 fn try_main() -> Result<(), DynError> {
-    let cargo_cmd = get_cargo_cmd();
-    let root_path = get_root_path(&cargo_cmd)?;
-    let mut workspace = Workspace::from_path(cargo_cmd, root_path)?;
     let mut args: Vec<String> = env::args().collect();
 
     args.remove(0); // drop executable path
@@ -52,8 +54,13 @@ fn try_main() -> Result<(), DynError> {
 
     let tasks = init_tasks();
     match tasks.get(cmd.clone()) {
-        Some(task) => task.exec(args, &mut workspace, &tasks),
         None => print_help(cmd, args, tasks),
+        Some(task) => {
+            let cargo_cmd = get_cargo_cmd();
+            let root_path = get_root_path(&cargo_cmd)?;
+            let mut workspace = Workspace::from_path(cargo_cmd, root_path)?;
+            task.exec(args, &mut workspace, &tasks)
+        }
     }
 }
 
@@ -229,7 +236,7 @@ fn init_tasks() -> Tasks {
                 let question = InquireSelect::new("Crate type?", vec!["--lib", "--bin"]);
                 let kind_flag = question.prompt()?;
 
-                workspace.add_krate(kind_flag, &name, &description)?;
+                workspace.add_krate(kind_flag, "0.1.0", &name, &description)?;
 
                 println!(":::: Done!");
                 println!();
@@ -250,13 +257,118 @@ fn init_tasks() -> Tasks {
                 let krates = workspace.krates()?;
 
                 for krate in krates.values() {
-                    println!("* {}: {} [{}]\n  >> {}\n", krate.name, krate.description, krate.kind, krate.path.display());
+                    let kind = krate.kind.to_string().replace('-', "");
+                    println!("* {} [{}]\n  ?? {}\n  >> {}\n", krate.name, kind, krate.description, krate.path.display());
                 }
 
                 println!();
                 println!(":::: Done!");
                 println!();
 
+                Ok(())
+            },
+        },
+        Task {
+            name: "crate:publish".into(),
+            description: "publish released crates to crates.io".into(),
+            flags: task_flags! {
+                "dry-run" => "run thru steps but do not publish"
+            },
+            run: |opts, workspace, _tasks| {
+                println!(":::::::::::::::::::::::::::");
+                println!(":::: Publishing Crates ::::");
+                println!(":::::::::::::::::::::::::::");
+                println!();
+
+                let krates = workspace.krates()?;
+                let tag_text = cmd!("git", "tag", "--points-at", "HEAD").read()?;
+                let mut tags = vec![];
+
+                for line in tag_text.lines() {
+                    if line.contains('@') {
+                        tags.push(line);
+                    }
+                }
+
+                if tags.is_empty() {
+                    println!(":::: Nothing to publish");
+                    println!(":::: Done!");
+                    println!();
+                    return Ok(())
+                }
+
+                for tag in tags {
+                    let (name, _ver) = tag.split_once('@').unwrap_or_else(|| panic!("Invalid Tag: `{}`!", tag));
+                    let krate = krates.get(name).unwrap_or_else(|| panic!("Could Not Find Crate: `{}`!", name));
+                    let message = format!("Publishing: {} at v{}", &krate.name, &krate.version);
+
+                    if opts.has("dry-run") {
+                        println!("{} [skip]", &message);
+                    } else {
+                        println!("{}", &message);
+                        cmd!(&workspace.cargo_cmd, "publish", "--package", &krate.name).run()?;
+                    }
+                }
+
+                println!();
+                println!(":::: Done!");
+                println!();
+                Ok(())
+            },
+        },
+        Task {
+            name: "crate:release".into(),
+            description: "prepate crates for publishing".into(),
+            flags: task_flags! {
+                "dry-run" => "run thru steps but do not save changes"
+            },
+            run: |opts, workspace, _tasks| {
+                println!("::::::::::::::::::::::::::");
+                println!(":::: Releasing Crates ::::");
+                println!("::::::::::::::::::::::::::");
+                println!();
+
+                let git = Git::new(&opts);
+                let mut krates = workspace.krates()?;
+                let question = InquireMultiSelect::new("Which crates should be published?", krates.keys().cloned().collect());
+                let to_publish = question
+                    .with_validator(|selections: &[InquireListOption<&String>]| {
+                        if selections.is_empty() {
+                            return Ok(InquireValidation::Invalid("Please select at least one crate!".into()));
+                        }
+
+                        Ok(InquireValidation::Valid)
+                    })
+                    .prompt()?;
+
+                krates.retain(|_, v| to_publish.contains(&v.name));
+                let mut krates = krates.values().cloned().collect::<Vec<Krate>>();
+
+                for krate in krates.iter_mut() {
+                    let version = krate.toml.get_version()?;
+                    let options = VersionChoice::options(&version);
+                    let message = format!("Version for `{}` [current: {}]", krate.name, version);
+                    let question = InquireSelect::new(&message, options);
+                    let choice = question.prompt()?;
+                    krate.set_version(choice.get_version())?;
+                    if opts.has("dry-run") {
+                        println!("Skipping: Version bump for {}", krate.toml.path.display());
+                    } else {
+                        krate.toml.save()?;
+                    }
+                    git.add(&krate.toml.path, [""]).run()?;
+                }
+
+                let tags: Vec<String> = krates.iter().map(|k| k.id()).collect();
+                let message = format!("Release:\n{}", tags.join("\n"));
+                git.commit(message, [""]).run()?;
+
+                for tag in tags {
+                    git.tag(tag, [""]).run()?;
+                }
+
+                println!(":::: Done!");
+                println!();
                 Ok(())
             },
         },

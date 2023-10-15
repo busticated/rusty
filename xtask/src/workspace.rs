@@ -11,7 +11,7 @@ type DynError = Box<dyn Error>;
 
 const CRATES_DIRNAME: &str = "crates";
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default)]
 pub struct Workspace {
     pub path: PathBuf,
     pub cargo_cmd: String,
@@ -70,14 +70,15 @@ impl Workspace {
         Ok(krates)
     }
 
-    pub fn add_krate<K: AsRef<str>, N: AsRef<str>, D: AsRef<str>>(
+    pub fn add_krate<K: AsRef<str>, V: AsRef<str>, N: AsRef<str>, D: AsRef<str>>(
         &self,
         kind: K,
+        version: V,
         name: N,
         description: D,
     ) -> Result<Krate, DynError> {
         let path = self.krates_path().join(name.as_ref());
-        let krate = Krate::new(kind, name, description, path);
+        let mut krate = Krate::new(kind, version, name, description, path);
 
         cmd!(
             &self.cargo_cmd,
