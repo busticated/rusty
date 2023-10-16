@@ -1,7 +1,7 @@
 [package]
 name = "detect-newline-style"
 description = "Determine a string's preferred newline character"
-version = "0.1.0"
+version = "0.1.1"
 keywords = [
 	"eol",
 	"newline",
