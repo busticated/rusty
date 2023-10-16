@@ -14,6 +14,12 @@ cargo add node-js-release-info
 
 ## Examples
 
+This example uses [Tokio](https://tokio.rs), be sure to install it with:
+
+```shell
+cargo add tokio --features full
+```
+
 ```rust
 use node_js_release_info::{NodeJSRelInfo, NodeJSRelInfoError};
 
