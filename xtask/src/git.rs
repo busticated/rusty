@@ -19,7 +19,7 @@ impl<'a> Git<'a> {
         if self.opts.has("dry-run") {
             args.insert(0, "skipping:".into());
             args.insert(1, "git".into());
-            // TODO (mirande): windows? see: https://stackoverflow.com/a/61857874/579167
+            // TODO (busticated): windows? see: https://stackoverflow.com/a/61857874/579167
             return cmd("echo", args);
         }
 
@@ -135,15 +135,14 @@ impl<'a> Git<'a> {
     }
 
     fn todos_raw(&self) -> Vec<OsString> {
-        // so we don't include this fn in the list (x_X)
-        let mut ptn = String::from("TODO");
-        ptn.push_str(" (.*)");
+        let ptn = r"TODO\s?\(.*\)|todo!\(\)";
 
         self.build_args(
             vec![
                 "grep",
+                "-P",
                 "-e",
-                ptn.as_str(),
+                ptn,
                 "--ignore-case",
                 "--heading",
                 "--break",
@@ -223,15 +222,13 @@ mod tests {
         let opts = Options::new(vec![], task_flags! {}).unwrap();
         let git = Git::new(&opts);
         let args = git.todos_raw();
-        let starts_with = "TODO";
-        let ends_with = " (.*)";
-        assert_eq!(args[0..2], ["grep", "-e",]);
-        assert_eq!(args[2].len(), starts_with.len() + ends_with.len());
-        assert!(args[2].to_string_lossy().starts_with(starts_with));
-        assert!(args[2].to_string_lossy().ends_with(ends_with));
         assert_eq!(
-            args[3..],
+            args,
             [
+                "grep",
+                "-P",
+                "-e",
+                r"TODO\s?\(.*\)|todo!\(\)",
                 "--ignore-case",
                 "--heading",
                 "--break",
