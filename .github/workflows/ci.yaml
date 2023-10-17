@@ -2,6 +2,10 @@ name: Run CI/CD Jobs
 
 on:
   push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '**'
     paths:
       - ".github/workflows/**.yml"
       - "**/Cargo.toml"
