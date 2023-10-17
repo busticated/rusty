@@ -280,8 +280,9 @@ fn init_tasks() -> Tasks {
                 println!(":::::::::::::::::::::::::::");
                 println!();
 
+                let git = Git::new(&opts);
                 let krates = workspace.krates()?;
-                let tag_text = cmd!("git", "tag", "--points-at", "HEAD").read()?;
+                let tag_text = git.get_tags(["--points-at", "HEAD"]).read()?;
                 let mut tags = vec![];
 
                 for line in tag_text.lines() {
@@ -514,33 +515,14 @@ fn init_tasks() -> Tasks {
             name: "todo".into(),
             description: "list open to-dos based on inline source code comments".into(),
             flags: task_flags! {},
-            run: |_opts, _workspace, _tasks| {
+            run: |opts, _workspace, _tasks| {
                 println!(":::::::::::::::");
                 println!(":::: TODOs ::::");
                 println!(":::::::::::::::");
                 println!();
 
-                // so we don't include this fn in the list (x_X)
-                let mut ptn = String::from("TODO");
-                ptn.push_str(" (.*)");
-
-                cmd!(
-                    "git",
-                    "grep",
-                    "-e",
-                    ptn,
-                    "--ignore-case",
-                    "--heading",
-                    "--break",
-                    "--context",
-                    "2",
-                    "--full-name",
-                    "--line-number",
-                    "--",
-                    ":!./target/*",
-                    ":!./tmp/*",
-                )
-                .run()?;
+                let git = Git::new(&opts);
+                git.todos().run()?;
 
                 println!(":::: Done!");
                 println!();

@@ -111,6 +111,53 @@ impl<'a> Git<'a> {
             arguments,
         )
     }
+
+    pub fn get_tags<U>(&self, arguments: U) -> Expression
+    where
+        U: IntoIterator,
+        U::Item: Into<OsString>,
+    {
+        let args = self.get_tags_raw(arguments);
+        self.cmd(args)
+    }
+
+    fn get_tags_raw<U>(&self, arguments: U) -> Vec<OsString>
+    where
+        U: IntoIterator,
+        U::Item: Into<OsString>,
+    {
+        self.build_args(vec!["tag"], arguments)
+    }
+
+    pub fn todos(&self) -> Expression {
+        let args = self.todos_raw();
+        self.cmd(args)
+    }
+
+    fn todos_raw(&self) -> Vec<OsString> {
+        // so we don't include this fn in the list (x_X)
+        let mut ptn = String::from("TODO");
+        ptn.push_str(" (.*)");
+
+        self.build_args(
+            vec![
+                "grep",
+                "-e",
+                ptn.as_str(),
+                "--ignore-case",
+                "--heading",
+                "--break",
+                "--context",
+                "2",
+                "--full-name",
+                "--line-number",
+                "--",
+                ":!./target/*",
+                ":!./tmp/*",
+            ],
+            [""],
+        )
+    }
 }
 
 #[cfg(test)]
@@ -160,6 +207,42 @@ mod tests {
         assert_eq!(
             args,
             ["tag", "my tag", "--message", "my tag", "--one", "--two"]
+        );
+    }
+
+    #[test]
+    fn it_builds_args_for_getting_tags() {
+        let opts = Options::new(vec![], task_flags! {}).unwrap();
+        let git = Git::new(&opts);
+        let args = git.get_tags_raw(["--points-at", "HEAD"]);
+        assert_eq!(args, ["tag", "--points-at", "HEAD"]);
+    }
+
+    #[test]
+    fn it_builds_args_for_getting_todos() {
+        let opts = Options::new(vec![], task_flags! {}).unwrap();
+        let git = Git::new(&opts);
+        let args = git.todos_raw();
+        let starts_with = "TODO";
+        let ends_with = " (.*)";
+        assert_eq!(args[0..2], ["grep", "-e",]);
+        assert_eq!(args[2].len(), starts_with.len() + ends_with.len());
+        assert!(args[2].to_string_lossy().starts_with(starts_with));
+        assert!(args[2].to_string_lossy().ends_with(ends_with));
+        assert_eq!(
+            args[3..],
+            [
+                "--ignore-case",
+                "--heading",
+                "--break",
+                "--context",
+                "2",
+                "--full-name",
+                "--line-number",
+                "--",
+                ":!./target/*",
+                ":!./tmp/*"
+            ]
         );
     }
 }
