@@ -3,6 +3,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use toml_edit::{Document, value as toml_value};
 use semver::Version;
+use crate::fs::FS;
+use crate::krate::Krate;
 
 type DynError = Box<dyn Error>;
 
@@ -28,6 +30,7 @@ impl Toml {
     }
 
     pub fn read(&self) -> Result<Document, DynError> {
+        // TODO (busticated): pull into FS wrapper?
         let text = fs::read_to_string(&self.path)?;
         Ok(text.parse::<Document>()?)
     }
@@ -37,18 +40,14 @@ impl Toml {
         Ok(self.clone())
     }
 
-    pub fn create<N: AsRef<str>, D: AsRef<str>>(
-        &mut self,
-        name: N,
-        description: D,
-    ) -> Result<(), DynError> {
-        let text = self.render(name, description);
+    pub fn create(&mut self, fs: &FS, krate: &Krate) -> Result<(), DynError> {
+        let text = self.render(&krate.name, &krate.description);
         self.data = text.parse::<Document>()?;
-        self.save()
+        self.save(fs)
     }
 
-    pub fn save(&self) -> Result<(), DynError> {
-        Ok(fs::write(&self.path, self.data.to_string())?)
+    pub fn save(&self, fs: &FS) -> Result<(), DynError> {
+        Ok(fs.write(&self.path, self.data.to_string())?)
     }
 
     pub fn render<N: AsRef<str>, D: AsRef<str>>(&self, name: N, description: D) -> String {

@@ -5,7 +5,7 @@ use std::error::Error;
 type DynError = Box<dyn Error>;
 type TaskFlags = BTreeMap<String, String>;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Options {
     pub args: Vec<String>,
     pub flags: TaskFlags,

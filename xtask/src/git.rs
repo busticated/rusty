@@ -13,17 +13,20 @@ impl<'a> Git<'a> {
         Git { opts }
     }
 
-    pub fn cmd(&self, args: Vec<OsString>) -> Expression {
-        let mut args = args.clone();
+    fn exec_safe(&self, args: Vec<OsString>) -> Expression {
+        cmd("git", args)
+    }
 
+    fn exec_unsafe(&self, args: Vec<OsString>) -> Expression {
         if self.opts.has("dry-run") {
+            let mut args = args.clone();
             args.insert(0, "skipping:".into());
             args.insert(1, "git".into());
             // TODO (busticated): windows? see: https://stackoverflow.com/a/61857874/579167
             return cmd("echo", args);
         }
 
-        cmd("git", args)
+        self.exec_safe(args)
     }
 
     fn build_args<U, UU>(&self, args1: U, args2: UU) -> Vec<OsString>
@@ -55,18 +58,18 @@ impl<'a> Git<'a> {
         U: IntoIterator,
         U::Item: Into<OsString>,
     {
-        let args = self.add_raw(path, arguments);
-        self.cmd(args)
+        let args = self.add_params(path, arguments);
+        self.exec_unsafe(args)
     }
 
-    fn add_raw<P, U>(&self, path: P, arguments: U) -> Vec<OsString>
+    fn add_params<P, U>(&self, path: P, arguments: U) -> Vec<OsString>
     where
         P: AsRef<Path>,
         U: IntoIterator,
         U::Item: Into<OsString>,
     {
         self.build_args(
-            vec![OsString::from("add"), path.as_ref().to_owned().into()],
+            [OsString::from("add"), path.as_ref().to_owned().into()],
             arguments,
         )
     }
@@ -77,17 +80,17 @@ impl<'a> Git<'a> {
         U: IntoIterator,
         U::Item: Into<OsString>,
     {
-        let args = self.commit_raw(message, arguments);
-        self.cmd(args)
+        let args = self.commit_params(message, arguments);
+        self.exec_unsafe(args)
     }
 
-    fn commit_raw<M, U>(&self, message: M, arguments: U) -> Vec<OsString>
+    fn commit_params<M, U>(&self, message: M, arguments: U) -> Vec<OsString>
     where
         M: AsRef<str>,
         U: IntoIterator,
         U::Item: Into<OsString>,
     {
-        self.build_args(vec!["commit", "--message", message.as_ref()], arguments)
+        self.build_args(["commit", "--message", message.as_ref()], arguments)
     }
 
     pub fn tag<T, U>(&self, tag: T, arguments: U) -> Expression
@@ -96,20 +99,17 @@ impl<'a> Git<'a> {
         U: IntoIterator,
         U::Item: Into<OsString>,
     {
-        let args = self.tag_raw(tag, arguments);
-        self.cmd(args)
+        let args = self.tag_params(tag, arguments);
+        self.exec_unsafe(args)
     }
 
-    fn tag_raw<T, U>(&self, tag: T, arguments: U) -> Vec<OsString>
+    fn tag_params<T, U>(&self, tag: T, arguments: U) -> Vec<OsString>
     where
         T: AsRef<str>,
         U: IntoIterator,
         U::Item: Into<OsString>,
     {
-        self.build_args(
-            vec!["tag", tag.as_ref(), "--message", tag.as_ref()],
-            arguments,
-        )
+        self.build_args(["tag", tag.as_ref(), "--message", tag.as_ref()], arguments)
     }
 
     pub fn get_tags<U>(&self, arguments: U) -> Expression
@@ -117,28 +117,28 @@ impl<'a> Git<'a> {
         U: IntoIterator,
         U::Item: Into<OsString>,
     {
-        let args = self.get_tags_raw(arguments);
-        self.cmd(args)
+        let args = self.get_tags_params(arguments);
+        self.exec_safe(args)
     }
 
-    fn get_tags_raw<U>(&self, arguments: U) -> Vec<OsString>
+    fn get_tags_params<U>(&self, arguments: U) -> Vec<OsString>
     where
         U: IntoIterator,
         U::Item: Into<OsString>,
     {
-        self.build_args(vec!["tag"], arguments)
+        self.build_args(["tag"], arguments)
     }
 
     pub fn todos(&self) -> Expression {
-        let args = self.todos_raw();
-        self.cmd(args)
+        let args = self.todos_params();
+        self.exec_safe(args)
     }
 
-    fn todos_raw(&self) -> Vec<OsString> {
+    fn todos_params(&self) -> Vec<OsString> {
         let ptn = r"TODO\s?\(.*\)|todo!\(\)";
 
         self.build_args(
-            vec![
+            [
                 "grep",
                 "-P",
                 "-e",
@@ -175,7 +175,7 @@ mod tests {
     fn it_builds_args() {
         let opts = Options::new(vec![], task_flags! {}).unwrap();
         let git = Git::new(&opts);
-        let args = git.build_args(["one"], vec!["two", "three"]);
+        let args = git.build_args(["one"], ["two", "three"]);
         assert_eq!(args, ["one", "two", "three"]);
     }
 
@@ -183,7 +183,7 @@ mod tests {
     fn it_builds_args_for_the_add_subcommand() {
         let opts = Options::new(vec![], task_flags! {}).unwrap();
         let git = Git::new(&opts);
-        let args = git.add_raw(Path::new("path/to/file"), [""]);
+        let args = git.add_params(Path::new("path/to/file"), [""]);
         assert_eq!(args, ["add", "path/to/file"]);
     }
 
@@ -191,7 +191,7 @@ mod tests {
     fn it_builds_args_for_the_commit_subcommand() {
         let opts = Options::new(vec![], task_flags! {}).unwrap();
         let git = Git::new(&opts);
-        let args = git.commit_raw("my message", ["--one", "--two"]);
+        let args = git.commit_params("my message", ["--one", "--two"]);
         assert_eq!(
             args,
             ["commit", "--message", "my message", "--one", "--two"]
@@ -202,7 +202,7 @@ mod tests {
     fn it_builds_args_for_the_tag_subcommand() {
         let opts = Options::new(vec![], task_flags! {}).unwrap();
         let git = Git::new(&opts);
-        let args = git.tag_raw("my tag", ["--one", "--two"]);
+        let args = git.tag_params("my tag", ["--one", "--two"]);
         assert_eq!(
             args,
             ["tag", "my tag", "--message", "my tag", "--one", "--two"]
@@ -213,7 +213,7 @@ mod tests {
     fn it_builds_args_for_getting_tags() {
         let opts = Options::new(vec![], task_flags! {}).unwrap();
         let git = Git::new(&opts);
-        let args = git.get_tags_raw(["--points-at", "HEAD"]);
+        let args = git.get_tags_params(["--points-at", "HEAD"]);
         assert_eq!(args, ["tag", "--points-at", "HEAD"]);
     }
 
@@ -221,7 +221,7 @@ mod tests {
     fn it_builds_args_for_getting_todos() {
         let opts = Options::new(vec![], task_flags! {}).unwrap();
         let git = Git::new(&opts);
-        let args = git.todos_raw();
+        let args = git.todos_params();
         assert_eq!(
             args,
             [
