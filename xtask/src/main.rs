@@ -402,12 +402,12 @@ fn init_tasks() -> Tasks {
                 println!(":::: Testing Examples...");
                 println!();
 
-                cargo.test(["--doc"]).run()?;
+                cargo.test(["--doc", "--all-features"]).run()?;
 
                 println!(":::: Rendering Docs...");
                 println!();
 
-                let mut args = vec!["--workspace", "--no-deps"];
+                let mut args = vec!["--workspace", "--no-deps", "--all-features"];
 
                 if opts.has("open") {
                     args.push("--open");
@@ -473,7 +473,7 @@ fn init_tasks() -> Tasks {
                 println!(":::::::::::::::::::::::::");
                 println!();
 
-                cargo.test([""]).run()?;
+                cargo.test(["--all-features"]).run()?;
 
                 println!(":::: Done!");
                 println!();
