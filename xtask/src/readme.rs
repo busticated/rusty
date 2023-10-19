@@ -1,3 +1,4 @@
+use crate::fs::FS;
 use crate::krate::Krate;
 use regex::RegexBuilder;
 use std::collections::BTreeMap;
@@ -29,6 +30,7 @@ impl Readme {
     }
 
     pub fn read(&self) -> Result<String, DynError> {
+        // TODO (busticated): pull into FS wrapper?
         Ok(fs::read_to_string(&self.path)?)
     }
 
@@ -37,17 +39,13 @@ impl Readme {
         Ok(self.clone())
     }
 
-    pub fn create<N: AsRef<str>, D: AsRef<str>>(
-        &mut self,
-        name: N,
-        description: D,
-    ) -> Result<(), DynError> {
-        self.text = self.render(name, description);
-        self.save()
+    pub fn create(&mut self, fs: &FS, krate: &Krate) -> Result<(), DynError> {
+        self.text = self.render(&krate.name, &krate.description);
+        self.save(fs)
     }
 
-    pub fn save(&self) -> Result<(), DynError> {
-        Ok(fs::write(&self.path, &self.text)?)
+    pub fn save(&self, fs: &FS) -> Result<(), DynError> {
+        Ok(fs.write(&self.path, &self.text)?)
     }
 
     pub fn render<N: AsRef<str>, D: AsRef<str>>(&self, name: N, description: D) -> String {
@@ -73,6 +71,7 @@ impl Readme {
 
     pub fn update_crates_list(
         &mut self,
+        fs: &FS,
         mut krates: BTreeMap<String, Krate>,
     ) -> Result<(), DynError> {
         self.load()?;
@@ -97,7 +96,7 @@ impl Readme {
         entries.push_str(marker_end);
         let updated = re.replace(&self.text, &entries);
         self.text = updated.as_ref().to_owned();
-        self.save()
+        self.save(fs)
     }
 }
 

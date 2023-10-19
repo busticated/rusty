@@ -1,3 +1,6 @@
+mod cargo;
+mod exec;
+mod fs;
 mod git;
 mod krate;
 mod options;
@@ -7,14 +10,12 @@ mod tasks;
 mod toml;
 mod workspace;
 
-use crate::git::Git;
 use crate::krate::{Krate, KratePaths};
-use crate::tasks::{Task, Tasks};
 use crate::semver::VersionChoice;
-use crate::workspace::Workspace;
+use crate::tasks::{Task, Tasks};
 use duct::cmd;
-use inquire::required;
 use inquire::list_option::ListOption as InquireListOption;
+use inquire::required;
 use inquire::validator::Validation as InquireValidation;
 use inquire::{MultiSelect as InquireMultiSelect, Select as InquireSelect, Text as InquireText};
 use regex::RegexBuilder;
@@ -54,13 +55,8 @@ fn try_main() -> Result<(), DynError> {
 
     let tasks = init_tasks();
     match tasks.get(cmd.clone()) {
+        Some(task) => task.exec(args, &tasks),
         None => print_help(cmd, args, tasks),
-        Some(task) => {
-            let cargo_cmd = get_cargo_cmd();
-            let root_path = get_root_path(&cargo_cmd)?;
-            let mut workspace = Workspace::from_path(cargo_cmd, root_path)?;
-            task.exec(args, &mut workspace, &tasks)
-        }
     }
 }
 
@@ -88,7 +84,7 @@ fn init_tasks() -> Tasks {
             name: "ci".into(),
             description: "run checks for CI".into(),
             flags: task_flags! {},
-            run: |_opts, workspace, tasks| {
+            run: |_opts, _fs, _git, _cargo, _workspace, tasks| {
                 println!(":::::::::::::::::::::::::::::::::");
                 println!(":::: Checking Project for CI ::::");
                 println!(":::::::::::::::::::::::::::::::::");
@@ -97,11 +93,11 @@ fn init_tasks() -> Tasks {
                 tasks
                     .get("lint")
                     .unwrap()
-                    .exec(vec![], workspace, tasks)?;
+                    .exec(vec![], tasks)?;
                 tasks
                     .get("coverage")
                     .unwrap()
-                    .exec(vec![], workspace, tasks)?;
+                    .exec(vec![], tasks)?;
 
                 println!(":::: Done!");
                 println!();
@@ -112,15 +108,14 @@ fn init_tasks() -> Tasks {
             name: "clean".into(),
             description: "delete temporary files".into(),
             flags: task_flags! {},
-            run: |_opts, workspace, _tasks| {
+            run: |_opts, fs, _git, cargo, workspace, _tasks| {
                 println!("::::::::::::::::::::::::::::");
                 println!(":::: Cleaning Workspace ::::");
                 println!("::::::::::::::::::::::::::::");
                 println!();
 
-                workspace.clean().unwrap_or(()); // ignore error
-                workspace.create_dirs()?;
-                cmd!(&workspace.cargo_cmd, "clean", "--release").run()?;
+                workspace.clean(&fs, &cargo)?;
+                workspace.create_dirs(&fs)?;
 
                 println!(":::: Done!");
                 println!();
@@ -138,7 +133,7 @@ fn init_tasks() -> Tasks {
             flags: task_flags! {
                 "open" => "open coverage report for viewing"
             },
-            run: |opts, workspace, tasks| {
+            run: |opts, _fs, _git, cargo, _workspace, tasks| {
                 println!("::::::::::::::::::::::::::::::");
                 println!(":::: Calculating Coverage ::::");
                 println!("::::::::::::::::::::::::::::::");
@@ -147,16 +142,8 @@ fn init_tasks() -> Tasks {
                 let coverage_root = PathBuf::from("tmp/coverage").display().to_string();
                 let report = format!("{}/html/index.html", &coverage_root);
 
-                tasks.get("clean").unwrap().exec(vec![], workspace, tasks)?;
-
-                cmd!(&workspace.cargo_cmd, "test")
-                    .env("CARGO_INCREMENTAL", "0")
-                    .env("RUSTFLAGS", "-Cinstrument-coverage")
-                    .env(
-                        "LLVM_PROFILE_FILE",
-                        format!("{}/cargo-test-%p-%m.profraw", &coverage_root),
-                    )
-                    .run()?;
+                tasks.get("clean").unwrap().exec(vec![], tasks)?;
+                cargo.coverage(&coverage_root).run()?;
 
                 println!(":::: Done!");
                 println!();
@@ -189,23 +176,23 @@ fn init_tasks() -> Tasks {
                 )
                 .run()?;
 
-
                 if opts.has("open"){
-                    cmd!("open", report).run()?;
-                } else {
-                    println!(":::: Done!");
-                    println!(":::: Report: {}", report);
-                    println!();
+                    cmd!("open", &report).run()?;
                 }
 
+                println!(":::: Done!");
+                println!(":::: Report: {}", report);
+                println!();
                 Ok(())
             },
         },
         Task {
             name: "crate:add".into(),
             description: "add new crate to workspace".into(),
-            flags: task_flags! {},
-            run: |_opts, workspace, _tasks| {
+            flags: task_flags! {
+                "dry-run" => "run thru steps but do not create new crate"
+            },
+            run: |_opts, fs, _git, cargo, workspace, _tasks| {
                 println!(":::::::::::::::::::");
                 println!(":::: Add Crate ::::");
                 println!(":::::::::::::::::::");
@@ -235,12 +222,18 @@ fn init_tasks() -> Tasks {
 
                 let question = InquireSelect::new("Crate type?", vec!["--lib", "--bin"]);
                 let kind_flag = question.prompt()?;
+                let krate = Krate::new(
+                    kind_flag,
+                    "0.1.0",
+                    &name,
+                    description,
+                    workspace.krates_path().join(&name)
+                );
 
-                workspace.add_krate(kind_flag, "0.1.0", &name, &description)?;
+                workspace.add_krate(&fs, &cargo, krate)?;
 
                 println!(":::: Done!");
                 println!();
-
                 Ok(())
             },
         },
@@ -248,13 +241,13 @@ fn init_tasks() -> Tasks {
             name: "crate:list".into(),
             description: "list workspace crates".into(),
             flags: task_flags! {},
-            run: |_opts, workspace, _tasks| {
+            run: |_opts, fs, _git, _cargo, workspace, _tasks| {
                 println!("::::::::::::::::::::::::::");
                 println!(":::: Available Crates ::::");
                 println!("::::::::::::::::::::::::::");
                 println!();
 
-                let krates = workspace.krates()?;
+                let krates = workspace.krates(&fs)?;
 
                 for krate in krates.values() {
                     let kind = krate.kind.to_string().replace('-', "");
@@ -264,7 +257,6 @@ fn init_tasks() -> Tasks {
                 println!();
                 println!(":::: Done!");
                 println!();
-
                 Ok(())
             },
         },
@@ -274,14 +266,14 @@ fn init_tasks() -> Tasks {
             flags: task_flags! {
                 "dry-run" => "run thru steps but do not publish"
             },
-            run: |opts, workspace, _tasks| {
+            run: |_opts, fs, git, cargo, workspace, _tasks| {
                 println!(":::::::::::::::::::::::::::");
                 println!(":::: Publishing Crates ::::");
                 println!(":::::::::::::::::::::::::::");
                 println!();
 
-                let krates = workspace.krates()?;
-                let tag_text = cmd!("git", "tag", "--points-at", "HEAD").read()?;
+                let krates = workspace.krates(&fs)?;
+                let tag_text = git.get_tags(["--points-at", "HEAD"]).read()?;
                 let mut tags = vec![];
 
                 for line in tag_text.lines() {
@@ -301,13 +293,8 @@ fn init_tasks() -> Tasks {
                     let (name, _ver) = tag.split_once('@').unwrap_or_else(|| panic!("Invalid Tag: `{}`!", tag));
                     let krate = krates.get(name).unwrap_or_else(|| panic!("Could Not Find Crate: `{}`!", name));
                     let message = format!("Publishing: {} at v{}", &krate.name, &krate.version);
-
-                    if opts.has("dry-run") {
-                        println!("{} [skip]", &message);
-                    } else {
-                        println!("{}", &message);
-                        cmd!(&workspace.cargo_cmd, "publish", "--package", &krate.name).run()?;
-                    }
+                    println!("{}", &message);
+                    cargo.publish_package(&krate.name).run()?;
                 }
 
                 println!();
@@ -322,14 +309,13 @@ fn init_tasks() -> Tasks {
             flags: task_flags! {
                 "dry-run" => "run thru steps but do not save changes"
             },
-            run: |opts, workspace, _tasks| {
+            run: |_opts, fs, git, _cargo, workspace, _tasks| {
                 println!("::::::::::::::::::::::::::");
                 println!(":::: Releasing Crates ::::");
                 println!("::::::::::::::::::::::::::");
                 println!();
 
-                let git = Git::new(&opts);
-                let mut krates = workspace.krates()?;
+                let mut krates = workspace.krates(&fs)?;
                 let question = InquireMultiSelect::new("Which crates should be published?", krates.keys().cloned().collect());
                 let to_publish = question
                     .with_validator(|selections: &[InquireListOption<&String>]| {
@@ -351,11 +337,7 @@ fn init_tasks() -> Tasks {
                     let question = InquireSelect::new(&message, options);
                     let choice = question.prompt()?;
                     krate.set_version(choice.get_version())?;
-                    if opts.has("dry-run") {
-                        println!("Skipping: Version bump for {}", krate.toml.path.display());
-                    } else {
-                        krate.toml.save()?;
-                    }
+                    krate.toml.save(&fs)?;
                     git.add(&krate.toml.path, [""]).run()?;
                 }
 
@@ -376,19 +358,18 @@ fn init_tasks() -> Tasks {
             name: "dist".into(),
             description: "create release artifacts".into(),
             flags: task_flags! {},
-            run: |_opts, workspace, _tasks| {
+            run: |_opts, _fs, _git, cargo, workspace, _tasks| {
                 println!(":::::::::::::::::::::::::::::::::::::::::::");
                 println!(":::: Building Project for Distribution ::::");
                 println!(":::::::::::::::::::::::::::::::::::::::::::");
                 println!();
 
                 let dist_dir = workspace.path().join("target/release");
-                cmd!(&workspace.cargo_cmd, "build", "--release").run()?;
+                cargo.build(["--release"]).run()?;
 
                 println!(":::: Done!");
                 println!(":::: Artifacts: {}", dist_dir.display());
                 println!();
-
                 Ok(())
             },
         },
@@ -396,19 +377,20 @@ fn init_tasks() -> Tasks {
             name: "doc".into(),
             description: "build project documentation".into(),
             flags: task_flags! {
+                "dry-run" => "run thru steps but do not generate docs",
                 "open" => "open rendered docs for viewing"
             },
-            run: |opts, workspace, _tasks| {
+            run: |opts, fs, _git, cargo, mut workspace, _tasks| {
                 println!(":::::::::::::::::::::::::::");
                 println!(":::: Building All Docs ::::");
                 println!(":::::::::::::::::::::::::::");
                 println!();
                 println!(":::: Updating Workspace README...");
 
-                let krates = workspace.krates()?;
+                let krates = workspace.krates(&fs)?;
                 let readme_path = workspace.readme.path.clone();
 
-                workspace.readme.update_crates_list(krates)?;
+                workspace.readme.update_crates_list(&fs, krates)?;
 
                 println!(":::: Done: {:?}", readme_path);
                 println!();
@@ -420,22 +402,21 @@ fn init_tasks() -> Tasks {
                 println!(":::: Testing Examples...");
                 println!();
 
-                cmd!(&workspace.cargo_cmd, "test", "--doc").run()?;
+                cargo.test(["--doc"]).run()?;
 
                 println!(":::: Rendering Docs...");
                 println!();
 
-                let mut args = vec!["doc", "--workspace", "--no-deps"];
+                let mut args = vec!["--workspace", "--no-deps"];
 
                 if opts.has("open") {
                     args.push("--open");
                 }
 
-                cmd(&workspace.cargo_cmd, args).run()?;
+                cargo.doc(args).run()?;
 
                 println!(":::: Done!");
                 println!();
-
                 Ok(())
             },
         },
@@ -443,25 +424,16 @@ fn init_tasks() -> Tasks {
             name: "lint".into(),
             description: "run the linter (clippy)".into(),
             flags: task_flags! {},
-            run: |_opts, workspace, _tasks| {
+            run: |_opts, _fs, _git, cargo, _workspace, _tasks| {
                 println!(":::::::::::::::::::::::::");
                 println!(":::: Linting Project ::::");
                 println!(":::::::::::::::::::::::::");
                 println!();
 
-                cmd!(
-                    &workspace.cargo_cmd,
-                    "clippy",
-                    "--all-targets",
-                    "--all-features",
-                    "--no-deps"
-                )
-                .env("RUSTFLAGS", "-Dwarnings")
-                .run()?;
+                cargo.lint().run()?;
 
                 println!(":::: Done!");
                 println!();
-
                 Ok(())
             },
         },
@@ -469,7 +441,7 @@ fn init_tasks() -> Tasks {
             name: "setup".into(),
             description: "bootstrap project for local development".into(),
             flags: task_flags! {},
-            run: |_opts, workspace, _tasks| {
+            run: |_opts, _fs, _git, cargo, _workspace, _tasks| {
                 println!("::::::::::::::::::::::::::::");
                 println!(":::: Setting up Project ::::");
                 println!("::::::::::::::::::::::::::::");
@@ -484,11 +456,10 @@ fn init_tasks() -> Tasks {
                 // TODO (busticated): is there a way to includes these in Cargo.toml or similar?
                 cmd!("rustup", "component", "add", "clippy").run()?;
                 cmd!("rustup", "component", "add", "llvm-tools-preview").run()?;
-                cmd!(&workspace.cargo_cmd, "install", "grcov").run()?;
+                cargo.install(["grcov"]).run()?;
 
                 println!(":::: Done!");
                 println!();
-
                 Ok(())
             },
         },
@@ -496,17 +467,16 @@ fn init_tasks() -> Tasks {
             name: "test".into(),
             description: "run all tests".into(),
             flags: task_flags! {},
-            run: |_opts, workspace, _tasks| {
+            run: |_opts, _fs, _git, cargo, _workspace, _tasks| {
                 println!(":::::::::::::::::::::::::");
                 println!(":::: Testing Project ::::");
                 println!(":::::::::::::::::::::::::");
                 println!();
 
-                cmd!(&workspace.cargo_cmd, "test").run()?;
+                cargo.test([""]).run()?;
 
                 println!(":::: Done!");
                 println!();
-
                 Ok(())
             },
         },
@@ -514,58 +484,20 @@ fn init_tasks() -> Tasks {
             name: "todo".into(),
             description: "list open to-dos based on inline source code comments".into(),
             flags: task_flags! {},
-            run: |_opts, _workspace, _tasks| {
+            run: |_opts, _fs, git, _cargo, _workspace, _tasks| {
                 println!(":::::::::::::::");
                 println!(":::: TODOs ::::");
                 println!(":::::::::::::::");
                 println!();
 
-                // so we don't include this fn in the list (x_X)
-                let mut ptn = String::from("TODO");
-                ptn.push_str(" (.*)");
-
-                cmd!(
-                    "git",
-                    "grep",
-                    "-e",
-                    ptn,
-                    "--ignore-case",
-                    "--heading",
-                    "--break",
-                    "--context",
-                    "2",
-                    "--full-name",
-                    "--line-number",
-                    "--",
-                    ":!./target/*",
-                    ":!./tmp/*",
-                )
-                .run()?;
+                git.todos().run()?;
 
                 println!(":::: Done!");
                 println!();
-
                 Ok(())
             },
         },
     ]);
 
     tasks
-}
-
-fn get_cargo_cmd() -> String {
-    env::var("CARGO").unwrap_or_else(|_| "cargo".to_string())
-}
-
-fn get_root_path<T: AsRef<str>>(cargo_cmd: T) -> Result<PathBuf, DynError> {
-    let stdout = cmd!(
-        cargo_cmd.as_ref().to_owned(),
-        "locate-project",
-        "--workspace",
-        "--message-format",
-        "plain",
-    )
-    .read()?;
-
-    Ok(PathBuf::from(stdout.replace("Cargo.toml", "").trim()))
 }

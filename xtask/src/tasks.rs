@@ -1,16 +1,27 @@
+use crate::cargo::Cargo;
+use crate::fs::FS;
+use crate::git::Git;
 use crate::options::Options;
 use crate::workspace::Workspace;
 use std::collections::BTreeMap;
 use std::error::Error;
 
 type DynError = Box<dyn Error>;
+type TaskRunner = fn(
+    opts: &Options,
+    fs: FS,
+    git: Git,
+    cargo: Cargo,
+    workspace: Workspace,
+    tasks: &Tasks,
+) -> Result<(), DynError>;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Task {
     pub name: String,
     pub description: String,
     pub flags: BTreeMap<String, String>,
-    pub run: fn(opts: Options, &mut Workspace, &Tasks) -> Result<(), DynError>,
+    pub run: TaskRunner,
 }
 
 impl Task {
@@ -19,7 +30,7 @@ impl Task {
         name: N,
         description: D,
         flags: BTreeMap<String, String>,
-        run: fn(args: Options, &mut Workspace, &Tasks) -> Result<(), DynError>,
+        run: TaskRunner,
     ) -> Self {
         Task {
             name: name.as_ref().to_owned(),
@@ -29,14 +40,13 @@ impl Task {
         }
     }
 
-    pub fn exec(
-        &self,
-        args: Vec<String>,
-        workspace: &mut Workspace,
-        tasks: &Tasks,
-    ) -> Result<(), DynError> {
+    pub fn exec(&self, args: Vec<String>, tasks: &Tasks) -> Result<(), DynError> {
         let opts = Options::new(args, self.flags.clone())?;
-        (self.run)(opts, workspace, tasks)?;
+        let cargo = Cargo::new(&opts);
+        let git = Git::new(&opts);
+        let fs = FS::new(&opts);
+        let workspace = Workspace::from_path(cargo.workspace_path()?)?;
+        (self.run)(&opts, fs, git, cargo, workspace, tasks)?;
         Ok(())
     }
 }
@@ -103,10 +113,12 @@ mod tests {
     use super::*;
     use crate::task_flags;
 
+    static FAKE_RUN: TaskRunner = |_, _, _, _, _, _| Ok(());
+
     #[test]
     fn it_initializes_a_task() {
         let flags = BTreeMap::from([("foo".into(), "does the foo".into())]);
-        let task = Task::new("test", "my test task", flags, |_, _, _| Ok(()));
+        let task = Task::new("test", "my test task", flags, FAKE_RUN);
         assert_eq!(task.name, "test");
         assert_eq!(task.description, "my test task");
     }
@@ -114,10 +126,9 @@ mod tests {
     #[test]
     fn it_executes_a_task() {
         let tasks = Tasks::new();
-        let mut workspace = Workspace::new("fake-cargo", std::path::PathBuf::from("fake-root"));
         let flags = BTreeMap::from([("foo".into(), "does the foo".into())]);
-        let task = Task::new("test", "my test task", flags, |_, _, _| Ok(()));
-        task.exec(vec![], &mut workspace, &tasks).unwrap();
+        let task = Task::new("test", "my test task", flags, FAKE_RUN);
+        task.exec(vec![], &tasks).unwrap();
     }
 
     #[test]
@@ -130,8 +141,8 @@ mod tests {
     fn it_add_a_task() {
         let mut tasks = Tasks::new();
         let flags = BTreeMap::from([("foo".into(), "does the foo".into())]);
-        let task1 = Task::new("one", "task 01", flags.clone(), |_, _, _| Ok(()));
-        let task2 = Task::new("two", "task 02", flags, |_, _, _| Ok(()));
+        let task1 = Task::new("one", "task 01", flags.clone(), FAKE_RUN);
+        let task2 = Task::new("two", "task 02", flags, FAKE_RUN);
 
         tasks.add(vec![task1, task2]);
 
@@ -144,8 +155,8 @@ mod tests {
     fn it_gets_a_task() {
         let mut tasks = Tasks::new();
         let flags = BTreeMap::from([("foo".into(), "does the foo".into())]);
-        let task1 = Task::new("one", "task 01", flags.clone(), |_, _, _| Ok(()));
-        let task2 = Task::new("two", "task 02", flags, |_, _, _| Ok(()));
+        let task1 = Task::new("one", "task 01", flags.clone(), FAKE_RUN);
+        let task2 = Task::new("two", "task 02", flags, FAKE_RUN);
 
         tasks.add(vec![task1, task2]);
         let task = tasks.get("one").unwrap();
@@ -166,7 +177,7 @@ mod tests {
                     "foo" => "does the foo",
                     "bar" => "enables bar",
                 },
-                run: |_, _, _| Ok(()),
+                run: FAKE_RUN,
             },
             Task {
                 name: "two".into(),
@@ -174,7 +185,7 @@ mod tests {
                 flags: task_flags! {
                     "baz" => "invokes a baz",
                 },
-                run: |_, _, _| Ok(()),
+                run: FAKE_RUN,
             },
         ]);
 

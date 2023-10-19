@@ -1,11 +1,11 @@
+use crate::fs::FS;
 use crate::readme::Readme;
 use crate::toml::Toml;
+use semver::Version;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
-use semver::Version;
 
 type DynError = Box<dyn Error>;
 
@@ -107,12 +107,18 @@ impl Krate {
         Ok(())
     }
 
-    pub fn clean(&self) -> Result<(), DynError> {
-        Ok(fs::remove_dir_all(self.tmp_path())?)
+    pub fn clean(&self, fs: &FS) -> Result<(), DynError> {
+        use std::io::ErrorKind;
+
+        match fs.remove_dir_all(self.tmp_path()) {
+            Err(e) if e.kind() == ErrorKind::NotFound => Ok(()),
+            Err(e) => Err(Box::new(e)),
+            Ok(()) => Ok(()),
+        }
     }
 
-    pub fn create_dirs(&self) -> Result<(), DynError> {
-        Ok(fs::create_dir_all(self.coverage_path())?)
+    pub fn create_dirs(&self, fs: &FS) -> Result<(), DynError> {
+        Ok(fs.create_dir_all(self.coverage_path())?)
     }
 }
 
