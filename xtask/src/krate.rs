@@ -1,11 +1,11 @@
 use crate::fs::FS;
 use crate::readme::Readme;
 use crate::toml::Toml;
+use semver::Version;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use std::str::FromStr;
-use semver::Version;
 
 type DynError = Box<dyn Error>;
 

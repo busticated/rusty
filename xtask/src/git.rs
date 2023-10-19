@@ -162,8 +162,8 @@ impl<'a> Git<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::Path;
     use crate::task_flags;
+    use std::path::Path;
 
     #[test]
     fn it_initializes() {

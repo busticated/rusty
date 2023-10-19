@@ -1,10 +1,10 @@
 use crate::options::Options;
 use duct::{cmd, Expression};
-use std::ffi::OsString;
 use std::collections::HashMap;
-use std::path::PathBuf;
-use std::error::Error;
 use std::env;
+use std::error::Error;
+use std::ffi::OsString;
+use std::path::PathBuf;
 
 type DynError = Box<dyn Error>;
 

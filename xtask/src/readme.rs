@@ -1,10 +1,10 @@
+use crate::fs::FS;
+use crate::krate::Krate;
 use regex::RegexBuilder;
 use std::collections::BTreeMap;
 use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
-use crate::fs::FS;
-use crate::krate::Krate;
 
 type DynError = Box<dyn Error>;
 

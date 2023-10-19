@@ -1,6 +1,6 @@
+use crate::options::Options;
 use std::fs;
 use std::path::Path;
-use crate::options::Options;
 
 type IOResult = std::io::Result<()>;
 

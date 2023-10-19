@@ -1,6 +1,6 @@
+mod cargo;
 mod fs;
 mod git;
-mod cargo;
 mod krate;
 mod options;
 mod readme;
@@ -10,11 +10,11 @@ mod toml;
 mod workspace;
 
 use crate::krate::{Krate, KratePaths};
-use crate::tasks::{Task, Tasks};
 use crate::semver::VersionChoice;
+use crate::tasks::{Task, Tasks};
 use duct::cmd;
-use inquire::required;
 use inquire::list_option::ListOption as InquireListOption;
+use inquire::required;
 use inquire::validator::Validation as InquireValidation;
 use inquire::{MultiSelect as InquireMultiSelect, Select as InquireSelect, Text as InquireText};
 use regex::RegexBuilder;
@@ -182,7 +182,6 @@ fn init_tasks() -> Tasks {
                 println!(":::: Done!");
                 println!(":::: Report: {}", report);
                 println!();
-
                 Ok(())
             },
         },
@@ -234,7 +233,6 @@ fn init_tasks() -> Tasks {
 
                 println!(":::: Done!");
                 println!();
-
                 Ok(())
             },
         },
@@ -258,7 +256,6 @@ fn init_tasks() -> Tasks {
                 println!();
                 println!(":::: Done!");
                 println!();
-
                 Ok(())
             },
         },
@@ -372,7 +369,6 @@ fn init_tasks() -> Tasks {
                 println!(":::: Done!");
                 println!(":::: Artifacts: {}", dist_dir.display());
                 println!();
-
                 Ok(())
             },
         },
@@ -420,7 +416,6 @@ fn init_tasks() -> Tasks {
 
                 println!(":::: Done!");
                 println!();
-
                 Ok(())
             },
         },
@@ -438,7 +433,6 @@ fn init_tasks() -> Tasks {
 
                 println!(":::: Done!");
                 println!();
-
                 Ok(())
             },
         },
@@ -465,7 +459,6 @@ fn init_tasks() -> Tasks {
 
                 println!(":::: Done!");
                 println!();
-
                 Ok(())
             },
         },
@@ -483,7 +476,6 @@ fn init_tasks() -> Tasks {
 
                 println!(":::: Done!");
                 println!();
-
                 Ok(())
             },
         },
@@ -501,7 +493,6 @@ fn init_tasks() -> Tasks {
 
                 println!(":::: Done!");
                 println!();
-
                 Ok(())
             },
         },

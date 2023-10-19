@@ -1,10 +1,10 @@
+use crate::fs::FS;
+use crate::krate::Krate;
+use semver::Version;
 use std::error::Error;
 use std::fs;
 use std::path::{Path, PathBuf};
-use toml_edit::{Document, value as toml_value};
-use semver::Version;
-use crate::fs::FS;
-use crate::krate::Krate;
+use toml_edit::{value as toml_value, Document};
 
 type DynError = Box<dyn Error>;
 

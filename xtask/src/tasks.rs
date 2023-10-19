@@ -1,14 +1,20 @@
+use crate::cargo::Cargo;
 use crate::fs::FS;
 use crate::git::Git;
-use crate::cargo::Cargo;
 use crate::options::Options;
 use crate::workspace::Workspace;
 use std::collections::BTreeMap;
 use std::error::Error;
 
 type DynError = Box<dyn Error>;
-type TaskRunner =
-    fn(args: &Options, fs: FS, git: Git, cargo: Cargo, Workspace, &Tasks) -> Result<(), DynError>;
+type TaskRunner = fn(
+    opts: &Options,
+    fs: FS,
+    git: Git,
+    cargo: Cargo,
+    workspace: Workspace,
+    tasks: &Tasks,
+) -> Result<(), DynError>;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Task {

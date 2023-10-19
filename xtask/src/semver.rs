@@ -1,5 +1,5 @@
-use std::fmt::{Display, Formatter};
 use semver::{BuildMetadata, Prerelease, Version};
+use std::fmt::{Display, Formatter};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum VersionChoice {

@@ -1,5 +1,5 @@
-use crate::fs::FS;
 use crate::cargo::Cargo;
+use crate::fs::FS;
 use crate::krate::{Krate, KratePaths};
 use crate::readme::Readme;
 use crate::toml::Toml;
@@ -85,7 +85,6 @@ impl Workspace {
         }
 
         cargo.clean(["--release"]).run()?;
-
         Ok(())
     }
 
