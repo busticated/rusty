@@ -322,6 +322,8 @@ mod tests {
     use mockito::{Server, Mock};
     use super::*;
 
+    fn is_thread_safe<T: Sized + Send + Sync + Unpin>() {}
+
     #[test]
     fn it_initializes(){
         let info = NodeJSRelInfo::new("1.0.0");
@@ -332,6 +334,7 @@ mod tests {
         assert_eq!(info.filename, "".to_string());
         assert_eq!(info.sha256, "".to_string());
         assert_eq!(info.url, "".to_string());
+        is_thread_safe::<NodeJSRelInfo>();
     }
 
     #[test]
