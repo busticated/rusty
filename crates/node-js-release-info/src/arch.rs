@@ -1,14 +1,22 @@
 use crate::error::NodeJSRelInfoError;
+#[cfg(feature = "json")]
+use serde::{Deserialize, Serialize};
 use std::env::consts::ARCH;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "json", derive(Deserialize, Serialize))]
 pub enum NodeJSArch {
+    #[cfg_attr(feature = "json", serde(rename = "x64"))]
     X64,
+    #[cfg_attr(feature = "json", serde(rename = "x86"))]
     X86,
+    #[cfg_attr(feature = "json", serde(rename = "arm64"))]
     ARM64,
+    #[cfg_attr(feature = "json", serde(rename = "armv7l"))]
     ARMV7L,
+    #[cfg_attr(feature = "json", serde(rename = "ppc64le"))]
     PPC64LE,
 }
 
@@ -142,5 +150,12 @@ mod tests {
     )]
     fn it_fails_when_arch_is_unrecognized() {
         NodeJSArch::from_str("NOPE!").unwrap();
+    }
+
+    #[test]
+    fn it_serializes_and_deserializes() {
+        let arch_json = serde_json::to_string(&NodeJSArch::X64).unwrap();
+        let arch: NodeJSArch = serde_json::from_str(&arch_json).unwrap();
+        assert_eq!(arch, NodeJSArch::X64);
     }
 }

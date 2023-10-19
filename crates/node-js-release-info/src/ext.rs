@@ -1,12 +1,19 @@
 use crate::error::NodeJSRelInfoError;
+#[cfg(feature = "json")]
+use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "json", derive(Deserialize, Serialize))]
 pub enum NodeJSPkgExt {
+    #[cfg_attr(feature = "json", serde(rename = "tar.gz"))]
     Targz,
+    #[cfg_attr(feature = "json", serde(rename = "tar.xz"))]
     Tarxz,
+    #[cfg_attr(feature = "json", serde(rename = "zip"))]
     Zip,
+    #[cfg_attr(feature = "json", serde(rename = "msi"))]
     Msi,
 }
 
@@ -108,5 +115,12 @@ mod tests {
     )]
     fn it_fails_when_arch_is_unrecognized() {
         NodeJSPkgExt::from_str("NOPE!").unwrap();
+    }
+
+    #[test]
+    fn it_serializes_and_deserializes() {
+        let ext_json = serde_json::to_string(&NodeJSPkgExt::Tarxz).unwrap();
+        let ext: NodeJSPkgExt = serde_json::from_str(&ext_json).unwrap();
+        assert_eq!(ext, NodeJSPkgExt::Tarxz);
     }
 }

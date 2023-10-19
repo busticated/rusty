@@ -1,12 +1,18 @@
 use crate::error::NodeJSRelInfoError;
+#[cfg(feature = "json")]
+use serde::{Deserialize, Serialize};
 use std::env::consts::OS;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "json", derive(Deserialize, Serialize))]
 pub enum NodeJSOS {
+    #[cfg_attr(feature = "json", serde(rename = "linux"))]
     Linux,
+    #[cfg_attr(feature = "json", serde(rename = "darwin"))]
     Darwin,
+    #[cfg_attr(feature = "json", serde(rename = "win"))]
     Windows,
 }
 
@@ -116,5 +122,12 @@ mod tests {
     )]
     fn it_fails_when_os_cannot_be_determined_from_str() {
         NodeJSOS::from_str("NOPE!").unwrap();
+    }
+
+    #[test]
+    fn it_serializes_and_deserializes() {
+        let os_json = serde_json::to_string(&NodeJSOS::Darwin).unwrap();
+        let os: NodeJSOS = serde_json::from_str(&os_json).unwrap();
+        assert_eq!(os, NodeJSOS::Darwin);
     }
 }

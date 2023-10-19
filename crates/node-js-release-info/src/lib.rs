@@ -8,6 +8,8 @@ mod url;
 
 use std::string::ToString;
 use semver::Version;
+#[cfg(feature = "json")]
+use serde::{Serialize, Deserialize};
 pub use crate::os::NodeJSOS;
 pub use crate::arch::NodeJSArch;
 pub use crate::error::NodeJSRelInfoError;
@@ -15,6 +17,7 @@ pub use crate::ext::NodeJSPkgExt;
 use crate::url::NodeJSURLFormatter;
 
 #[derive(Clone, Debug, Default, PartialEq)]
+#[cfg_attr(feature = "json", derive(Deserialize, Serialize))]
 pub struct NodeJSRelInfo {
     /// The operating system for the Node.js distributable you are targeting
     pub os: NodeJSOS,
@@ -30,6 +33,7 @@ pub struct NodeJSRelInfo {
     pub sha256: String,
     /// The fully qualified url for the Node.js distributable (populated after fetching)
     pub url: String,
+    #[cfg_attr(feature = "json", serde(skip))]
     url_fmt: NodeJSURLFormatter,
 }
 
@@ -244,29 +248,6 @@ impl NodeJSRelInfo {
         self.clone()
     }
 
-    /// Creates JSON String from instance
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use node_js_release_info::{NodeJSRelInfo, NodeJSRelInfoError};
-    /// let info = NodeJSRelInfo::new("20.6.1");
-    /// assert_eq!(info.to_json_string(), "{\"version\":\"20.6.1\",\"os\":\"linux\",\"arch\":\"x64\",\"filename\":\"node-v20.6.1-linux-x64.tar.gz\",\"sha256\":\"\",\"url\":\"\"}");
-    /// ```
-    // TODO (busticated): should probably just use serde
-    pub fn to_json_string(&self) -> String {
-        let entries = vec![
-            format!("\"version\":\"{}\"", self.version),
-            format!("\"os\":\"{}\"", self.os),
-            format!("\"arch\":\"{}\"", self.arch),
-            format!("\"filename\":\"{}\"", self.filename()),
-            format!("\"sha256\":\"{}\"", self.sha256),
-            format!("\"url\":\"{}\"", self.url),
-        ];
-
-        format!("{{{}}}", entries.join(","))
-    }
-
     /// Fetches Node.js metadata from the [releases download server](https://nodejs.org/download/release/)
     ///
     /// # Examples
@@ -341,6 +322,8 @@ mod tests {
     use mockito::{Server, Mock};
     use super::*;
 
+    fn is_thread_safe<T: Sized + Send + Sync + Unpin>() {}
+
     #[test]
     fn it_initializes(){
         let info = NodeJSRelInfo::new("1.0.0");
@@ -351,6 +334,7 @@ mod tests {
         assert_eq!(info.filename, "".to_string());
         assert_eq!(info.sha256, "".to_string());
         assert_eq!(info.url, "".to_string());
+        is_thread_safe::<NodeJSRelInfo>();
     }
 
     #[test]
@@ -464,37 +448,6 @@ mod tests {
     }
 
     #[test]
-    fn it_gets_json_string() {
-        let mut info = NodeJSRelInfo::new("1.0.0").macos().x64().zip().to_owned();
-        info.sha256 = "fake-sha256".into();
-        info.url = "https://example.com/fake-url".into();
-        let json = info.to_json_string();
-        let result: Vec<&str> = json.split(',').collect();
-
-        assert_eq!(result, vec![
-            "{\"version\":\"1.0.0\"",
-            "\"os\":\"darwin\"",
-            "\"arch\":\"x64\"",
-            "\"filename\":\"node-v1.0.0-darwin-x64.zip\"",
-            "\"sha256\":\"fake-sha256\"",
-            "\"url\":\"https://example.com/fake-url\"}"
-        ]);
-
-        info.windows().arm64().msi();
-        let json = info.to_json_string();
-        let result: Vec<&str> = json.split(',').collect();
-
-        assert_eq!(result, vec![
-            "{\"version\":\"1.0.0\"",
-            "\"os\":\"win\"",
-            "\"arch\":\"arm64\"",
-            "\"filename\":\"node-v1.0.0-arm64.msi\"",
-            "\"sha256\":\"fake-sha256\"",
-            "\"url\":\"https://example.com/fake-url\"}"
-        ]);
-    }
-
-    #[test]
     fn it_formats_filename() {
         let info = NodeJSRelInfo::new("1.0.0").macos().x64().zip().to_owned();
 
@@ -503,6 +456,33 @@ mod tests {
         let info = NodeJSRelInfo::new("1.0.0").windows().x64().msi().to_owned();
 
         assert_eq!(info.filename(), "node-v1.0.0-x64.msi");
+    }
+
+    #[test]
+    fn it_serializes_and_deserializes() {
+        let version = "20.6.1".to_string();
+        let filename = "node-v20.6.1-darwin-arm64.tar.gz".to_string();
+        let sha256 = "d8ba8018d45b294429b1a7646ccbeaeb2af3cdf45b5c91dabbd93e2a2035cb46".to_string();
+        let url = "https://nodejs.org/download/release/v20.6.1/node-v20.6.1-darwin-arm64.tar.gz".to_string();
+        let info_orig = NodeJSRelInfo {
+            os: NodeJSOS::Darwin,
+            arch: NodeJSArch::ARM64,
+            ext: NodeJSPkgExt::Targz,
+            version: version.clone(),
+            filename: filename.clone(),
+            sha256: sha256.clone(),
+            url: url.clone(),
+            ..Default::default()
+        };
+        let info_json = serde_json::to_string(&info_orig).unwrap();
+        let info: NodeJSRelInfo = serde_json::from_str(&info_json).unwrap();
+        assert_eq!(info.os, NodeJSOS::Darwin);
+        assert_eq!(info.arch, NodeJSArch::ARM64);
+        assert_eq!(info.ext, NodeJSPkgExt::Targz);
+        assert_eq!(info.version, "20.6.1".to_string());
+        assert_eq!(info.filename, "node-v20.6.1-darwin-arm64.tar.gz".to_string());
+        assert_eq!(info.sha256, "d8ba8018d45b294429b1a7646ccbeaeb2af3cdf45b5c91dabbd93e2a2035cb46".to_string());
+        assert_eq!(info.url, "https://nodejs.org/download/release/v20.6.1/node-v20.6.1-darwin-arm64.tar.gz".to_string());
     }
 
     #[tokio::test]

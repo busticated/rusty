@@ -151,7 +151,7 @@ impl<'a> Cargo<'a> {
     {
         let mut profile_ptn: OsString = path.into();
         profile_ptn.push("/cargo-test-%p-%m.profraw");
-        let args = self.build_args([OsString::from("test")], [""]);
+        let args = self.build_args([OsString::from("test")], ["--all-features"]);
         let envs = HashMap::from([
             ("CARGO_INCREMENTAL".into(), "0".into()),
             ("RUSTFLAGS".into(), "-Cinstrument-coverage".into()),
@@ -286,7 +286,7 @@ mod tests {
             ),
         ]);
 
-        assert_eq!(args, ["test"]);
+        assert_eq!(args, ["test", "--all-features"]);
         assert_eq!(envs, Some(expected_envs));
     }
 
