@@ -34,4 +34,23 @@ async fn main() -> Result<(), NodeJSRelInfoError> {
 }
 ```
 
+## Features
+
+Full `json` serialization + deserialization is avaialable via the `json` feature.
+
+```shell
+cargo add node-js-release-info --features json
+```
+
+```rust
+use node_js_release_info::{NodeJSRelInfo, NodeJSRelInfoError};
+
+#[tokio::main]
+async fn main() {
+  let info = NodeJSRelInfo::new("20.6.1").macos().arm64().to_owned();
+  let json = serde_json::to_string(&info).unwrap();
+  let info_deserialized = serde_json::from_str(&json).unwrap();
+  assert_eq!(info, info_deserialized);
+}
+```
 
