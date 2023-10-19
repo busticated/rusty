@@ -8,6 +8,8 @@ mod url;
 
 use std::string::ToString;
 use semver::Version;
+#[cfg(feature = "json")]
+use serde::{Serialize, Deserialize};
 pub use crate::os::NodeJSOS;
 pub use crate::arch::NodeJSArch;
 pub use crate::error::NodeJSRelInfoError;
@@ -15,6 +17,7 @@ pub use crate::ext::NodeJSPkgExt;
 use crate::url::NodeJSURLFormatter;
 
 #[derive(Clone, Debug, Default, PartialEq)]
+#[cfg_attr(feature = "json", derive(Deserialize, Serialize))]
 pub struct NodeJSRelInfo {
     /// The operating system for the Node.js distributable you are targeting
     pub os: NodeJSOS,
@@ -30,6 +33,7 @@ pub struct NodeJSRelInfo {
     pub sha256: String,
     /// The fully qualified url for the Node.js distributable (populated after fetching)
     pub url: String,
+    #[cfg_attr(feature = "json", serde(skip))]
     url_fmt: NodeJSURLFormatter,
 }
 
@@ -503,6 +507,33 @@ mod tests {
         let info = NodeJSRelInfo::new("1.0.0").windows().x64().msi().to_owned();
 
         assert_eq!(info.filename(), "node-v1.0.0-x64.msi");
+    }
+
+    #[test]
+    fn it_serializes_and_deserializes() {
+        let version = "20.6.1".to_string();
+        let filename = "node-v20.6.1-darwin-arm64.tar.gz".to_string();
+        let sha256 = "d8ba8018d45b294429b1a7646ccbeaeb2af3cdf45b5c91dabbd93e2a2035cb46".to_string();
+        let url = "https://nodejs.org/download/release/v20.6.1/node-v20.6.1-darwin-arm64.tar.gz".to_string();
+        let info_orig = NodeJSRelInfo {
+            os: NodeJSOS::Darwin,
+            arch: NodeJSArch::ARM64,
+            ext: NodeJSPkgExt::Targz,
+            version: version.clone(),
+            filename: filename.clone(),
+            sha256: sha256.clone(),
+            url: url.clone(),
+            ..Default::default()
+        };
+        let info_json = serde_json::to_string(&info_orig).unwrap();
+        let info: NodeJSRelInfo = serde_json::from_str(&info_json).unwrap();
+        assert_eq!(info.os, NodeJSOS::Darwin);
+        assert_eq!(info.arch, NodeJSArch::ARM64);
+        assert_eq!(info.ext, NodeJSPkgExt::Targz);
+        assert_eq!(info.version, "20.6.1".to_string());
+        assert_eq!(info.filename, "node-v20.6.1-darwin-arm64.tar.gz".to_string());
+        assert_eq!(info.sha256, "d8ba8018d45b294429b1a7646ccbeaeb2af3cdf45b5c91dabbd93e2a2035cb46".to_string());
+        assert_eq!(info.url, "https://nodejs.org/download/release/v20.6.1/node-v20.6.1-darwin-arm64.tar.gz".to_string());
     }
 
     #[tokio::test]
