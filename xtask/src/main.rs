@@ -1,4 +1,5 @@
 mod cargo;
+mod exec;
 mod fs;
 mod git;
 mod krate;

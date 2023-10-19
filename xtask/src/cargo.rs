@@ -1,5 +1,6 @@
+use crate::exec::{EnvVars, Execute};
 use crate::options::Options;
-use duct::{cmd, Expression};
+use duct::Expression;
 use std::collections::HashMap;
 use std::env;
 use std::error::Error;
@@ -14,59 +15,20 @@ pub struct Cargo<'a> {
     opts: &'a Options,
 }
 
+impl<'a> Execute for Cargo<'a> {
+    fn bin(&self) -> String {
+        self.bin.to_owned()
+    }
+
+    fn opts(&self) -> &Options {
+        self.opts
+    }
+}
+
 impl<'a> Cargo<'a> {
     pub fn new(opts: &'a Options) -> Cargo<'a> {
         let bin = env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
         Cargo { bin, opts }
-    }
-
-    fn exec_safe(&self, args: Vec<OsString>, envs: HashMap<OsString, OsString>) -> Expression {
-        if envs.is_empty() {
-            return cmd(&self.bin, args);
-        }
-
-        let mut exp = cmd(&self.bin, args);
-
-        for (key, value) in envs.iter() {
-            exp = exp.env(key, value);
-        }
-
-        exp
-    }
-
-    fn exec_unsafe(&self, args: Vec<OsString>, envs: HashMap<OsString, OsString>) -> Expression {
-        if self.opts.has("dry-run") {
-            let mut args = args.clone();
-            args.insert(0, "skipping:".into());
-            args.insert(1, "cargo".into());
-            // TODO (busticated): windows? see: https://stackoverflow.com/a/61857874/579167
-            return cmd("echo", args);
-        }
-
-        self.exec_safe(args, envs)
-    }
-
-    fn build_args<U, UU>(&self, args1: U, args2: UU) -> Vec<OsString>
-    where
-        U: IntoIterator,
-        U::Item: Into<OsString>,
-        UU: IntoIterator,
-        UU::Item: Into<OsString>,
-    {
-        let mut args = args1
-            .into_iter()
-            .map(Into::<OsString>::into)
-            .collect::<Vec<_>>();
-
-        args.extend(
-            args2
-                .into_iter()
-                .map(Into::<OsString>::into)
-                .collect::<Vec<_>>(),
-        );
-
-        args.retain(|a| !a.is_empty());
-        args
     }
 
     pub fn workspace_path(&self) -> Result<PathBuf, DynError> {
@@ -75,12 +37,12 @@ impl<'a> Cargo<'a> {
         Ok(PathBuf::from(stdout.replace("Cargo.toml", "").trim()))
     }
 
-    fn workspace_path_params(&self) -> (Vec<OsString>, HashMap<OsString, OsString>) {
+    fn workspace_path_params(&self) -> (Vec<OsString>, EnvVars) {
         let args = self.build_args(
             ["locate-project", "--workspace", "--message-format", "plain"],
             [""],
         );
-        (args, HashMap::new())
+        (args, None)
     }
 
     pub fn create<P, U>(&self, path: P, arguments: U) -> Expression
@@ -93,18 +55,14 @@ impl<'a> Cargo<'a> {
         self.exec_unsafe(args, envs)
     }
 
-    fn create_params<P, U>(
-        &self,
-        path: P,
-        arguments: U,
-    ) -> (Vec<OsString>, HashMap<OsString, OsString>)
+    fn create_params<P, U>(&self, path: P, arguments: U) -> (Vec<OsString>, EnvVars)
     where
         P: Into<OsString>,
         U: IntoIterator,
         U::Item: Into<OsString>,
     {
         let args = self.build_args(["new".into(), path.into()], arguments);
-        (args, HashMap::new())
+        (args, None)
     }
 
     pub fn install<U>(&self, arguments: U) -> Expression
@@ -116,13 +74,13 @@ impl<'a> Cargo<'a> {
         self.exec_unsafe(args, envs)
     }
 
-    fn install_params<U>(&self, arguments: U) -> (Vec<OsString>, HashMap<OsString, OsString>)
+    fn install_params<U>(&self, arguments: U) -> (Vec<OsString>, EnvVars)
     where
         U: IntoIterator,
         U::Item: Into<OsString>,
     {
         let args = self.build_args([OsString::from("install")], arguments);
-        (args, HashMap::new())
+        (args, None)
     }
 
     pub fn build<U>(&self, arguments: U) -> Expression
@@ -134,13 +92,13 @@ impl<'a> Cargo<'a> {
         self.exec_safe(args, envs)
     }
 
-    fn build_params<U>(&self, arguments: U) -> (Vec<OsString>, HashMap<OsString, OsString>)
+    fn build_params<U>(&self, arguments: U) -> (Vec<OsString>, EnvVars)
     where
         U: IntoIterator,
         U::Item: Into<OsString>,
     {
         let args = self.build_args([OsString::from("build")], arguments);
-        (args, HashMap::new())
+        (args, None)
     }
 
     pub fn clean<U>(&self, arguments: U) -> Expression
@@ -152,13 +110,13 @@ impl<'a> Cargo<'a> {
         self.exec_unsafe(args, envs)
     }
 
-    fn clean_params<U>(&self, arguments: U) -> (Vec<OsString>, HashMap<OsString, OsString>)
+    fn clean_params<U>(&self, arguments: U) -> (Vec<OsString>, EnvVars)
     where
         U: IntoIterator,
         U::Item: Into<OsString>,
     {
         let args = self.build_args([OsString::from("clean")], arguments);
-        (args, HashMap::new())
+        (args, None)
     }
 
     pub fn test<U>(&self, arguments: U) -> Expression
@@ -170,13 +128,13 @@ impl<'a> Cargo<'a> {
         self.exec_safe(args, envs)
     }
 
-    fn test_params<U>(&self, arguments: U) -> (Vec<OsString>, HashMap<OsString, OsString>)
+    fn test_params<U>(&self, arguments: U) -> (Vec<OsString>, EnvVars)
     where
         U: IntoIterator,
         U::Item: Into<OsString>,
     {
         let args = self.build_args([OsString::from("test")], arguments);
-        (args, HashMap::new())
+        (args, None)
     }
 
     pub fn coverage<P>(&self, path: P) -> Expression
@@ -187,7 +145,7 @@ impl<'a> Cargo<'a> {
         self.exec_unsafe(args, envs)
     }
 
-    fn coverage_params<P>(&self, path: P) -> (Vec<OsString>, HashMap<OsString, OsString>)
+    fn coverage_params<P>(&self, path: P) -> (Vec<OsString>, EnvVars)
     where
         P: Into<OsString>,
     {
@@ -200,7 +158,7 @@ impl<'a> Cargo<'a> {
             ("LLVM_PROFILE_FILE".into(), profile_ptn),
         ]);
 
-        (args, envs)
+        (args, Some(envs))
     }
 
     pub fn lint(&self) -> Expression {
@@ -208,14 +166,14 @@ impl<'a> Cargo<'a> {
         self.exec_safe(args, envs)
     }
 
-    fn lint_params(&self) -> (Vec<OsString>, HashMap<OsString, OsString>) {
+    fn lint_params(&self) -> (Vec<OsString>, EnvVars) {
         let args = self.build_args(
             [OsString::from("clippy")],
             ["--all-targets", "--all-features", "--no-deps"],
         );
         let envs = HashMap::from([("RUSTFLAGS".into(), "-Dwarnings".into())]);
 
-        (args, envs)
+        (args, Some(envs))
     }
 
     pub fn doc<U>(&self, arguments: U) -> Expression
@@ -227,13 +185,13 @@ impl<'a> Cargo<'a> {
         self.exec_unsafe(args, envs)
     }
 
-    fn doc_params<U>(&self, arguments: U) -> (Vec<OsString>, HashMap<OsString, OsString>)
+    fn doc_params<U>(&self, arguments: U) -> (Vec<OsString>, EnvVars)
     where
         U: IntoIterator,
         U::Item: Into<OsString>,
     {
         let args = self.build_args([OsString::from("doc")], arguments);
-        (args, HashMap::new())
+        (args, None)
     }
 
     pub fn publish_package<N: AsRef<str>>(&self, name: N) -> Expression {
@@ -241,12 +199,9 @@ impl<'a> Cargo<'a> {
         self.exec_unsafe(args, envs)
     }
 
-    fn publish_package_params<N: AsRef<str>>(
-        &self,
-        name: N,
-    ) -> (Vec<OsString>, HashMap<OsString, OsString>) {
+    fn publish_package_params<N: AsRef<str>>(&self, name: N) -> (Vec<OsString>, EnvVars) {
         let args = self.build_args(["publish", "--package", name.as_ref()], [""]);
-        (args, HashMap::new())
+        (args, None)
     }
 }
 
@@ -254,20 +209,6 @@ impl<'a> Cargo<'a> {
 mod tests {
     use super::*;
     use crate::task_flags;
-
-    #[test]
-    fn it_initializes() {
-        let opts = Options::new(vec![], task_flags! {}).unwrap();
-        let _ = Cargo::new(&opts);
-    }
-
-    #[test]
-    fn it_builds_args() {
-        let opts = Options::new(vec![], task_flags! {}).unwrap();
-        let cargo = Cargo::new(&opts);
-        let args = cargo.build_args(["one"], ["two", "three"]);
-        assert_eq!(args, ["one", "two", "three"]);
-    }
 
     #[test]
     fn it_builds_args_for_getting_workspace_path() {
@@ -278,7 +219,7 @@ mod tests {
             args,
             ["locate-project", "--workspace", "--message-format", "plain"]
         );
-        assert_eq!(envs, HashMap::new());
+        assert_eq!(envs, None);
     }
 
     #[test]
@@ -291,7 +232,7 @@ mod tests {
             args,
             ["new", "fake-crate-path", "--name", "my-crate", "--lib"]
         );
-        assert_eq!(envs, HashMap::new());
+        assert_eq!(envs, None);
     }
 
     #[test]
@@ -300,7 +241,7 @@ mod tests {
         let cargo = Cargo::new(&opts);
         let (args, envs) = cargo.install_params(["grcov"]);
         assert_eq!(args, ["install", "grcov"]);
-        assert_eq!(envs, HashMap::new());
+        assert_eq!(envs, None);
     }
 
     #[test]
@@ -309,7 +250,7 @@ mod tests {
         let cargo = Cargo::new(&opts);
         let (args, envs) = cargo.build_params(["--release"]);
         assert_eq!(args, ["build", "--release"]);
-        assert_eq!(envs, HashMap::new());
+        assert_eq!(envs, None);
     }
 
     #[test]
@@ -318,7 +259,7 @@ mod tests {
         let cargo = Cargo::new(&opts);
         let (args, envs) = cargo.clean_params(["--release"]);
         assert_eq!(args, ["clean", "--release"]);
-        assert_eq!(envs, HashMap::new());
+        assert_eq!(envs, None);
     }
 
     #[test]
@@ -327,7 +268,7 @@ mod tests {
         let cargo = Cargo::new(&opts);
         let (args, envs) = cargo.test_params(["--doc"]);
         assert_eq!(args, ["test", "--doc"]);
-        assert_eq!(envs, HashMap::new());
+        assert_eq!(envs, None);
     }
 
     #[test]
@@ -336,18 +277,17 @@ mod tests {
         let cargo = Cargo::new(&opts);
         let path = PathBuf::from("fake-coverage-path");
         let (args, envs) = cargo.coverage_params(path);
+        let expected_envs = HashMap::from([
+            ("CARGO_INCREMENTAL".into(), "0".into()),
+            ("RUSTFLAGS".into(), "-Cinstrument-coverage".into()),
+            (
+                "LLVM_PROFILE_FILE".into(),
+                "fake-coverage-path/cargo-test-%p-%m.profraw".into(),
+            ),
+        ]);
+
         assert_eq!(args, ["test"]);
-        assert_eq!(
-            envs,
-            HashMap::from([
-                ("CARGO_INCREMENTAL".into(), "0".into()),
-                ("RUSTFLAGS".into(), "-Cinstrument-coverage".into()),
-                (
-                    "LLVM_PROFILE_FILE".into(),
-                    "fake-coverage-path/cargo-test-%p-%m.profraw".into()
-                ),
-            ])
-        );
+        assert_eq!(envs, Some(expected_envs));
     }
 
     #[test]
@@ -355,14 +295,12 @@ mod tests {
         let opts = Options::new(vec![], task_flags! {}).unwrap();
         let cargo = Cargo::new(&opts);
         let (args, envs) = cargo.lint_params();
+        let expected_envs = HashMap::from([("RUSTFLAGS".into(), "-Dwarnings".into())]);
         assert_eq!(
             args,
             ["clippy", "--all-targets", "--all-features", "--no-deps"]
         );
-        assert_eq!(
-            envs,
-            HashMap::from([("RUSTFLAGS".into(), "-Dwarnings".into()),])
-        );
+        assert_eq!(envs, Some(expected_envs));
     }
 
     #[test]
@@ -371,7 +309,7 @@ mod tests {
         let cargo = Cargo::new(&opts);
         let (args, envs) = cargo.doc_params(["--workspace", "--no-deps"]);
         assert_eq!(args, ["doc", "--workspace", "--no-deps"]);
-        assert_eq!(envs, HashMap::new());
+        assert_eq!(envs, None);
     }
 
     #[test]
@@ -380,6 +318,6 @@ mod tests {
         let cargo = Cargo::new(&opts);
         let (args, envs) = cargo.publish_package_params("my-crate");
         assert_eq!(args, ["publish", "--package", "my-crate"]);
-        assert_eq!(envs, HashMap::new());
+        assert_eq!(envs, None);
     }
 }

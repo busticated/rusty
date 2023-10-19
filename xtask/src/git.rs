@@ -1,55 +1,29 @@
+use crate::exec::Execute;
 use crate::options::Options;
-use duct::{cmd, Expression};
+use duct::Expression;
 use std::ffi::OsString;
 use std::path::Path;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Git<'a> {
+    pub bin: String,
     opts: &'a Options,
+}
+
+impl<'a> Execute for Git<'a> {
+    fn bin(&self) -> String {
+        self.bin.to_owned()
+    }
+
+    fn opts(&self) -> &Options {
+        self.opts
+    }
 }
 
 impl<'a> Git<'a> {
     pub fn new(opts: &'a Options) -> Git<'a> {
-        Git { opts }
-    }
-
-    fn exec_safe(&self, args: Vec<OsString>) -> Expression {
-        cmd("git", args)
-    }
-
-    fn exec_unsafe(&self, args: Vec<OsString>) -> Expression {
-        if self.opts.has("dry-run") {
-            let mut args = args.clone();
-            args.insert(0, "skipping:".into());
-            args.insert(1, "git".into());
-            // TODO (busticated): windows? see: https://stackoverflow.com/a/61857874/579167
-            return cmd("echo", args);
-        }
-
-        self.exec_safe(args)
-    }
-
-    fn build_args<U, UU>(&self, args1: U, args2: UU) -> Vec<OsString>
-    where
-        U: IntoIterator,
-        U::Item: Into<OsString>,
-        UU: IntoIterator,
-        UU::Item: Into<OsString>,
-    {
-        let mut args = args1
-            .into_iter()
-            .map(Into::<OsString>::into)
-            .collect::<Vec<_>>();
-
-        args.extend(
-            args2
-                .into_iter()
-                .map(Into::<OsString>::into)
-                .collect::<Vec<_>>(),
-        );
-
-        args.retain(|a| !a.is_empty());
-        args
+        let bin = "git".to_string();
+        Git { bin, opts }
     }
 
     pub fn add<P, U>(&self, path: P, arguments: U) -> Expression
@@ -59,7 +33,7 @@ impl<'a> Git<'a> {
         U::Item: Into<OsString>,
     {
         let args = self.add_params(path, arguments);
-        self.exec_unsafe(args)
+        self.exec_unsafe(args, None)
     }
 
     fn add_params<P, U>(&self, path: P, arguments: U) -> Vec<OsString>
@@ -81,7 +55,7 @@ impl<'a> Git<'a> {
         U::Item: Into<OsString>,
     {
         let args = self.commit_params(message, arguments);
-        self.exec_unsafe(args)
+        self.exec_unsafe(args, None)
     }
 
     fn commit_params<M, U>(&self, message: M, arguments: U) -> Vec<OsString>
@@ -100,7 +74,7 @@ impl<'a> Git<'a> {
         U::Item: Into<OsString>,
     {
         let args = self.tag_params(tag, arguments);
-        self.exec_unsafe(args)
+        self.exec_unsafe(args, None)
     }
 
     fn tag_params<T, U>(&self, tag: T, arguments: U) -> Vec<OsString>
@@ -118,7 +92,7 @@ impl<'a> Git<'a> {
         U::Item: Into<OsString>,
     {
         let args = self.get_tags_params(arguments);
-        self.exec_safe(args)
+        self.exec_safe(args, None)
     }
 
     fn get_tags_params<U>(&self, arguments: U) -> Vec<OsString>
@@ -131,7 +105,7 @@ impl<'a> Git<'a> {
 
     pub fn todos(&self) -> Expression {
         let args = self.todos_params();
-        self.exec_safe(args)
+        self.exec_safe(args, None)
     }
 
     fn todos_params(&self) -> Vec<OsString> {
@@ -164,20 +138,6 @@ mod tests {
     use super::*;
     use crate::task_flags;
     use std::path::Path;
-
-    #[test]
-    fn it_initializes() {
-        let opts = Options::new(vec![], task_flags! {}).unwrap();
-        let _ = Git::new(&opts);
-    }
-
-    #[test]
-    fn it_builds_args() {
-        let opts = Options::new(vec![], task_flags! {}).unwrap();
-        let git = Git::new(&opts);
-        let args = git.build_args(["one"], ["two", "three"]);
-        assert_eq!(args, ["one", "two", "three"]);
-    }
 
     #[test]
     fn it_builds_args_for_the_add_subcommand() {
