@@ -248,29 +248,6 @@ impl NodeJSRelInfo {
         self.clone()
     }
 
-    /// Creates JSON String from instance
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use node_js_release_info::{NodeJSRelInfo, NodeJSRelInfoError};
-    /// let info = NodeJSRelInfo::new("20.6.1");
-    /// assert_eq!(info.to_json_string(), "{\"version\":\"20.6.1\",\"os\":\"linux\",\"arch\":\"x64\",\"filename\":\"node-v20.6.1-linux-x64.tar.gz\",\"sha256\":\"\",\"url\":\"\"}");
-    /// ```
-    // TODO (busticated): should probably just use serde
-    pub fn to_json_string(&self) -> String {
-        let entries = vec![
-            format!("\"version\":\"{}\"", self.version),
-            format!("\"os\":\"{}\"", self.os),
-            format!("\"arch\":\"{}\"", self.arch),
-            format!("\"filename\":\"{}\"", self.filename()),
-            format!("\"sha256\":\"{}\"", self.sha256),
-            format!("\"url\":\"{}\"", self.url),
-        ];
-
-        format!("{{{}}}", entries.join(","))
-    }
-
     /// Fetches Node.js metadata from the [releases download server](https://nodejs.org/download/release/)
     ///
     /// # Examples
@@ -465,37 +442,6 @@ mod tests {
         info1.windows();
 
         assert_ne!(info1, info2);
-    }
-
-    #[test]
-    fn it_gets_json_string() {
-        let mut info = NodeJSRelInfo::new("1.0.0").macos().x64().zip().to_owned();
-        info.sha256 = "fake-sha256".into();
-        info.url = "https://example.com/fake-url".into();
-        let json = info.to_json_string();
-        let result: Vec<&str> = json.split(',').collect();
-
-        assert_eq!(result, vec![
-            "{\"version\":\"1.0.0\"",
-            "\"os\":\"darwin\"",
-            "\"arch\":\"x64\"",
-            "\"filename\":\"node-v1.0.0-darwin-x64.zip\"",
-            "\"sha256\":\"fake-sha256\"",
-            "\"url\":\"https://example.com/fake-url\"}"
-        ]);
-
-        info.windows().arm64().msi();
-        let json = info.to_json_string();
-        let result: Vec<&str> = json.split(',').collect();
-
-        assert_eq!(result, vec![
-            "{\"version\":\"1.0.0\"",
-            "\"os\":\"win\"",
-            "\"arch\":\"arm64\"",
-            "\"filename\":\"node-v1.0.0-arm64.msi\"",
-            "\"sha256\":\"fake-sha256\"",
-            "\"url\":\"https://example.com/fake-url\"}"
-        ]);
     }
 
     #[test]
