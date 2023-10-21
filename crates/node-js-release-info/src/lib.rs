@@ -119,6 +119,19 @@ impl NodeJSRelInfo {
         self
     }
 
+    /// Sets instance `os` field to `aix`
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use node_js_release_info::NodeJSRelInfo;
+    /// let info = NodeJSRelInfo::new("20.6.1").aix();
+    /// ```
+    pub fn aix(&mut self) -> &mut Self {
+        self.os = NodeJSOS::AIX;
+        self
+    }
+
     /// Sets instance `arch` field to `x64`
     ///
     /// # Examples
@@ -419,6 +432,10 @@ mod tests {
         info.linux();
 
         assert_eq!(info.os, NodeJSOS::Linux);
+
+        info.aix();
+
+        assert_eq!(info.os, NodeJSOS::AIX);
     }
 
     #[test]
