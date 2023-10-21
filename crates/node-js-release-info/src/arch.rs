@@ -16,8 +16,12 @@ pub enum NodeJSArch {
     ARM64,
     #[cfg_attr(feature = "json", serde(rename = "armv7l"))]
     ARMV7L,
+    #[cfg_attr(feature = "json", serde(rename = "ppc64"))]
+    PPC64,
     #[cfg_attr(feature = "json", serde(rename = "ppc64le"))]
     PPC64LE,
+    #[cfg_attr(feature = "json", serde(rename = "s390x"))]
+    S390X,
 }
 
 impl Default for NodeJSArch {
@@ -43,7 +47,9 @@ impl Display for NodeJSArch {
             NodeJSArch::X86 => "x86",
             NodeJSArch::ARM64 => "arm64",
             NodeJSArch::ARMV7L => "armv7l",
+            NodeJSArch::PPC64 => "ppc64",
             NodeJSArch::PPC64LE => "ppc64le",
+            NodeJSArch::S390X => "s390x",
         };
 
         write!(f, "{}", arch)
@@ -58,8 +64,10 @@ impl FromStr for NodeJSArch {
             "x64" | "x86_64" => Ok(NodeJSArch::X64),
             "x86" => Ok(NodeJSArch::X86),
             "arm64" | "aarch64" => Ok(NodeJSArch::ARM64),
-            "arm" => Ok(NodeJSArch::ARMV7L),
-            "ppc64le" | "powerpc64" => Ok(NodeJSArch::PPC64LE),
+            "arm" | "armv7l" => Ok(NodeJSArch::ARMV7L),
+            "ppc64" | "powerpc64" => Ok(NodeJSArch::PPC64),
+            "ppc64le" => Ok(NodeJSArch::PPC64LE),
+            "s390x" => Ok(NodeJSArch::S390X),
             _ => Err(NodeJSRelInfoError::UnrecognizedArch(s.to_string())),
         }
     }
@@ -107,13 +115,21 @@ mod tests {
 
         assert_eq!(arch, NodeJSArch::ARMV7L);
 
+        let arch = NodeJSArch::from_str("ppc64").unwrap();
+
+        assert_eq!(arch, NodeJSArch::PPC64);
+
         let arch = NodeJSArch::from_str("ppc64le").unwrap();
 
         assert_eq!(arch, NodeJSArch::PPC64LE);
 
         let arch = NodeJSArch::from_str("powerpc64").unwrap();
 
-        assert_eq!(arch, NodeJSArch::PPC64LE);
+        assert_eq!(arch, NodeJSArch::PPC64);
+
+        let arch = NodeJSArch::from_str("s390x").unwrap();
+
+        assert_eq!(arch, NodeJSArch::S390X);
     }
 
     #[test]
@@ -134,9 +150,17 @@ mod tests {
 
         assert_eq!(text, "armv7l");
 
+        let text = format!("{}", NodeJSArch::PPC64);
+
+        assert_eq!(text, "ppc64");
+
         let text = format!("{}", NodeJSArch::PPC64LE);
 
         assert_eq!(text, "ppc64le");
+
+        let text = format!("{}", NodeJSArch::S390X);
+
+        assert_eq!(text, "s390x");
     }
 
     #[test]

@@ -127,8 +127,8 @@ mod tests {
         let version = String::from("20.6.1");
         let specs_raw = get_fake_specs().to_string();
         let specs = parse(&version, specs_raw).unwrap();
-        assert_eq!(specs.len(), 16);
-        let (os, arch, ext, sha256, filename) = &specs[1];
+        assert_eq!(specs.len(), 21);
+        let (os, arch, ext, sha256, filename) = &specs[2];
         assert_eq!(*os, NodeJSOS::Darwin);
         assert_eq!(*arch, NodeJSArch::ARM64);
         assert_eq!(*ext, NodeJSPkgExt::Targz);
