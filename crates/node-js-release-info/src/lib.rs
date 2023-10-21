@@ -262,6 +262,19 @@ impl NodeJSRelInfo {
         self
     }
 
+    /// Sets instance `ext` field to `7z`
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use node_js_release_info::NodeJSRelInfo;
+    /// let info = NodeJSRelInfo::new("20.6.1").s7z();
+    /// ```
+    pub fn s7z(&mut self) -> &mut Self {
+        self.ext = NodeJSPkgExt::S7z;
+        self
+    }
+
     /// Sets instance `ext` field to `msi`
     ///
     /// # Examples
@@ -336,7 +349,7 @@ impl NodeJSRelInfo {
     /// async fn main() -> Result<(), NodeJSRelInfoError> {
     ///   let info = NodeJSRelInfo::new("20.6.1");
     ///   let all = info.fetch_all().await?;
-    ///   assert_eq!(all.len(), 21);
+    ///   assert_eq!(all.len(), 24);
     ///   assert_eq!(all[2].version, "20.6.1");
     ///   assert_eq!(all[2].filename, "node-v20.6.1-darwin-arm64.tar.gz");
     ///   assert_eq!(all[2].sha256, "d8ba8018d45b294429b1a7646ccbeaeb2af3cdf45b5c91dabbd93e2a2035cb46");
@@ -516,6 +529,10 @@ mod tests {
         info.msi();
 
         assert_eq!(info.ext, NodeJSPkgExt::Msi);
+
+        info.s7z();
+
+        assert_eq!(info.ext, NodeJSPkgExt::S7z);
     }
 
     #[test]
@@ -650,7 +667,7 @@ mod tests {
         let all = info.fetch_all().await.unwrap();
         mock.assert_async().await;
 
-        assert_eq!(all.len(), 21);
+        assert_eq!(all.len(), 24);
         assert_eq!(all[2].version, "20.6.1");
         assert_eq!(all[2].os, NodeJSOS::Darwin);
         assert_eq!(all[2].arch, NodeJSArch::ARM64);

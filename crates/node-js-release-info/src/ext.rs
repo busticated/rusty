@@ -15,6 +15,8 @@ pub enum NodeJSPkgExt {
     Zip,
     #[cfg_attr(feature = "json", serde(rename = "msi"))]
     Msi,
+    #[cfg_attr(feature = "json", serde(rename = "7z"))]
+    S7z, // can't start w/ a number (X_x)
 }
 
 impl Default for NodeJSPkgExt {
@@ -35,6 +37,7 @@ impl Display for NodeJSPkgExt {
             NodeJSPkgExt::Tarxz => "tar.xz",
             NodeJSPkgExt::Zip => "zip",
             NodeJSPkgExt::Msi => "msi",
+            NodeJSPkgExt::S7z => "7z",
         };
 
         write!(f, "{}", arch)
@@ -50,6 +53,7 @@ impl FromStr for NodeJSPkgExt {
             "tar.xz" => Ok(NodeJSPkgExt::Tarxz),
             "zip" => Ok(NodeJSPkgExt::Zip),
             "msi" => Ok(NodeJSPkgExt::Msi),
+            "7z" => Ok(NodeJSPkgExt::S7z),
             _ => Err(NodeJSRelInfoError::UnrecognizedExt(s.to_string())),
         }
     }
@@ -88,6 +92,10 @@ mod tests {
         let ext = NodeJSPkgExt::from_str("msi").unwrap();
 
         assert_eq!(ext, NodeJSPkgExt::Msi);
+
+        let ext = NodeJSPkgExt::from_str("7z").unwrap();
+
+        assert_eq!(ext, NodeJSPkgExt::S7z);
     }
 
     #[test]
@@ -107,6 +115,10 @@ mod tests {
         let text = format!("{}", NodeJSPkgExt::Msi);
 
         assert_eq!(text, "msi");
+
+        let text = format!("{}", NodeJSPkgExt::S7z);
+
+        assert_eq!(text, "7z");
     }
 
     #[test]
