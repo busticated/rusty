@@ -128,7 +128,7 @@ mod tests {
     }
 
     async fn fake_http_error() -> std::result::Result<(), NodeJSRelInfoError> {
-        reqwest::get("not-a-url").await?;
-        Ok(())
+        let error = reqwest::get("not-a-url").await.unwrap_err();
+        Err(NodeJSRelInfoError::from(error))
     }
 }

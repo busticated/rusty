@@ -14,6 +14,8 @@ pub enum NodeJSOS {
     Darwin,
     #[cfg_attr(feature = "json", serde(rename = "win"))]
     Windows,
+    #[cfg_attr(feature = "json", serde(rename = "aix"))]
+    AIX,
 }
 
 impl Default for NodeJSOS {
@@ -38,6 +40,7 @@ impl Display for NodeJSOS {
             NodeJSOS::Linux => "linux",
             NodeJSOS::Darwin => "darwin",
             NodeJSOS::Windows => "win",
+            NodeJSOS::AIX => "aix",
         };
 
         write!(f, "{}", os)
@@ -52,6 +55,7 @@ impl FromStr for NodeJSOS {
             "linux" => Ok(NodeJSOS::Linux),
             "darwin" | "macos" => Ok(NodeJSOS::Darwin),
             "windows" | "win" => Ok(NodeJSOS::Windows),
+            "aix" => Ok(NodeJSOS::AIX),
             _ => Err(NodeJSRelInfoError::UnrecognizedOs(s.to_string())),
         }
     }
@@ -94,6 +98,10 @@ mod tests {
         let os = NodeJSOS::from_str("win").unwrap();
 
         assert_eq!(os, NodeJSOS::Windows);
+
+        let os = NodeJSOS::from_str("aix").unwrap();
+
+        assert_eq!(os, NodeJSOS::AIX);
     }
 
     #[test]
@@ -109,6 +117,10 @@ mod tests {
         let text = format!("{}", NodeJSOS::Windows);
 
         assert_eq!(text, "win");
+
+        let text = format!("{}", NodeJSOS::AIX);
+
+        assert_eq!(text, "aix");
     }
 
     #[test]

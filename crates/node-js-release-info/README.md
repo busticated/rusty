@@ -25,11 +25,18 @@ use node_js_release_info::{NodeJSRelInfo, NodeJSRelInfoError};
 
 #[tokio::main]
 async fn main() -> Result<(), NodeJSRelInfoError> {
+  // get a specific configuration
   let info = NodeJSRelInfo::new("20.6.1").macos().arm64().fetch().await?;
   assert_eq!(info.version, "20.6.1");
   assert_eq!(info.filename, "node-v20.6.1-darwin-arm64.tar.gz");
   assert_eq!(info.sha256, "d8ba8018d45b294429b1a7646ccbeaeb2af3cdf45b5c91dabbd93e2a2035cb46");
   assert_eq!(info.url, "https://nodejs.org/download/release/v20.6.1/node-v20.6.1-darwin-arm64.tar.gz");
+
+  // get all supported configurations
+  let all = info.fetch_all().await?;
+  assert_eq!(all.len(), 24);
+  assert_eq!(all[2], info);
+  println!("{:?}", all);
   Ok(())
 }
 ```
