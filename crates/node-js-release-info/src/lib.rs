@@ -1,20 +1,20 @@
 #![doc = include_str!("../README.md")]
 
-mod os;
 mod arch;
 mod error;
 mod ext;
+mod os;
 mod specs;
 mod url;
 
-use std::string::ToString;
-#[cfg(feature = "json")]
-use serde::{Serialize, Deserialize};
-pub use crate::os::NodeJSOS;
 pub use crate::arch::NodeJSArch;
 pub use crate::error::NodeJSRelInfoError;
 pub use crate::ext::NodeJSPkgExt;
+pub use crate::os::NodeJSOS;
 use crate::url::NodeJSURLFormatter;
+#[cfg(feature = "json")]
+use serde::{Deserialize, Serialize};
+use std::string::ToString;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 #[cfg_attr(feature = "json", derive(Deserialize, Serialize))]
@@ -322,9 +322,7 @@ impl NodeJSRelInfo {
         let version = specs::validate_version(self.version.as_str())?;
         let specs = specs::fetch(&version, &self.url_fmt).await?;
         let filename = self.filename();
-        let info = specs.lines().find(|&line| {
-            line.contains(filename.as_str())
-        });
+        let info = specs.lines().find(|&line| line.contains(filename.as_str()));
 
         let mut specs = match info {
             None => return Err(NodeJSRelInfoError::UnrecognizedConfiguration(filename))?,
@@ -403,13 +401,13 @@ impl NodeJSRelInfo {
 
 #[cfg(test)]
 mod tests {
-    use mockito::Server;
     use super::*;
+    use mockito::Server;
 
     fn is_thread_safe<T: Sized + Send + Sync + Unpin>() {}
 
     #[test]
-    fn it_initializes(){
+    fn it_initializes() {
         let info = NodeJSRelInfo::new("1.0.0");
         assert_eq!(info.os, NodeJSOS::Linux);
         assert_eq!(info.arch, NodeJSArch::X64);
@@ -563,7 +561,8 @@ mod tests {
         let version = "20.6.1".to_string();
         let filename = "node-v20.6.1-darwin-arm64.tar.gz".to_string();
         let sha256 = "d8ba8018d45b294429b1a7646ccbeaeb2af3cdf45b5c91dabbd93e2a2035cb46".to_string();
-        let url = "https://nodejs.org/download/release/v20.6.1/node-v20.6.1-darwin-arm64.tar.gz".to_string();
+        let url = "https://nodejs.org/download/release/v20.6.1/node-v20.6.1-darwin-arm64.tar.gz"
+            .to_string();
         let info_orig = NodeJSRelInfo {
             os: NodeJSOS::Darwin,
             arch: NodeJSArch::ARM64,
@@ -580,20 +579,34 @@ mod tests {
         assert_eq!(info.arch, NodeJSArch::ARM64);
         assert_eq!(info.ext, NodeJSPkgExt::Targz);
         assert_eq!(info.version, "20.6.1".to_string());
-        assert_eq!(info.filename, "node-v20.6.1-darwin-arm64.tar.gz".to_string());
-        assert_eq!(info.sha256, "d8ba8018d45b294429b1a7646ccbeaeb2af3cdf45b5c91dabbd93e2a2035cb46".to_string());
-        assert_eq!(info.url, "https://nodejs.org/download/release/v20.6.1/node-v20.6.1-darwin-arm64.tar.gz".to_string());
+        assert_eq!(
+            info.filename,
+            "node-v20.6.1-darwin-arm64.tar.gz".to_string()
+        );
+        assert_eq!(
+            info.sha256,
+            "d8ba8018d45b294429b1a7646ccbeaeb2af3cdf45b5c91dabbd93e2a2035cb46".to_string()
+        );
+        assert_eq!(
+            info.url,
+            "https://nodejs.org/download/release/v20.6.1/node-v20.6.1-darwin-arm64.tar.gz"
+                .to_string()
+        );
     }
 
     #[tokio::test]
-    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: InvalidVersion(\"NOPE!\")")]
+    #[should_panic(
+        expected = "called `Result::unwrap()` on an `Err` value: InvalidVersion(\"NOPE!\")"
+    )]
     async fn it_fails_to_fetch_info_when_version_is_invalid() {
         let mut info = NodeJSRelInfo::new("NOPE!");
         info.fetch().await.unwrap();
     }
 
     #[tokio::test]
-    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: UnrecognizedVersion(\"1.0.0\")")]
+    #[should_panic(
+        expected = "called `Result::unwrap()` on an `Err` value: UnrecognizedVersion(\"1.0.0\")"
+    )]
     async fn it_fails_to_fetch_info_when_version_is_unrecognized() {
         let mut info = NodeJSRelInfo::new("1.0.0");
         let mut server = Server::new_async().await;
@@ -608,7 +621,9 @@ mod tests {
     }
 
     #[tokio::test]
-    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: UnrecognizedConfiguration(\"node-v20.6.1-linux-x64.zip\")")]
+    #[should_panic(
+        expected = "called `Result::unwrap()` on an `Err` value: UnrecognizedConfiguration(\"node-v20.6.1-linux-x64.zip\")"
+    )]
     async fn it_fails_to_fetch_info_when_configuration_is_unrecognized() {
         let mut server = Server::new_async().await;
         let mut info = NodeJSRelInfo::new("20.6.1").linux().zip().to_owned();
@@ -634,8 +649,18 @@ mod tests {
         mock.assert_async().await;
 
         assert_eq!(info.filename, "node-v20.6.1-linux-x64.tar.gz");
-        assert_eq!(info.url, format!("{}{}", server.url(), "/download/release/v20.6.1/node-v20.6.1-linux-x64.tar.gz"));
-        assert_eq!(info.sha256, "26dd13a6f7253f0ab9bcab561353985a297d927840771d905566735b792868da");
+        assert_eq!(
+            info.url,
+            format!(
+                "{}{}",
+                server.url(),
+                "/download/release/v20.6.1/node-v20.6.1-linux-x64.tar.gz"
+            )
+        );
+        assert_eq!(
+            info.sha256,
+            "26dd13a6f7253f0ab9bcab561353985a297d927840771d905566735b792868da"
+        );
     }
 
     #[tokio::test]
@@ -651,8 +676,18 @@ mod tests {
         mock.assert_async().await;
 
         assert_eq!(info.filename, "node-v20.6.1-arm64.msi");
-        assert_eq!(info.url, format!("{}{}", server.url(), "/download/release/v20.6.1/node-v20.6.1-arm64.msi"));
-        assert_eq!(info.sha256, "9471bd6dc491e09c31b0f831f5953284b8a6842ed4ccb98f5c62d13e6086c471");
+        assert_eq!(
+            info.url,
+            format!(
+                "{}{}",
+                server.url(),
+                "/download/release/v20.6.1/node-v20.6.1-arm64.msi"
+            )
+        );
+        assert_eq!(
+            info.sha256,
+            "9471bd6dc491e09c31b0f831f5953284b8a6842ed4ccb98f5c62d13e6086c471"
+        );
     }
 
     #[tokio::test]
@@ -673,12 +708,20 @@ mod tests {
         assert_eq!(all[2].arch, NodeJSArch::ARM64);
         assert_eq!(all[2].ext, NodeJSPkgExt::Targz);
         assert_eq!(all[2].filename, "node-v20.6.1-darwin-arm64.tar.gz");
-        assert_eq!(all[2].sha256, "d8ba8018d45b294429b1a7646ccbeaeb2af3cdf45b5c91dabbd93e2a2035cb46");
-        assert_eq!(all[2].url, "https://nodejs.org/download/release/v20.6.1/node-v20.6.1-darwin-arm64.tar.gz");
+        assert_eq!(
+            all[2].sha256,
+            "d8ba8018d45b294429b1a7646ccbeaeb2af3cdf45b5c91dabbd93e2a2035cb46"
+        );
+        assert_eq!(
+            all[2].url,
+            "https://nodejs.org/download/release/v20.6.1/node-v20.6.1-darwin-arm64.tar.gz"
+        );
     }
 
     #[tokio::test]
-    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: UnrecognizedVersion(\"1.0.0\")")]
+    #[should_panic(
+        expected = "called `Result::unwrap()` on an `Err` value: UnrecognizedVersion(\"1.0.0\")"
+    )]
     async fn it_fails_to_fetch_all_supported_node_js_configurations_when_version_is_unrecognized() {
         let mut info = NodeJSRelInfo::new("1.0.0");
         let mut server = Server::new_async().await;

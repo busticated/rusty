@@ -1,19 +1,26 @@
 use crate::arch::NodeJSArch;
 use crate::error::NodeJSRelInfoError;
-use crate::url::NodeJSURLFormatter;
 use crate::ext::NodeJSPkgExt;
 use crate::os::NodeJSOS;
+use crate::url::NodeJSURLFormatter;
 use semver::Version;
 use std::str::FromStr;
 
 pub fn validate_version<T: AsRef<str>>(semver: T) -> Result<String, NodeJSRelInfoError> {
     match Version::parse(semver.as_ref()) {
-        Err(_) => return Err(NodeJSRelInfoError::InvalidVersion(semver.as_ref().to_owned())),
         Ok(v) => Ok(v.to_string()),
+        Err(_) => {
+            return Err(NodeJSRelInfoError::InvalidVersion(
+                semver.as_ref().to_owned(),
+            ))
+        }
     }
 }
 
-pub async fn fetch(version: &String, url_fmt: &NodeJSURLFormatter) -> Result<String, NodeJSRelInfoError> {
+pub async fn fetch(
+    version: &String,
+    url_fmt: &NodeJSURLFormatter,
+) -> Result<String, NodeJSRelInfoError> {
     let info_url = url_fmt.info(version);
     let res = match reqwest::get(info_url.as_str()).await {
         Err(e) => return Err(NodeJSRelInfoError::HttpError(e)),
@@ -57,12 +64,7 @@ pub fn parse(version: &String, specs: String) -> Option<ParsedSpecs> {
             continue;
         }
 
-        let os = if is_msi {
-            "win"
-        } else {
-            parts[2]
-        };
-
+        let os = if is_msi { "win" } else { parts[2] };
         let os = match NodeJSOS::from_str(os) {
             Ok(os) => os,
             Err(_) => {
@@ -115,7 +117,10 @@ mod tests {
 
         let error = validate_version("NOPE").unwrap_err();
 
-        assert_eq!(format!("{error}"), "Error: Invalid Version! Received: 'NOPE'");
+        assert_eq!(
+            format!("{error}"),
+            "Error: Invalid Version! Received: 'NOPE'"
+        );
 
         let error = validate_version("").unwrap_err();
 
@@ -133,7 +138,10 @@ mod tests {
         assert_eq!(*arch, NodeJSArch::ARM64);
         assert_eq!(*ext, NodeJSPkgExt::Targz);
         assert_eq!(filename, "node-v20.6.1-darwin-arm64.tar.gz");
-        assert_eq!(sha256, "d8ba8018d45b294429b1a7646ccbeaeb2af3cdf45b5c91dabbd93e2a2035cb46");
+        assert_eq!(
+            sha256,
+            "d8ba8018d45b294429b1a7646ccbeaeb2af3cdf45b5c91dabbd93e2a2035cb46"
+        );
     }
 
     #[test]
@@ -154,7 +162,10 @@ mod tests {
     #[test]
     fn it_ignores_unknown_file_when_parsing_node_js_specs() {
         let version = String::from("20.6.1");
-        let specs_raw = ["FAKESHA win_x86/node.lib", "FAKESHA node-v20.6.1-darwin-arm64.tar.gz"];
+        let specs_raw = [
+            "FAKESHA win_x86/node.lib",
+            "FAKESHA node-v20.6.1-darwin-arm64.tar.gz",
+        ];
         let specs = parse(&version, specs_raw.join("\n").to_string()).unwrap();
         assert_is_darwin_arm64_targz_specs(specs);
     }
@@ -162,7 +173,10 @@ mod tests {
     #[test]
     fn it_ignores_unknown_filename_when_parsing_node_js_specs() {
         let version = String::from("20.6.1");
-        let specs_raw = ["FAKESHA NOPE-v20.6.1-darwin-arm64.tar.gz", "FAKESHA node-v20.6.1-darwin-arm64.tar.gz"];
+        let specs_raw = [
+            "FAKESHA NOPE-v20.6.1-darwin-arm64.tar.gz",
+            "FAKESHA node-v20.6.1-darwin-arm64.tar.gz",
+        ];
         let specs = parse(&version, specs_raw.join("\n").to_string()).unwrap();
         assert_is_darwin_arm64_targz_specs(specs);
     }
@@ -170,7 +184,10 @@ mod tests {
     #[test]
     fn it_ignores_malformed_filename_when_parsing_node_js_specs() {
         let version = String::from("20.6.1");
-        let specs_raw = ["FAKESHA node-v20.6.1-NOPE-", "FAKESHA node-v20.6.1-darwin-arm64.tar.gz"];
+        let specs_raw = [
+            "FAKESHA node-v20.6.1-NOPE-",
+            "FAKESHA node-v20.6.1-darwin-arm64.tar.gz",
+        ];
         let specs = parse(&version, specs_raw.join("\n").to_string()).unwrap();
         assert_is_darwin_arm64_targz_specs(specs);
     }
@@ -178,7 +195,10 @@ mod tests {
     #[test]
     fn it_ignores_unknown_os_when_parsing_node_js_specs() {
         let version = String::from("20.6.1");
-        let specs_raw = ["FAKESHA node-v20.6.1-NOPE-arm64.tar.gz", "FAKESHA node-v20.6.1-darwin-arm64.tar.gz"];
+        let specs_raw = [
+            "FAKESHA node-v20.6.1-NOPE-arm64.tar.gz",
+            "FAKESHA node-v20.6.1-darwin-arm64.tar.gz",
+        ];
         let specs = parse(&version, specs_raw.join("\n").to_string()).unwrap();
         assert_is_darwin_arm64_targz_specs(specs);
     }
@@ -186,7 +206,10 @@ mod tests {
     #[test]
     fn it_ignores_unknown_arch_when_parsing_node_js_specs() {
         let version = String::from("20.6.1");
-        let specs_raw = ["FAKESHA node-v20.6.1-darwin-NOPE.tar.gz", "FAKESHA node-v20.6.1-darwin-arm64.tar.gz"];
+        let specs_raw = [
+            "FAKESHA node-v20.6.1-darwin-NOPE.tar.gz",
+            "FAKESHA node-v20.6.1-darwin-arm64.tar.gz",
+        ];
         let specs = parse(&version, specs_raw.join("\n").to_string()).unwrap();
         assert_is_darwin_arm64_targz_specs(specs);
     }
@@ -194,7 +217,10 @@ mod tests {
     #[test]
     fn it_ignores_unknown_ext_when_parsing_node_js_specs() {
         let version = String::from("20.6.1");
-        let specs_raw = ["FAKESHA node-v20.6.1-darwin-arm64.NOPE", "FAKESHA node-v20.6.1-darwin-arm64.tar.gz"];
+        let specs_raw = [
+            "FAKESHA node-v20.6.1-darwin-arm64.NOPE",
+            "FAKESHA node-v20.6.1-darwin-arm64.tar.gz",
+        ];
         let specs = parse(&version, specs_raw.join("\n").to_string()).unwrap();
         assert_is_darwin_arm64_targz_specs(specs);
     }
@@ -202,7 +228,10 @@ mod tests {
     #[test]
     fn it_ignores_missing_ext_when_parsing_node_js_specs() {
         let version = String::from("20.6.1");
-        let specs_raw = ["FAKESHA node-v20.6.1-darwin-arm64", "FAKESHA node-v20.6.1-darwin-arm64.tar.gz"];
+        let specs_raw = [
+            "FAKESHA node-v20.6.1-darwin-arm64",
+            "FAKESHA node-v20.6.1-darwin-arm64.tar.gz",
+        ];
         let specs = parse(&version, specs_raw.join("\n").to_string()).unwrap();
         assert_is_darwin_arm64_targz_specs(specs);
     }
@@ -223,7 +252,9 @@ mod tests {
     }
 
     #[tokio::test]
-    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: UnrecognizedVersion(\"1.0.0\")")]
+    #[should_panic(
+        expected = "called `Result::unwrap()` on an `Err` value: UnrecognizedVersion(\"1.0.0\")"
+    )]
     async fn it_fails_to_fetch_node_js_specs_when_version_is_unrecognized() {
         let version = String::from("1.0.0");
         let mut url_fmt = NodeJSURLFormatter::new();
@@ -240,7 +271,7 @@ mod tests {
 }
 
 #[cfg(test)]
-use mockito::{Server, Mock};
+use mockito::{Mock, Server};
 
 #[cfg(test)]
 fn assert_is_darwin_arm64_targz_specs(specs: ParsedSpecs) {
@@ -254,7 +285,11 @@ fn assert_is_darwin_arm64_targz_specs(specs: ParsedSpecs) {
 }
 
 #[cfg(test)]
-pub fn setup_server_mock(version: &str, url_fmt: &mut NodeJSURLFormatter, server: &mut Server) -> Mock {
+pub fn setup_server_mock(
+    version: &str,
+    url_fmt: &mut NodeJSURLFormatter,
+    server: &mut Server,
+) -> Mock {
     url_fmt.host = server.host_with_port();
     url_fmt.protocol = "http:".to_string();
     server.mock("GET", url_fmt.info_pathname(version).as_str())
