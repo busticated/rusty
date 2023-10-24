@@ -28,14 +28,14 @@ A `cargo` workspace ([docs](https://doc.rust-lang.org/book/ch14-03-cargo-workspa
 
 ## Development
 
-This repository contains a series of `rust` crates managed together as a `cargo` workspace ([docs](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html)) with [XTask](https://github.com/matklad/cargo-xtask). All essential commands are available via `cargo xtask <script name>` - e.g. `cargo xtask todo`. To view the available commands, run: `cargo xtask help`
+This repository contains a series of `rust` crates managed together as a `cargo` workspace ([docs](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html)) with [XTask](https://github.com/matklad/cargo-xtask). All essential commands are available via `cargo xtask <script name>` - e.g. `cargo xtask todo`. To view available commands, run: `cargo xtask help`
 
 
 <details id="develop-add-crate">
 <summary><b>How to add a new crate</b></summary>
 <p>
 
-To add a _new_ crate to the workspace, run `cargo xtask crate:add` and follow the prompts. Upon completion, your new crate will be available within `./crates/<your crate>`
+To add a _new_ crate to the workspace, run `cargo xtask crate:add` and follow the prompts (add the `--dry-run` flag to test). Upon completion, your new crate will be available within `./crates/<your crate>`
 
 </p>
 </details>
@@ -47,34 +47,52 @@ To add a _new_ crate to the workspace, run `cargo xtask crate:add` and follow th
 To run _all_ tests for _all_ crates:
 
 ```
-cargo test
+cargo xtask test
 ```
 
 To run _unit_ tests for _all_ crates:
 
 ```
-cargo test --lib --workspace
+cargo test --lib --all-features --workspace
 ```
 
 To run _unit_ tests for _just your_ crate:
 
 ```
-cargo test --lib --package <your crate's name>
+cargo test --lib --all-features --package <your crate's name>
 ```
 
 To run _integration_ tests for _all_ crates:
 
 ```
-cargo test --test integration --workspace
+cargo test --test integration --all-features --workspace
 ```
 
 To run _integration_ tests for _just your_ crate:
 
 ```
-cargo test --test integration --package <your crate's name>
+cargo test --test integration --all-features --package <your crate's name>
 ```
 
-Run `cargo xtask help` to see any other test-related commands that are available.
+To run tests for _docs_ and _examples_ in _all_ crates:
+
+```
+cargo test --doc --all-features --workspace
+```
+
+To run tests for _docs_ and _examples_ in _just your_ crate:
+
+```
+cargo test --doc --all-features --package <your crate's name>
+```
+
+To run a specific test:
+
+```
+cargo test --all-features <test name - e.g. "tests::it_fetches_node_js_release_info"> -- --exact
+```
+
+To output any `println!()` calls within tests, add the `--nocapture` flag after the `--` option delimiter. Run `cargo xtask help` to see any other test-related commands that are available.
 
 </p>
 </details>
@@ -86,7 +104,7 @@ Run `cargo xtask help` to see any other test-related commands that are available
 To see code coverage stats for _all_ crates:
 
 ```
-cargo xtask coverage
+cargo xtask coverage --open
 ```
 
 Run `cargo xtask help` to see any other coverage-related commands that are available.
@@ -118,7 +136,7 @@ Run `cargo xtask help` to see any other docs-related commands that are available
 To publish a crate to the [crates.io](https://crates.io) registry, follow these steps:
 
 1. Checkout the `main` branch: `git checkout main`
-2. Run `cargo xtask crate:release` and follow the prompts
+2. Run `cargo xtask crate:release` and follow the prompts (add the `--dry-run` flag to test)
 3. Verify all checks pass: `cargo xtask ci`
 4. Push to remote: `git push origin main --follow-tags`
 
@@ -149,6 +167,8 @@ e.g.
 // TODO (busticated): this is my example todo comment
 ```
 
+Any `todo!()` macros in the source code will also be reported.
+
 </p>
 </details>
 
@@ -162,5 +182,6 @@ e.g.
 * [Duct](https://github.com/oconnor663/duct.rs)
 * [TOML](https://github.com/toml-rs/toml)
 * [Inquire](https://github.com/mikaelmello/inquire)
+* [Reqwest](https://github.com/seanmonstar/reqwest)
 * [Mockito](https://github.com/lipanski/mockito)
 
