@@ -226,8 +226,8 @@ fn init_tasks() -> Tasks {
                     cmd!("open", &report).run()?;
                 }
 
-                println!(":::: Done!");
                 println!(":::: Report: {}", report);
+                println!(":::: Done!");
                 println!();
                 Ok(())
             },
@@ -415,8 +415,8 @@ fn init_tasks() -> Tasks {
                 let dist_dir = workspace.path().join("target/release");
                 cargo.build(["--release"]).run()?;
 
-                println!(":::: Done!");
                 println!(":::: Artifacts: {}", dist_dir.display());
+                println!(":::: Done!");
                 println!();
                 Ok(())
             },
