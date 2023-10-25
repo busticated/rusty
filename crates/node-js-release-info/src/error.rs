@@ -45,9 +45,7 @@ impl Display for NodeJSRelInfoError {
             NodeJSRelInfoError::UnrecognizedConfiguration(input) => {
                 format!("Unrecognized Configuration! Received: '{}'", input)
             }
-            NodeJSRelInfoError::HttpError(e) => {
-                return write!(f, "{}", e)
-            }
+            NodeJSRelInfoError::HttpError(e) => return write!(f, "{}", e),
         };
 
         write!(f, "Error: {}", message)

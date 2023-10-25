@@ -1,3 +1,4 @@
+use crate::changelog::Changelog;
 use crate::fs::FS;
 use crate::readme::Readme;
 use crate::toml::Toml;
@@ -21,6 +22,7 @@ pub struct Krate {
     pub name: String,
     pub description: String,
     pub path: PathBuf,
+    pub changelog: Changelog,
     pub readme: Readme,
     pub toml: Toml,
 }
@@ -38,6 +40,7 @@ impl Default for Krate {
         let name = String::default();
         let description = String::default();
         let path = PathBuf::default();
+        let changelog = Changelog::default();
         let readme = Readme::default();
         let toml = Toml::default();
         Krate {
@@ -46,6 +49,7 @@ impl Default for Krate {
             name,
             description,
             path,
+            changelog,
             readme,
             toml,
         }
@@ -64,6 +68,7 @@ impl Krate {
         let version = Version::parse(version.as_ref()).unwrap_or(Version::new(0, 1, 0));
         let name = name.as_ref().to_owned();
         let description = description.as_ref().to_owned();
+        let changelog = Changelog::new(path.clone());
         let readme = Readme::new(path.clone());
         let toml = Toml::new(path.clone());
         Krate {
@@ -72,6 +77,7 @@ impl Krate {
             name,
             description,
             path,
+            changelog,
             readme,
             toml,
         }
@@ -80,6 +86,7 @@ impl Krate {
     pub fn from_path(path: PathBuf) -> Result<Krate, DynError> {
         let toml = Toml::from_path(path.clone())?;
         let readme = Readme::from_path(path.clone())?;
+        let changelog = Changelog::from_path(path.clone())?;
         let kind = KrateKind::from_path(path.clone())?;
         let name = toml.get_name()?;
         let description = toml.get_description()?;
@@ -90,6 +97,7 @@ impl Krate {
             name,
             description,
             path,
+            changelog,
             readme,
             toml,
         };

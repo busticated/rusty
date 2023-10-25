@@ -64,6 +64,7 @@ impl Workspace {
         cargo
             .create(&krate.path, ["--name", &krate.name, &kind])
             .run()?;
+        krate.changelog.create(fs, &krate.clone())?;
         krate.readme.create(fs, &krate.clone())?;
         krate.toml.create(fs, &krate.clone())?;
         Ok(krate)

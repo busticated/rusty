@@ -1,4 +1,5 @@
 mod cargo;
+mod changelog;
 mod exec;
 mod fs;
 mod git;
@@ -19,9 +20,9 @@ use inquire::required;
 use inquire::validator::Validation as InquireValidation;
 use inquire::{MultiSelect as InquireMultiSelect, Select as InquireSelect, Text as InquireText};
 use regex::RegexBuilder;
+use std::collections::HashMap;
 use std::env;
 use std::error::Error;
-use std::path::PathBuf;
 
 type DynError = Box<dyn Error>;
 
@@ -81,6 +82,51 @@ fn init_tasks() -> Tasks {
 
     tasks.add(vec![
         Task {
+            name: "changelog".into(),
+            description: "view changelog entries for the next version of all crates".into(),
+            flags: task_flags! {},
+            run: |_opts, fs, git, _cargo, workspace, _tasks| {
+                println!("::::::::::::::::::::::::::::::::::::");
+                println!(":::: Viewing Upublished Changes ::::");
+                println!("::::::::::::::::::::::::::::::::::::");
+                println!();
+
+                let mut krates = workspace.krates(&fs)?;
+                let tags_text = git.get_tags(["--list", "--sort=v:refname"]).read()?;
+                let mut tags: HashMap<String, String> = HashMap::new();
+
+                for tag in tags_text.lines() {
+                    let (name, version) = match tag.split_once('@') {
+                        None => return Err(format!("Invalid tag: {}", tag).into()),
+                        Some((n, v)) => (n.trim().to_string(), v.trim().to_string()),
+                    };
+
+                    tags.insert(name, version);
+                }
+
+                for (name, _version) in tags.iter() {
+                    let krate = krates.get_mut(name).unwrap_or_else(|| panic!("Could Not Find Crate: `{}`!", name));
+                    let log = git.get_changelog(krate)?;
+
+                    if log.is_empty() {
+                        continue;
+                    }
+
+                    println!(":::: {}", &krate.name);
+
+                    for l in log.iter() {
+                        println!("* {}", l);
+                    }
+
+                    println!();
+                }
+
+                println!(":::: Done!");
+                println!();
+                Ok(())
+            },
+        },
+        Task {
             name: "ci".into(),
             description: "run checks for CI".into(),
             flags: task_flags! {},
@@ -139,7 +185,7 @@ fn init_tasks() -> Tasks {
                 println!("::::::::::::::::::::::::::::::");
                 println!();
 
-                let coverage_root = PathBuf::from("tmp/coverage").display().to_string();
+                let coverage_root = String::from("tmp/coverage");
                 let report = format!("{}/html/index.html", &coverage_root);
 
                 tasks.get("clean").unwrap().exec(vec![], tasks)?;
@@ -327,21 +373,23 @@ fn init_tasks() -> Tasks {
                     })
                     .prompt()?;
 
-                krates.retain(|_, v| to_publish.contains(&v.name));
-                let mut krates = krates.values().cloned().collect::<Vec<Krate>>();
-
-                for krate in krates.iter_mut() {
+                krates.retain(|_, k| to_publish.contains(&k.name));
+                let mut tags: Vec<String> = Vec::new();
+                for mut krate in krates.values().cloned() {
+                    let log = git.get_changelog(&krate)?;
                     let version = krate.toml.get_version()?;
                     let options = VersionChoice::options(&version);
                     let message = format!("Version for `{}` [current: {}]", krate.name, version);
                     let question = InquireSelect::new(&message, options);
                     let choice = question.prompt()?;
                     krate.set_version(choice.get_version())?;
+                    krate.changelog.update(&fs, &krate.clone(), log)?;
                     krate.toml.save(&fs)?;
+                    git.add(&krate.changelog.path, [""]).run()?;
                     git.add(&krate.toml.path, [""]).run()?;
+                    tags.push(krate.id());
                 }
 
-                let tags: Vec<String> = krates.iter().map(|k| k.id()).collect();
                 let message = format!("Release:\n{}", tags.join("\n"));
                 git.commit(message, [""]).run()?;
 
@@ -385,20 +433,6 @@ fn init_tasks() -> Tasks {
                 println!(":::: Building All Docs ::::");
                 println!(":::::::::::::::::::::::::::");
                 println!();
-                println!(":::: Updating Workspace README...");
-
-                let krates = workspace.krates(&fs)?;
-                let readme_path = workspace.readme.path.clone();
-
-                workspace.readme.update_crates_list(&fs, krates)?;
-
-                println!(":::: Done: {:?}", readme_path);
-                println!();
-
-                if opts.has("open") {
-                    cmd!("open", readme_path.to_str().unwrap()).run()?;
-                }
-
                 println!(":::: Testing Examples...");
                 println!();
 
@@ -414,6 +448,20 @@ fn init_tasks() -> Tasks {
                 }
 
                 cargo.doc(args).run()?;
+
+                println!();
+                println!(":::: Updating Workspace README...");
+
+                let krates = workspace.krates(&fs)?;
+                let readme_path = workspace.readme.path.clone();
+
+                workspace.readme.update_crates_list(&fs, krates)?;
+
+                println!(":::: Updated: {:?}", readme_path);
+
+                if opts.has("open") {
+                    cmd!("open", readme_path.to_str().unwrap()).run()?;
+                }
 
                 println!(":::: Done!");
                 println!();
