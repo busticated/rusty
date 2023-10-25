@@ -1,6 +1,6 @@
 # `node-js-release-info` Changelog
-
-
+<!-- next-version-start -->
+<!-- next-version-end -->
 ## v1.1.0
 
 * add docs and examples for .fetch_all() method
