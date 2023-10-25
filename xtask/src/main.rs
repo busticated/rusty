@@ -20,7 +20,7 @@ use inquire::required;
 use inquire::validator::Validation as InquireValidation;
 use inquire::{MultiSelect as InquireMultiSelect, Select as InquireSelect, Text as InquireText};
 use regex::RegexBuilder;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::env;
 use std::error::Error;
 
@@ -91,9 +91,9 @@ fn init_tasks() -> Tasks {
                 println!("::::::::::::::::::::::::::::::::::::");
                 println!();
 
-                let mut krates = workspace.krates(&fs)?;
+                let krates = workspace.krates(&fs)?;
                 let tags_text = git.get_tags(["--list", "--sort=v:refname"]).read()?;
-                let mut tags: HashMap<String, String> = HashMap::new();
+                let mut tags: BTreeMap<String, String> = BTreeMap::new();
 
                 for tag in tags_text.lines() {
                     let (name, version) = match tag.split_once('@') {
@@ -105,7 +105,7 @@ fn init_tasks() -> Tasks {
                 }
 
                 for (name, _version) in tags.iter() {
-                    let krate = krates.get_mut(name).unwrap_or_else(|| panic!("Could Not Find Crate: `{}`!", name));
+                    let krate = krates.get(name).unwrap_or_else(|| panic!("Could Not Find Crate: `{}`!", name));
                     let log = git.get_changelog(krate)?;
 
                     if log.is_empty() {
