@@ -185,7 +185,7 @@ fn init_tasks() -> Tasks {
                 println!("::::::::::::::::::::::::::::::");
                 println!();
 
-                let coverage_root = PathBuf::from("tmp/coverage").display().to_string();
+                let coverage_root = String::from("tmp/coverage");
                 let report = format!("{}/html/index.html", &coverage_root);
 
                 tasks.get("clean").unwrap().exec(vec![], tasks)?;
@@ -433,20 +433,6 @@ fn init_tasks() -> Tasks {
                 println!(":::: Building All Docs ::::");
                 println!(":::::::::::::::::::::::::::");
                 println!();
-                println!(":::: Updating Workspace README...");
-
-                let krates = workspace.krates(&fs)?;
-                let readme_path = workspace.readme.path.clone();
-
-                workspace.readme.update_crates_list(&fs, krates)?;
-
-                println!(":::: Done: {:?}", readme_path);
-                println!();
-
-                if opts.has("open") {
-                    cmd!("open", readme_path.to_str().unwrap()).run()?;
-                }
-
                 println!(":::: Testing Examples...");
                 println!();
 
@@ -462,6 +448,20 @@ fn init_tasks() -> Tasks {
                 }
 
                 cargo.doc(args).run()?;
+
+                println!();
+                println!(":::: Updating Workspace README...");
+
+                let krates = workspace.krates(&fs)?;
+                let readme_path = workspace.readme.path.clone();
+
+                workspace.readme.update_crates_list(&fs, krates)?;
+
+                println!(":::: Updated: {:?}", readme_path);
+
+                if opts.has("open") {
+                    cmd!("open", readme_path.to_str().unwrap()).run()?;
+                }
 
                 println!(":::: Done!");
                 println!();
