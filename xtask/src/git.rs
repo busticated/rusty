@@ -1,8 +1,12 @@
 use crate::exec::Execute;
 use crate::options::Options;
+use crate::Krate;
 use duct::Expression;
+use std::error::Error;
 use std::ffi::OsString;
 use std::path::Path;
+
+type DynError = Box<dyn Error>;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Git<'a> {
@@ -131,13 +135,31 @@ impl<'a> Git<'a> {
             [""],
         )
     }
+
+    pub fn get_changelog(&self, krate: &Krate) -> Result<Vec<String>, DynError> {
+        let args = self.get_changelog_params(krate);
+        let history = self.exec_safe(args, None).read()?;
+        let prefix = format!("[{}]", &krate.name);
+        Ok(history
+            .split('\n')
+            .filter(|x| !x.is_empty())
+            .map(|x| str::to_string(x.replace(&prefix, "").trim()))
+            .collect())
+    }
+
+    fn get_changelog_params(&self, krate: &Krate) -> Vec<OsString> {
+        let range = format!("{}@{}..HEAD", &krate.name, &krate.version);
+        let query = format!(r"--grep=\[{}\]", &krate.name);
+        let fmt = String::from("--pretty=format:%B");
+        self.build_args(["log"], [range, query, fmt])
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::task_flags;
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
 
     #[test]
     fn it_builds_args_for_the_add_subcommand() {
@@ -199,6 +221,24 @@ mod tests {
                 "--",
                 ":!./target/*",
                 ":!./tmp/*"
+            ]
+        );
+    }
+
+    #[test]
+    fn it_builds_args_for_getting_changelog() {
+        let path = PathBuf::from("my-crate");
+        let opts = Options::new(vec![], task_flags! {}).unwrap();
+        let krate = Krate::new("lib", "0.1.0", "my-crate", "", path);
+        let git = Git::new(&opts);
+        let args = git.get_changelog_params(&krate);
+        assert_eq!(
+            args,
+            [
+                "log",
+                "my-crate@0.1.0..HEAD",
+                "--grep=\\[my-crate\\]",
+                "--pretty=format:%B"
             ]
         );
     }
