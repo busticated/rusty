@@ -163,7 +163,7 @@ impl KrateKind {
     pub fn from_path(path: PathBuf) -> Result<KrateKind, DynError> {
         let path = path.join(SRC_DIRNAME).join(LIB_FILENAME);
 
-        if path.try_exists().is_err() {
+        if !path.is_file() {
             return Ok(KrateKind::Binary);
         }
 
