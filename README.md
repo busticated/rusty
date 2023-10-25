@@ -129,6 +129,29 @@ Run `cargo xtask help` to see any other docs-related commands that are available
 </p>
 </details>
 
+<details id="develop-changelog">
+<summary><b>How to format commits for changelogs</b></summary>
+<p>
+
+In order to support automated crate changelog updates, you will need to:
+
+* Commit crate changes separately - e.g. run: `git add -p crates/<name>/*` to stage files, then run `git add -p crates/<other-name>/*` and commit
+* Format your commit message like: `[<crate name>] <message>` e.g. `[node-js-release-info] update docs`
+* Commit changes to the workspace itself (including the `xtask` crate) separately without prefixing your commit message
+
+Each crate has its own changelog ([example](crates/node-js-release-info/CHANGELOG.md)). Upon releasing, each changelog will be updated with the changes made to that crate since its last release.
+
+To view unpublished changelog entries for all crates, run:
+
+```
+cargo xtask changelog
+```
+
+Run `cargo xtask help` to see any other changelog-related commands that are available.
+
+</p>
+</details>
+
 <details id="develop-publish-crate">
 <summary><b>How to publish crates</b></summary>
 <p>
