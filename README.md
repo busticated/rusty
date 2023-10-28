@@ -112,6 +112,21 @@ Run `cargo xtask help` to see any other coverage-related commands that are avail
 </p>
 </details>
 
+<details id="develop-run-spellcheck">
+<summary><b>How to check for spelling errors</b></summary>
+<p>
+
+To find spelling mistakes in source code and docs across the workspace, run:
+
+```
+cargo xtask spellcheck
+```
+
+Run `cargo xtask help` to see any other test-related commands that are available.
+
+</p>
+</details>
+
 <details id="develop-build-docs">
 <summary><b>How to create docs</b></summary>
 <p>
