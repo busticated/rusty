@@ -27,8 +27,6 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
       - name: Setup Project
         run: cargo xtask setup
-      - name: Run Linter
-        run: cargo xtask lint
       - name: Run Tests & Coverage
-        run: cargo xtask coverage
+        run: cargo xtask ci
 
