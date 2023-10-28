@@ -86,9 +86,9 @@ fn init_tasks() -> Tasks {
             description: "view changelog entries for the next version of all crates".into(),
             flags: task_flags! {},
             run: |_opts, fs, git, _cargo, workspace, _tasks| {
-                println!("::::::::::::::::::::::::::::::::::::");
-                println!(":::: Viewing Upublished Changes ::::");
-                println!("::::::::::::::::::::::::::::::::::::");
+                println!(":::::::::::::::::::::::::::::::::::::");
+                println!(":::: Viewing Unpublished Changes ::::");
+                println!(":::::::::::::::::::::::::::::::::::::");
                 println!();
 
                 let krates = workspace.krates(&fs)?;
@@ -108,11 +108,14 @@ fn init_tasks() -> Tasks {
                     let krate = krates.get(name).unwrap_or_else(|| panic!("Could Not Find Crate: `{}`!", name));
                     let log = git.get_changelog(krate)?;
 
+                    println!(":::: {} [changes: {}]", &krate.name, log.len());
+
                     if log.is_empty() {
+                        println!("\t--- n/a ---");
+                        println!();
                         continue;
                     }
 
-                    println!(":::: {}", &krate.name);
 
                     for l in log.iter() {
                         println!("* {}", l);
