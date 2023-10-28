@@ -133,21 +133,26 @@ impl<'a> Git<'a> {
     }
 
     pub fn get_changelog(&self, krate: &Krate) -> Result<Vec<String>, DynError> {
-        let args = self.get_changelog_params(krate);
+        let (prefix, args) = self.get_changelog_params(krate);
         let history = self.exec_safe(args, None).read()?;
-        let prefix = format!("[{}]", &krate.name);
-        Ok(history
-            .split('\n')
-            .filter(|x| !x.is_empty())
-            .map(|x| str::to_string(x.replace(&prefix, "").trim()))
-            .collect())
+        Ok(self.fmt_changelog(prefix, history))
     }
 
-    fn get_changelog_params(&self, krate: &Krate) -> Vec<OsString> {
+    fn get_changelog_params(&self, krate: &Krate) -> (String, Vec<OsString>) {
         let range = format!("{}@{}..HEAD", &krate.name, &krate.version);
         let query = format!(r"--grep=\[{}\]", &krate.name);
         let fmt = String::from("--pretty=format:%B");
-        self.build_args(["log"], [range, query, fmt])
+        let prefix = format!("[{}]", &krate.name);
+        let args = self.build_args(["log"], [range, query, fmt]);
+        (prefix, args)
+    }
+
+    fn fmt_changelog(&self, prefix: String, history: String) -> Vec<String> {
+        history
+            .split('\n')
+            .filter(|x| !x.is_empty())
+            .map(|x| str::to_string(x.replace(&prefix, "").trim()))
+            .collect()
     }
 }
 
@@ -224,7 +229,8 @@ mod tests {
         let opts = Options::new(vec![], task_flags! {}).unwrap();
         let krate = Krate::new("lib", "0.1.0", "my-crate", "", path);
         let git = Git::new(&opts);
-        let args = git.get_changelog_params(&krate);
+        let (prefix, args) = git.get_changelog_params(&krate);
+        assert_eq!(prefix, "[my-crate]");
         assert_eq!(
             args,
             [
@@ -234,5 +240,15 @@ mod tests {
                 "--pretty=format:%B"
             ]
         );
+    }
+
+    #[test]
+    fn it_formats_changelog() {
+        let prefix = String::from("[my-crate]");
+        let history = format!("{prefix} commit 01\n{prefix} commit 02\n");
+        let opts = Options::new(vec![], task_flags! {}).unwrap();
+        let git = Git::new(&opts);
+        let log = git.fmt_changelog(prefix, history);
+        assert_eq!(log, vec!["commit 01", "commit 02"]);
     }
 }
