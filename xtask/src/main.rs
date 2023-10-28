@@ -92,7 +92,7 @@ fn init_tasks() -> Tasks {
                 println!();
 
                 let krates = workspace.krates(&fs)?;
-                let tags_text = git.get_tags(["--list", "--sort=v:refname"]).read()?;
+                let tags_text = git.tag(["--list", "--sort=v:refname"]).read()?;
                 let mut tags: BTreeMap<String, String> = BTreeMap::new();
 
                 for tag in tags_text.lines() {
@@ -319,7 +319,7 @@ fn init_tasks() -> Tasks {
                 println!();
 
                 let krates = workspace.krates(&fs)?;
-                let tag_text = git.get_tags(["--points-at", "HEAD"]).read()?;
+                let tag_text = git.tag(["--points-at", "HEAD"]).read()?;
                 let mut tags = vec![];
 
                 for line in tag_text.lines() {
@@ -394,7 +394,7 @@ fn init_tasks() -> Tasks {
                 git.commit(message, [""]).run()?;
 
                 for tag in tags {
-                    git.tag(tag, [""]).run()?;
+                    git.create_tag(tag).run()?;
                 }
 
                 println!(":::: Done!");

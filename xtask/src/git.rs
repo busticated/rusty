@@ -71,40 +71,36 @@ impl<'a> Git<'a> {
         self.build_args(["commit", "--message", message.as_ref()], arguments)
     }
 
-    pub fn tag<T, U>(&self, tag: T, arguments: U) -> Expression
-    where
-        T: AsRef<str>,
-        U: IntoIterator,
-        U::Item: Into<OsString>,
-    {
-        let args = self.tag_params(tag, arguments);
-        self.exec_unsafe(args, None)
-    }
-
-    fn tag_params<T, U>(&self, tag: T, arguments: U) -> Vec<OsString>
-    where
-        T: AsRef<str>,
-        U: IntoIterator,
-        U::Item: Into<OsString>,
-    {
-        self.build_args(["tag", tag.as_ref(), "--message", tag.as_ref()], arguments)
-    }
-
-    pub fn get_tags<U>(&self, arguments: U) -> Expression
+    pub fn tag<U>(&self, arguments: U) -> Expression
     where
         U: IntoIterator,
         U::Item: Into<OsString>,
     {
-        let args = self.get_tags_params(arguments);
+        let args = self.tag_params(arguments);
         self.exec_safe(args, None)
     }
 
-    fn get_tags_params<U>(&self, arguments: U) -> Vec<OsString>
+    fn tag_params<U>(&self, arguments: U) -> Vec<OsString>
     where
         U: IntoIterator,
         U::Item: Into<OsString>,
     {
         self.build_args(["tag"], arguments)
+    }
+
+    pub fn create_tag<T>(&self, tag: T) -> Expression
+    where
+        T: AsRef<str>,
+    {
+        let args = self.create_tag_params(tag);
+        self.exec_unsafe(args, None)
+    }
+
+    fn create_tag_params<T>(&self, tag: T) -> Vec<OsString>
+    where
+        T: AsRef<str>,
+    {
+        self.tag_params([tag.as_ref(), "--message", tag.as_ref()])
     }
 
     pub fn todos(&self) -> Expression {
@@ -184,19 +180,16 @@ mod tests {
     fn it_builds_args_for_the_tag_subcommand() {
         let opts = Options::new(vec![], task_flags! {}).unwrap();
         let git = Git::new(&opts);
-        let args = git.tag_params("my tag", ["--one", "--two"]);
-        assert_eq!(
-            args,
-            ["tag", "my tag", "--message", "my tag", "--one", "--two"]
-        );
+        let args = git.tag_params(["--points-at", "HEAD"]);
+        assert_eq!(args, ["tag", "--points-at", "HEAD"]);
     }
 
     #[test]
-    fn it_builds_args_for_getting_tags() {
+    fn it_builds_args_for_creating_a_tag() {
         let opts = Options::new(vec![], task_flags! {}).unwrap();
         let git = Git::new(&opts);
-        let args = git.get_tags_params(["--points-at", "HEAD"]);
-        assert_eq!(args, ["tag", "--points-at", "HEAD"]);
+        let args = git.create_tag_params("my-tag");
+        assert_eq!(args, ["tag", "my-tag", "--message", "my-tag"]);
     }
 
     #[test]
