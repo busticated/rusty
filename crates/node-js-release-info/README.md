@@ -43,7 +43,7 @@ async fn main() -> Result<(), NodeJSRelInfoError> {
 
 ## Features
 
-Full `json` serialization + deserialization is avaialable via the `json` feature.
+Full `json` serialization + deserialization is available via the `json` feature.
 
 ```shell
 cargo add node-js-release-info --features json
