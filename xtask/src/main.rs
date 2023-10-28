@@ -358,7 +358,7 @@ fn init_tasks() -> Tasks {
         },
         Task {
             name: "crate:release".into(),
-            description: "prepate crates for publishing".into(),
+            description: "prepare crates for publishing".into(),
             flags: task_flags! {
                 "dry-run" => "run thru steps but do not save changes"
             },
