@@ -140,6 +140,10 @@ fn init_tasks() -> Tasks {
                 println!();
 
                 tasks
+                    .get("spellcheck")
+                    .unwrap()
+                    .exec(vec![], tasks)?;
+                tasks
                     .get("lint")
                     .unwrap()
                     .exec(vec![], tasks)?;
@@ -508,6 +512,24 @@ fn init_tasks() -> Tasks {
                 cmd!("rustup", "component", "add", "clippy").run()?;
                 cmd!("rustup", "component", "add", "llvm-tools-preview").run()?;
                 cargo.install(["grcov"]).run()?;
+                cargo.install(["typos-cli"]).run()?;
+
+                println!(":::: Done!");
+                println!();
+                Ok(())
+            },
+        },
+        Task {
+            name: "spellcheck".into(),
+            description: "finds spelling mistakes in source code and docs".into(),
+            flags: task_flags! {},
+            run: |_opts, _fs, _git, _cargo, _workspace, _tasks| {
+                println!(":::::::::::::::::::::::::::");
+                println!(":::: Checking Spelling ::::");
+                println!(":::::::::::::::::::::::::::");
+                println!();
+
+                cmd!("typos").run()?;
 
                 println!(":::: Done!");
                 println!();
