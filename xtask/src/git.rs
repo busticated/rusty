@@ -71,40 +71,36 @@ impl<'a> Git<'a> {
         self.build_args(["commit", "--message", message.as_ref()], arguments)
     }
 
-    pub fn tag<T, U>(&self, tag: T, arguments: U) -> Expression
-    where
-        T: AsRef<str>,
-        U: IntoIterator,
-        U::Item: Into<OsString>,
-    {
-        let args = self.tag_params(tag, arguments);
-        self.exec_unsafe(args, None)
-    }
-
-    fn tag_params<T, U>(&self, tag: T, arguments: U) -> Vec<OsString>
-    where
-        T: AsRef<str>,
-        U: IntoIterator,
-        U::Item: Into<OsString>,
-    {
-        self.build_args(["tag", tag.as_ref(), "--message", tag.as_ref()], arguments)
-    }
-
-    pub fn get_tags<U>(&self, arguments: U) -> Expression
+    pub fn tag<U>(&self, arguments: U) -> Expression
     where
         U: IntoIterator,
         U::Item: Into<OsString>,
     {
-        let args = self.get_tags_params(arguments);
+        let args = self.tag_params(arguments);
         self.exec_safe(args, None)
     }
 
-    fn get_tags_params<U>(&self, arguments: U) -> Vec<OsString>
+    fn tag_params<U>(&self, arguments: U) -> Vec<OsString>
     where
         U: IntoIterator,
         U::Item: Into<OsString>,
     {
         self.build_args(["tag"], arguments)
+    }
+
+    pub fn create_tag<T>(&self, tag: T) -> Expression
+    where
+        T: AsRef<str>,
+    {
+        let args = self.create_tag_params(tag);
+        self.exec_unsafe(args, None)
+    }
+
+    fn create_tag_params<T>(&self, tag: T) -> Vec<OsString>
+    where
+        T: AsRef<str>,
+    {
+        self.tag_params([tag.as_ref(), "--message", tag.as_ref()])
     }
 
     pub fn todos(&self) -> Expression {
@@ -137,21 +133,26 @@ impl<'a> Git<'a> {
     }
 
     pub fn get_changelog(&self, krate: &Krate) -> Result<Vec<String>, DynError> {
-        let args = self.get_changelog_params(krate);
+        let (prefix, args) = self.get_changelog_params(krate);
         let history = self.exec_safe(args, None).read()?;
-        let prefix = format!("[{}]", &krate.name);
-        Ok(history
-            .split('\n')
-            .filter(|x| !x.is_empty())
-            .map(|x| str::to_string(x.replace(&prefix, "").trim()))
-            .collect())
+        Ok(self.fmt_changelog(prefix, history))
     }
 
-    fn get_changelog_params(&self, krate: &Krate) -> Vec<OsString> {
+    fn get_changelog_params(&self, krate: &Krate) -> (String, Vec<OsString>) {
         let range = format!("{}@{}..HEAD", &krate.name, &krate.version);
         let query = format!(r"--grep=\[{}\]", &krate.name);
         let fmt = String::from("--pretty=format:%B");
-        self.build_args(["log"], [range, query, fmt])
+        let prefix = format!("[{}]", &krate.name);
+        let args = self.build_args(["log"], [range, query, fmt]);
+        (prefix, args)
+    }
+
+    fn fmt_changelog(&self, prefix: String, history: String) -> Vec<String> {
+        history
+            .split('\n')
+            .filter(|x| !x.is_empty())
+            .map(|x| str::to_string(x.replace(&prefix, "").trim()))
+            .collect()
     }
 }
 
@@ -184,19 +185,16 @@ mod tests {
     fn it_builds_args_for_the_tag_subcommand() {
         let opts = Options::new(vec![], task_flags! {}).unwrap();
         let git = Git::new(&opts);
-        let args = git.tag_params("my tag", ["--one", "--two"]);
-        assert_eq!(
-            args,
-            ["tag", "my tag", "--message", "my tag", "--one", "--two"]
-        );
+        let args = git.tag_params(["--points-at", "HEAD"]);
+        assert_eq!(args, ["tag", "--points-at", "HEAD"]);
     }
 
     #[test]
-    fn it_builds_args_for_getting_tags() {
+    fn it_builds_args_for_creating_a_tag() {
         let opts = Options::new(vec![], task_flags! {}).unwrap();
         let git = Git::new(&opts);
-        let args = git.get_tags_params(["--points-at", "HEAD"]);
-        assert_eq!(args, ["tag", "--points-at", "HEAD"]);
+        let args = git.create_tag_params("my-tag");
+        assert_eq!(args, ["tag", "my-tag", "--message", "my-tag"]);
     }
 
     #[test]
@@ -231,7 +229,8 @@ mod tests {
         let opts = Options::new(vec![], task_flags! {}).unwrap();
         let krate = Krate::new("lib", "0.1.0", "my-crate", "", path);
         let git = Git::new(&opts);
-        let args = git.get_changelog_params(&krate);
+        let (prefix, args) = git.get_changelog_params(&krate);
+        assert_eq!(prefix, "[my-crate]");
         assert_eq!(
             args,
             [
@@ -241,5 +240,15 @@ mod tests {
                 "--pretty=format:%B"
             ]
         );
+    }
+
+    #[test]
+    fn it_formats_changelog() {
+        let prefix = String::from("[my-crate]");
+        let history = format!("{prefix} commit 01\n{prefix} commit 02\n");
+        let opts = Options::new(vec![], task_flags! {}).unwrap();
+        let git = Git::new(&opts);
+        let log = git.fmt_changelog(prefix, history);
+        assert_eq!(log, vec!["commit 01", "commit 02"]);
     }
 }

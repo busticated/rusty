@@ -112,6 +112,21 @@ Run `cargo xtask help` to see any other coverage-related commands that are avail
 </p>
 </details>
 
+<details id="develop-run-spellcheck">
+<summary><b>How to check for spelling errors</b></summary>
+<p>
+
+To find spelling mistakes in source code and docs across the workspace, run:
+
+```
+cargo xtask spellcheck
+```
+
+Run `cargo xtask help` to see any other test-related commands that are available.
+
+</p>
+</details>
+
 <details id="develop-build-docs">
 <summary><b>How to create docs</b></summary>
 <p>
@@ -135,7 +150,7 @@ Run `cargo xtask help` to see any other docs-related commands that are available
 
 In order to support automated crate changelog updates, you will need to:
 
-* Commit crate changes separately - e.g. run: `git add -p crates/<name>/*` to stage files, then run `git add -p crates/<other-name>/*` and commit
+* Commit crate changes separately - e.g. run: `git add -p crates/<name>/*` to stage files, then commit
 * Format your commit message like: `[<crate name>] <message>` e.g. `[node-js-release-info] update docs`
 * Commit changes to the workspace itself (including the `xtask` crate) separately without prefixing your commit message
 

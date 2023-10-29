@@ -64,28 +64,25 @@ impl Changelog {
         lines.join("\n")
     }
 
-    pub fn update(&mut self, fs: &FS, krate: &Krate, commits: Vec<String>) -> Result<(), DynError> {
-        if commits.is_empty() {
+    pub fn update(&mut self, fs: &FS, krate: &Krate, log: Vec<String>) -> Result<(), DynError> {
+        if log.is_empty() {
             return Ok(());
         }
         self.load()?;
-        let mut log = format!("{}\n{}\n", MARKER_START, MARKER_END);
-        log.push_str(format!("## v{}\n\n", &krate.version).as_str());
-        for msg in commits.iter() {
-            if msg.is_empty() {
-                continue;
+        let mut changes = format!("{}\n{}\n", MARKER_START, MARKER_END);
+        changes.push_str(format!("## v{}\n\n", &krate.version).as_str());
+        for msg in log.iter() {
+            if !msg.is_empty() {
+                changes.push_str(format!("* {}\n", &msg).as_str());
             }
-            let prefix = format!("[{}]", &krate.name);
-            let msg = msg.trim().replace(&prefix, "");
-            log.push_str(format!("* {}\n", &msg).as_str());
         }
-        log.push('\n');
+        changes.push('\n');
         let ptn = format!(r"{}[\s\S]*?{}", MARKER_START, MARKER_END);
         let re = RegexBuilder::new(ptn.as_str())
             .case_insensitive(true)
             .multi_line(true)
             .build()?;
-        let updated = re.replace(&self.text, &log);
+        let updated = re.replace(&self.text, &changes);
         self.text = updated.as_ref().to_owned();
         self.save(fs)
     }

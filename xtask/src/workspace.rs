@@ -61,12 +61,12 @@ impl Workspace {
 
     pub fn add_krate(&self, fs: &FS, cargo: &Cargo, mut krate: Krate) -> Result<Krate, DynError> {
         let kind = krate.kind.to_string();
-        cargo
-            .create(&krate.path, ["--name", &krate.name, &kind])
-            .run()?;
-        krate.changelog.create(fs, &krate.clone())?;
-        krate.readme.create(fs, &krate.clone())?;
-        krate.toml.create(fs, &krate.clone())?;
+        let args = ["--name", &krate.name, &kind];
+        let krate_copy = krate.clone(); // TODO (mirande): deal w/ "cannot borrow as mutable because it is also borrowed as immutable" errors
+        cargo.create(&krate.path, args).run()?;
+        krate.changelog.create(fs, &krate_copy)?;
+        krate.readme.create(fs, &krate_copy)?;
+        krate.toml.create(fs, &krate_copy)?;
         Ok(krate)
     }
 

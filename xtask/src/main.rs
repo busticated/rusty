@@ -20,7 +20,7 @@ use inquire::required;
 use inquire::validator::Validation as InquireValidation;
 use inquire::{MultiSelect as InquireMultiSelect, Select as InquireSelect, Text as InquireText};
 use regex::RegexBuilder;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::env;
 use std::error::Error;
 
@@ -86,14 +86,14 @@ fn init_tasks() -> Tasks {
             description: "view changelog entries for the next version of all crates".into(),
             flags: task_flags! {},
             run: |_opts, fs, git, _cargo, workspace, _tasks| {
-                println!("::::::::::::::::::::::::::::::::::::");
-                println!(":::: Viewing Upublished Changes ::::");
-                println!("::::::::::::::::::::::::::::::::::::");
+                println!(":::::::::::::::::::::::::::::::::::::");
+                println!(":::: Viewing Unpublished Changes ::::");
+                println!(":::::::::::::::::::::::::::::::::::::");
                 println!();
 
-                let mut krates = workspace.krates(&fs)?;
-                let tags_text = git.get_tags(["--list", "--sort=v:refname"]).read()?;
-                let mut tags: HashMap<String, String> = HashMap::new();
+                let krates = workspace.krates(&fs)?;
+                let tags_text = git.tag(["--list", "--sort=v:refname"]).read()?;
+                let mut tags: BTreeMap<String, String> = BTreeMap::new();
 
                 for tag in tags_text.lines() {
                     let (name, version) = match tag.split_once('@') {
@@ -105,14 +105,17 @@ fn init_tasks() -> Tasks {
                 }
 
                 for (name, _version) in tags.iter() {
-                    let krate = krates.get_mut(name).unwrap_or_else(|| panic!("Could Not Find Crate: `{}`!", name));
+                    let krate = krates.get(name).unwrap_or_else(|| panic!("Could Not Find Crate: `{}`!", name));
                     let log = git.get_changelog(krate)?;
 
+                    println!(":::: {} [changes: {}]", &krate.name, log.len());
+
                     if log.is_empty() {
+                        println!("\t--- n/a ---");
+                        println!();
                         continue;
                     }
 
-                    println!(":::: {}", &krate.name);
 
                     for l in log.iter() {
                         println!("* {}", l);
@@ -136,6 +139,10 @@ fn init_tasks() -> Tasks {
                 println!(":::::::::::::::::::::::::::::::::");
                 println!();
 
+                tasks
+                    .get("spellcheck")
+                    .unwrap()
+                    .exec(vec![], tasks)?;
                 tasks
                     .get("lint")
                     .unwrap()
@@ -226,8 +233,8 @@ fn init_tasks() -> Tasks {
                     cmd!("open", &report).run()?;
                 }
 
-                println!(":::: Done!");
                 println!(":::: Report: {}", report);
+                println!(":::: Done!");
                 println!();
                 Ok(())
             },
@@ -319,7 +326,7 @@ fn init_tasks() -> Tasks {
                 println!();
 
                 let krates = workspace.krates(&fs)?;
-                let tag_text = git.get_tags(["--points-at", "HEAD"]).read()?;
+                let tag_text = git.tag(["--points-at", "HEAD"]).read()?;
                 let mut tags = vec![];
 
                 for line in tag_text.lines() {
@@ -351,7 +358,7 @@ fn init_tasks() -> Tasks {
         },
         Task {
             name: "crate:release".into(),
-            description: "prepate crates for publishing".into(),
+            description: "prepare crates for publishing".into(),
             flags: task_flags! {
                 "dry-run" => "run thru steps but do not save changes"
             },
@@ -394,7 +401,7 @@ fn init_tasks() -> Tasks {
                 git.commit(message, [""]).run()?;
 
                 for tag in tags {
-                    git.tag(tag, [""]).run()?;
+                    git.create_tag(tag).run()?;
                 }
 
                 println!(":::: Done!");
@@ -415,8 +422,8 @@ fn init_tasks() -> Tasks {
                 let dist_dir = workspace.path().join("target/release");
                 cargo.build(["--release"]).run()?;
 
-                println!(":::: Done!");
                 println!(":::: Artifacts: {}", dist_dir.display());
+                println!(":::: Done!");
                 println!();
                 Ok(())
             },
@@ -505,6 +512,24 @@ fn init_tasks() -> Tasks {
                 cmd!("rustup", "component", "add", "clippy").run()?;
                 cmd!("rustup", "component", "add", "llvm-tools-preview").run()?;
                 cargo.install(["grcov"]).run()?;
+                cargo.install(["typos-cli"]).run()?;
+
+                println!(":::: Done!");
+                println!();
+                Ok(())
+            },
+        },
+        Task {
+            name: "spellcheck".into(),
+            description: "finds spelling mistakes in source code and docs".into(),
+            flags: task_flags! {},
+            run: |_opts, _fs, _git, _cargo, _workspace, _tasks| {
+                println!(":::::::::::::::::::::::::::");
+                println!(":::: Checking Spelling ::::");
+                println!(":::::::::::::::::::::::::::");
+                println!();
+
+                cmd!("typos").run()?;
 
                 println!(":::: Done!");
                 println!();
