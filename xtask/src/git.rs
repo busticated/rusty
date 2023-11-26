@@ -127,6 +127,7 @@ impl<'a> Git<'a> {
                 "--",
                 ":!./target/*",
                 ":!./tmp/*",
+                ":!./README.md",
             ],
             [""],
         )
@@ -218,7 +219,8 @@ mod tests {
                 "--line-number",
                 "--",
                 ":!./target/*",
-                ":!./tmp/*"
+                ":!./tmp/*",
+                ":!./README.md",
             ]
         );
     }
