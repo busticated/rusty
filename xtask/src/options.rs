@@ -68,13 +68,11 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(
-        expected = "called `Result::unwrap()` on an `Err` value: \"Unrecognized argument! nope\""
-    )]
     fn it_fails_to_initialize_when_args_has_unrecognized_items() {
         let flags = task_flags! {};
         let args = vec!["nope".into()];
-        Options::new(args, flags).unwrap();
+        let err = Options::new(args, flags).unwrap_err();
+        assert_eq!(err.to_string(), "Unrecognized argument! nope");
     }
 
     #[test]

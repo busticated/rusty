@@ -94,6 +94,10 @@ impl Workspace {
         }
 
         cargo.clean(["--release"]).run()?;
+        // NOTE: `cargo-llvm-cov` keeps its instrumented build and `.profraw`
+        // data under `target/llvm-cov-target`, which neither the `tmp/` wipe
+        // above nor `cargo clean --release` touches - it is hundreds of MB
+        cargo.coverage_clean().run()?;
         Ok(())
     }
 

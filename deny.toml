@@ -1,0 +1,41 @@
+# see: https://embarkstudios.github.io/cargo-deny/
+#
+# run via `cargo xtask deny`
+
+[graph]
+all-features = true
+
+[advisories]
+# fail on any crate with a known security advisory or that is unmaintained
+version = 2
+yanked = "deny"
+
+[licenses]
+version = 2
+# this workspace publishes under `MIT OR Apache-2.0` - only accept dependency
+# licenses that are compatible with distributing under those terms
+allow = [
+	"Apache-2.0",
+	"Apache-2.0 WITH LLVM-exception",
+	"BSD-3-Clause",
+	# covers the Mozilla CA root certificate *data* bundled by
+	# `webpki-root-certs` (via `reqwest` -> `rustls`), not code. permissive,
+	# no copyleft - see: https://cdla.dev/permissive-2-0/
+	"CDLA-Permissive-2.0",
+	"ISC",
+	"MIT",
+	"MIT-0",
+	"Unicode-3.0",
+]
+confidence-threshold = 0.93
+
+[bans]
+# duplicate versions of the same crate bloat build times - warn so they stay
+# visible without blocking CI on a transitive dependency we do not control
+multiple-versions = "warn"
+wildcards = "deny"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

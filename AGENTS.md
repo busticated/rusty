@@ -14,7 +14,10 @@ Instructions for AI coding agents working on this repository. **Read [README.md]
 All local dev commands are `xtask` scripts — run `cargo xtask help` for the full list.
 
 - `cargo xtask test` — fast inner loop while iterating.
-- `cargo xtask ci` — run before prompting the user to review. Chains `format --check`, `spellcheck`, `lint` (clippy), and `coverage` (which runs the tests). Coverage is known to be flaky, so don't reach for it mid-iteration. Report results honestly.
+- `cargo xtask ci` — run before prompting the user to review. Chains `format --check`, `spellcheck`, `lint` (clippy), `doc --check` (doc tests + rustdoc warnings), and `coverage` (which runs the tests). Report results honestly.
+- `cargo xtask audit` and `cargo xtask semver` — dependency audit and public-API breakage check. Both need network access and run as their own CI jobs, so they are **not** part of `cargo xtask ci`.
+
+Task naming follows one rule: `--check` is a non-mutating mode of a task that otherwise writes (`format`, `doc`); `name:sub` is a family of distinct operations on one noun (`crate:add`, `crate:list`, ...); everything else is a bare verb.
 - `cargo xtask crate:add` — the only supported way to add a crate. Never hand-create one under `crates/`.
 
 ## Conventions

@@ -31,6 +31,42 @@ jobs:
       - name: Run Tests & Coverage
         run: cargo xtask ci
 
+  deny:
+    name: Audit Dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v7
+      - name: Install Rust Toolchain (stable)
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny
+      - name: Check Advisories, Licenses & Bans
+        run: cargo deny --all-features check
+
+  semver:
+    name: Check for Breaking API Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v7
+      - name: Install Rust Toolchain (stable)
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install cargo-semver-checks
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-semver-checks
+      # NOTE: baselines come from the last published version of each crate on
+      # crates.io. crates marked `publish = false` are skipped automatically.
+      # this only reports - bumping the version is still a deliberate step via
+      # `cargo xtask crate:release`
+      - name: Compare Public API Against Published Baseline
+        run: cargo semver-checks --workspace
+
   msrv:
     name: Verify Minimum Supported Rust Version
     runs-on: ubuntu-latest

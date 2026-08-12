@@ -252,11 +252,9 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(
-        expected = "called `Result::unwrap()` on an `Err` value: \"Unrecognized input: NOPE!\""
-    )]
     fn it_fails_to_initialize_when_krate_kind_cannot_be_determined_from_str() {
-        KrateKind::from_str("NOPE!").unwrap();
+        let err = KrateKind::from_str("NOPE!").unwrap_err();
+        assert_eq!(err.to_string(), "Unrecognized input: NOPE!");
     }
 
     #[test]

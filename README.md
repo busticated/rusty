@@ -107,7 +107,30 @@ To see code coverage stats for _all_ crates:
 cargo xtask coverage --open
 ```
 
+Coverage is collected with [cargo-llvm-cov](https://github.com/taiki-e/cargo-llvm-cov) and written to `tmp/coverage` as both an html report and `lcov.info`. The `xtask` crate and `tests/` directories are excluded. Note `cargo-llvm-cov` does _not_ run doc tests - those run via `cargo xtask doc --check`.
+
 Run `cargo xtask help` to see any other coverage-related commands that are available.
+
+</p>
+</details>
+
+<details id="develop-audit-dependencies">
+<summary><b>How to audit dependencies</b></summary>
+<p>
+
+To check dependencies for security advisories, disallowed licenses, and untrusted sources, run:
+
+```
+cargo xtask audit
+```
+
+This runs [cargo-deny](https://github.com/EmbarkStudios/cargo-deny) - policy lives in [deny.toml](deny.toml). To check whether your changes break the public API of an already-published crate, run:
+
+```
+cargo xtask semver
+```
+
+Both commands need network access - the first to fetch the advisory database, the second to fetch each crate's last published version as a baseline. For that reason neither is part of `cargo xtask ci`; they run as their own CI jobs instead.
 
 </p>
 </details>
