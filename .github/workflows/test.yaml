@@ -22,7 +22,7 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: git config --global core.symlinks true
       - name: Checkout Source Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
       - name: Install Rust Toolchain (stable)
         uses: dtolnay/rust-toolchain@stable
       - name: Setup Project

@@ -6,10 +6,7 @@ on:
       - '**'
     tags-ignore:
       - '**'
-    paths:
-      - ".github/workflows/**.yml"
-      - "**/Cargo.toml"
-      - "**.rs"
+  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -20,7 +17,7 @@ jobs:
       tags: ${{ steps.info.outputs.tags }}
     steps:
       - name: Checkout Source Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
         with:
           fetch-tags: true
       - name: Set Info
