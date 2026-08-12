@@ -2,13 +2,21 @@
 name = "xtask"
 description = "internal-only crate used to orchestrate repo tasks"
 version = "0.1.0"
-edition = "2021"
+publish = false
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-duct = "1.*"
-inquire = "0.9.*"
-regex = "1.*"
-semver = "1.*"
-toml_edit = "0.25.*"
+duct.workspace = true
+inquire.workspace = true
+regex.workspace = true
+semver.workspace = true
+toml_edit.workspace = true
+
+[lints]
+workspace = true

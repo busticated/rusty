@@ -1,6 +1,6 @@
+use crate::Krate;
 use crate::exec::Execute;
 use crate::options::Options;
-use crate::Krate;
 use duct::Expression;
 use std::error::Error;
 use std::ffi::OsString;
@@ -9,7 +9,7 @@ use std::path::Path;
 type DynError = Box<dyn Error>;
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Git<'a> {
+pub(crate) struct Git<'a> {
     pub bin: String,
     opts: &'a Options,
 }
@@ -25,12 +25,12 @@ impl<'a> Execute for Git<'a> {
 }
 
 impl<'a> Git<'a> {
-    pub fn new(opts: &'a Options) -> Git<'a> {
+    pub(crate) fn new(opts: &'a Options) -> Git<'a> {
         let bin = "git".to_string();
         Git { bin, opts }
     }
 
-    pub fn add<P, U>(&self, path: P, arguments: U) -> Expression
+    pub(crate) fn add<P, U>(&self, path: P, arguments: U) -> Expression
     where
         P: AsRef<Path>,
         U: IntoIterator,
@@ -52,7 +52,7 @@ impl<'a> Git<'a> {
         )
     }
 
-    pub fn commit<M, U>(&self, message: M, arguments: U) -> Expression
+    pub(crate) fn commit<M, U>(&self, message: M, arguments: U) -> Expression
     where
         M: AsRef<str>,
         U: IntoIterator,
@@ -71,7 +71,7 @@ impl<'a> Git<'a> {
         self.build_args(["commit", "--message", message.as_ref()], arguments)
     }
 
-    pub fn tag<U>(&self, arguments: U) -> Expression
+    pub(crate) fn tag<U>(&self, arguments: U) -> Expression
     where
         U: IntoIterator,
         U::Item: Into<OsString>,
@@ -88,7 +88,7 @@ impl<'a> Git<'a> {
         self.build_args(["tag"], arguments)
     }
 
-    pub fn create_tag<T>(&self, tag: T) -> Expression
+    pub(crate) fn create_tag<T>(&self, tag: T) -> Expression
     where
         T: AsRef<str>,
     {
@@ -103,7 +103,7 @@ impl<'a> Git<'a> {
         self.tag_params([tag.as_ref(), "--message", tag.as_ref()])
     }
 
-    pub fn todos(&self) -> Expression {
+    pub(crate) fn todos(&self) -> Expression {
         let args = self.todos_params();
         self.exec_safe(args, None)
     }
@@ -133,7 +133,7 @@ impl<'a> Git<'a> {
         )
     }
 
-    pub fn get_changelog(&self, krate: &Krate) -> Result<Vec<String>, DynError> {
+    pub(crate) fn get_changelog(&self, krate: &Krate) -> Result<Vec<String>, DynError> {
         let (prefix, args) = self.get_changelog_params(krate);
         let history = self.exec_safe(args, None).read()?;
         Ok(self.fmt_changelog(prefix, history))

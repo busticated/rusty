@@ -1,3 +1,9 @@
+//! Internal-only task runner for this workspace - see `cargo xtask help`
+//!
+//! This crate is not published. Each repo task (test, lint, coverage,
+//! changelog, release, ...) is declared as a [`Task`](crate::tasks::Task) in
+//! [`init_tasks`] and dispatched by name from the command line.
+
 mod cargo;
 mod changelog;
 mod exec;
@@ -28,7 +34,7 @@ type DynError = Box<dyn Error>;
 
 fn main() {
     if let Err(e) = try_main() {
-        eprintln!("{:?}", e);
+        eprintln!("{e:?}");
         std::process::exit(-1);
     }
 }
@@ -50,8 +56,8 @@ fn try_main() -> Result<(), DynError> {
     println!("::::::::::::::::::::::");
     println!(":::: Running Task ::::");
     println!("::::::::::::::::::::::");
-    println!("Name: {}", cmd);
-    println!("Args: {:?}", args);
+    println!("Name: {cmd}");
+    println!("Args: {args:?}");
     println!();
 
     let tasks = init_tasks();
@@ -70,7 +76,7 @@ fn print_help(cmd: String, _args: Vec<String>, tasks: Tasks) -> Result<(), DynEr
     println!();
 
     if !(cmd.is_empty() || cmd == "help" || cmd == "--help") {
-        let msg = format!("Unrecognized Command! Received: '{}'", cmd);
+        let msg = format!("Unrecognized Command! Received: '{cmd}'");
         return Err(msg.into());
     }
 
@@ -97,7 +103,7 @@ fn init_tasks() -> Tasks {
 
                 for tag in tags_text.lines() {
                     let (name, version) = match tag.split_once('@') {
-                        None => return Err(format!("Invalid tag: {}", tag).into()),
+                        None => return Err(format!("Invalid tag: {tag}").into()),
                         Some((n, v)) => (n.trim().to_string(), v.trim().to_string()),
                     };
 
@@ -105,7 +111,7 @@ fn init_tasks() -> Tasks {
                 }
 
                 for name in tags.keys() {
-                    let krate = krates.get(name).unwrap_or_else(|| panic!("Could Not Find Crate: `{}`!", name));
+                    let krate = krates.get(name).unwrap_or_else(|| panic!("Could Not Find Crate: `{name}`!"));
                     let log = git.get_changelog(krate)?;
 
                     println!(":::: {} [changes: {}]", krate.name, log.len());
@@ -118,7 +124,7 @@ fn init_tasks() -> Tasks {
 
 
                     for l in log.iter() {
-                        println!("* {}", l);
+                        println!("* {l}");
                     }
 
                     println!();
@@ -197,7 +203,7 @@ fn init_tasks() -> Tasks {
                 println!();
 
                 let coverage_root = String::from("tmp/coverage");
-                let report = format!("{}/html/index.html", coverage_root);
+                let report = format!("{coverage_root}/html/index.html");
 
                 tasks.get("clean").unwrap().exec(vec![], tasks)?;
                 cargo.coverage(&coverage_root).run()?;
@@ -237,7 +243,7 @@ fn init_tasks() -> Tasks {
                     cmd!("open", &report).run()?;
                 }
 
-                println!(":::: Report: {}", report);
+                println!(":::: Report: {report}");
                 println!(":::: Done!");
                 println!();
                 Ok(())
@@ -347,10 +353,10 @@ fn init_tasks() -> Tasks {
                 }
 
                 for tag in tags {
-                    let (name, _ver) = tag.split_once('@').unwrap_or_else(|| panic!("Invalid Tag: `{}`!", tag));
-                    let krate = krates.get(name).unwrap_or_else(|| panic!("Could Not Find Crate: `{}`!", name));
+                    let (name, _ver) = tag.split_once('@').unwrap_or_else(|| panic!("Invalid Tag: `{tag}`!"));
+                    let krate = krates.get(name).unwrap_or_else(|| panic!("Could Not Find Crate: `{name}`!"));
                     let message = format!("Publishing: {} at v{}", krate.name, krate.version);
-                    println!("{}", message);
+                    println!("{message}");
                     cargo.publish_package(&krate.name).run()?;
                 }
 
@@ -468,7 +474,7 @@ fn init_tasks() -> Tasks {
 
                 workspace.readme.update_crates_list(&fs, krates)?;
 
-                println!(":::: Updated: {:?}", readme_path);
+                println!(":::: Updated: {readme_path:?}");
 
                 if opts.has("open") {
                     cmd!("open", readme_path.to_str().unwrap()).run()?;

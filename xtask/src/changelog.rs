@@ -13,50 +13,50 @@ const MARKER_START: &str = "<!-- next-version-start -->";
 const MARKER_END: &str = "<!-- next-version-end -->";
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct Changelog {
+pub(crate) struct Changelog {
     pub path: PathBuf,
     text: String,
 }
 
 impl Changelog {
-    pub fn new(crate_root: PathBuf) -> Self {
+    pub(crate) fn new(crate_root: PathBuf) -> Self {
         Changelog {
             text: String::new(),
             path: crate_root.join(CHANGELOG_MD),
         }
     }
 
-    pub fn from_path(crate_root: PathBuf) -> Result<Self, DynError> {
+    pub(crate) fn from_path(crate_root: PathBuf) -> Result<Self, DynError> {
         let mut changelog = Changelog::new(crate_root);
         changelog.load()
     }
 
-    pub fn read(&self) -> Result<String, DynError> {
+    pub(crate) fn read(&self) -> Result<String, DynError> {
         // TODO (busticated): pull into FS wrapper?
         Ok(fs::read_to_string(&self.path)?)
     }
 
-    pub fn load(&mut self) -> Result<Self, DynError> {
+    pub(crate) fn load(&mut self) -> Result<Self, DynError> {
         self.text = self.read()?;
         Ok(self.clone())
     }
 
-    pub fn create(&mut self, fs: &FS, krate: &Krate) -> Result<(), DynError> {
+    pub(crate) fn create(&mut self, fs: &FS, krate: &Krate) -> Result<(), DynError> {
         self.text = self.render(&krate.name, &krate.version);
         self.save(fs)
     }
 
-    pub fn save(&self, fs: &FS) -> Result<(), DynError> {
+    pub(crate) fn save(&self, fs: &FS) -> Result<(), DynError> {
         Ok(fs.write(&self.path, &self.text)?)
     }
 
-    pub fn render<N: AsRef<str>>(&self, name: N, version: &Version) -> String {
+    pub(crate) fn render<N: AsRef<str>>(&self, name: N, version: &Version) -> String {
         let name = name.as_ref();
         let lines = [
-            format!("# `{}` Changelog", name),
+            format!("# `{name}` Changelog"),
             MARKER_START.to_string(),
             MARKER_END.to_string(),
-            format!("## v{}", version),
+            format!("## v{version}"),
             "".to_string(),
             "* Initial release 🎊🎉".to_string(),
             "".to_string(),
@@ -64,20 +64,25 @@ impl Changelog {
         lines.join("\n")
     }
 
-    pub fn update(&mut self, fs: &FS, krate: &Krate, log: Vec<String>) -> Result<(), DynError> {
+    pub(crate) fn update(
+        &mut self,
+        fs: &FS,
+        krate: &Krate,
+        log: Vec<String>,
+    ) -> Result<(), DynError> {
         if log.is_empty() {
             return Ok(());
         }
         self.load()?;
-        let mut changes = format!("{}\n{}\n", MARKER_START, MARKER_END);
+        let mut changes = format!("{MARKER_START}\n{MARKER_END}\n");
         changes.push_str(format!("## v{}\n\n", krate.version).as_str());
         for msg in log.iter() {
             if !msg.is_empty() {
-                changes.push_str(format!("* {}\n", msg).as_str());
+                changes.push_str(format!("* {msg}\n").as_str());
             }
         }
         changes.push('\n');
-        let ptn = format!(r"{}[\s\S]*?{}", MARKER_START, MARKER_END);
+        let ptn = format!(r"{MARKER_START}[\s\S]*?{MARKER_END}");
         let re = RegexBuilder::new(ptn.as_str())
             .case_insensitive(true)
             .multi_line(true)

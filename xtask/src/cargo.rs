@@ -10,7 +10,7 @@ use std::path::PathBuf;
 type DynError = Box<dyn Error>;
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Cargo<'a> {
+pub(crate) struct Cargo<'a> {
     pub bin: String,
     opts: &'a Options,
 }
@@ -26,12 +26,12 @@ impl<'a> Execute for Cargo<'a> {
 }
 
 impl<'a> Cargo<'a> {
-    pub fn new(opts: &'a Options) -> Cargo<'a> {
+    pub(crate) fn new(opts: &'a Options) -> Cargo<'a> {
         let bin = env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
         Cargo { bin, opts }
     }
 
-    pub fn workspace_path(&self) -> Result<PathBuf, DynError> {
+    pub(crate) fn workspace_path(&self) -> Result<PathBuf, DynError> {
         let (args, envs) = self.workspace_path_params();
         let stdout = self.exec_safe(args, envs).read()?;
         Ok(PathBuf::from(stdout.replace("Cargo.toml", "").trim()))
@@ -45,7 +45,7 @@ impl<'a> Cargo<'a> {
         (args, None)
     }
 
-    pub fn create<P, U>(&self, path: P, arguments: U) -> Expression
+    pub(crate) fn create<P, U>(&self, path: P, arguments: U) -> Expression
     where
         P: Into<OsString>,
         U: IntoIterator,
@@ -65,7 +65,7 @@ impl<'a> Cargo<'a> {
         (args, None)
     }
 
-    pub fn install<U>(&self, arguments: U) -> Expression
+    pub(crate) fn install<U>(&self, arguments: U) -> Expression
     where
         U: IntoIterator,
         U::Item: Into<OsString>,
@@ -79,11 +79,17 @@ impl<'a> Cargo<'a> {
         U: IntoIterator,
         U::Item: Into<OsString>,
     {
-        let args = self.build_args([OsString::from("install")], arguments);
+        // NOTE: `--locked` makes the tool build from its own committed
+        // `Cargo.lock` - without it, an unrelated upstream release can break
+        // `setup` on a repo where nothing changed
+        let args = self.build_args(
+            [OsString::from("install"), OsString::from("--locked")],
+            arguments,
+        );
         (args, None)
     }
 
-    pub fn build<U>(&self, arguments: U) -> Expression
+    pub(crate) fn build<U>(&self, arguments: U) -> Expression
     where
         U: IntoIterator,
         U::Item: Into<OsString>,
@@ -101,7 +107,7 @@ impl<'a> Cargo<'a> {
         (args, None)
     }
 
-    pub fn clean<U>(&self, arguments: U) -> Expression
+    pub(crate) fn clean<U>(&self, arguments: U) -> Expression
     where
         U: IntoIterator,
         U::Item: Into<OsString>,
@@ -119,7 +125,7 @@ impl<'a> Cargo<'a> {
         (args, None)
     }
 
-    pub fn test<U>(&self, arguments: U) -> Expression
+    pub(crate) fn test<U>(&self, arguments: U) -> Expression
     where
         U: IntoIterator,
         U::Item: Into<OsString>,
@@ -137,7 +143,7 @@ impl<'a> Cargo<'a> {
         (args, None)
     }
 
-    pub fn coverage<P>(&self, path: P) -> Expression
+    pub(crate) fn coverage<P>(&self, path: P) -> Expression
     where
         P: Into<OsString>,
     {
@@ -161,7 +167,7 @@ impl<'a> Cargo<'a> {
         (args, Some(envs))
     }
 
-    pub fn format(&self, check: bool) -> Expression {
+    pub(crate) fn format(&self, check: bool) -> Expression {
         let (args, envs) = self.format_params(check);
         self.exec_safe(args, envs)
     }
@@ -177,7 +183,7 @@ impl<'a> Cargo<'a> {
         (args, None)
     }
 
-    pub fn lint(&self) -> Expression {
+    pub(crate) fn lint(&self) -> Expression {
         let (args, envs) = self.lint_params();
         self.exec_safe(args, envs)
     }
@@ -191,7 +197,7 @@ impl<'a> Cargo<'a> {
         (args, Some(envs))
     }
 
-    pub fn doc<U>(&self, arguments: U) -> Expression
+    pub(crate) fn doc<U>(&self, arguments: U) -> Expression
     where
         U: IntoIterator,
         U::Item: Into<OsString>,
@@ -209,7 +215,7 @@ impl<'a> Cargo<'a> {
         (args, None)
     }
 
-    pub fn publish_package<N: AsRef<str>>(&self, name: N) -> Expression {
+    pub(crate) fn publish_package<N: AsRef<str>>(&self, name: N) -> Expression {
         let (args, envs) = self.publish_package_params(name);
         self.exec_unsafe(args, envs)
     }
@@ -255,7 +261,7 @@ mod tests {
         let opts = Options::new(vec![], task_flags! {}).unwrap();
         let cargo = Cargo::new(&opts);
         let (args, envs) = cargo.install_params(["grcov"]);
-        assert_eq!(args, ["install", "grcov"]);
+        assert_eq!(args, ["install", "--locked", "grcov"]);
         assert_eq!(envs, None);
     }
 

@@ -1,11 +1,11 @@
 use crate::options::Options;
-use duct::{cmd, Expression};
+use duct::{Expression, cmd};
 use std::collections::HashMap;
 use std::ffi::OsString;
 
-pub type EnvVars = Option<HashMap<OsString, OsString>>;
+pub(crate) type EnvVars = Option<HashMap<OsString, OsString>>;
 
-pub trait Execute {
+pub(crate) trait Execute {
     fn bin(&self) -> String;
 
     fn opts(&self) -> &Options;
