@@ -1,3 +1,5 @@
+//! Integration tests exercising the crate's public API as a consumer would
+
 use detect_newline_style::*;
 
 #[test]

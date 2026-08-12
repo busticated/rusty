@@ -9,6 +9,8 @@ const CR: &str = "\r";
 const LF: &str = "\n";
 const CRLF: &str = "\r\n";
 
+/// A newline style - see [`find`](LineEnding::find) to detect which style a
+/// given string prefers
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum LineEnding {
     /// CR-style line ending (`"\r"`) rarely used, mostly on older systems
@@ -166,7 +168,7 @@ impl Display for LineEnding {
             LineEnding::CRLF => CRLF,
         };
 
-        write!(f, "{}", eol)
+        write!(f, "{eol}")
     }
 }
 
@@ -178,7 +180,7 @@ impl FromStr for LineEnding {
             CR => Ok(LineEnding::CR),
             LF => Ok(LineEnding::LF),
             CRLF => Ok(LineEnding::CRLF),
-            _ => Err(format!("Unrecognized input: {}", s).into()),
+            _ => Err(format!("Unrecognized input: {s}").into()),
         }
     }
 }

@@ -20,4 +20,7 @@ authors.workspace = true
 repository.workspace = true
 
 [dependencies]
-regex = "1.*"
+regex.workspace = true
+
+[lints]
+workspace = true
