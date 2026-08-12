@@ -603,18 +603,14 @@ mod tests {
     }
 
     #[tokio::test]
-    #[should_panic(
-        expected = "called `Result::unwrap()` on an `Err` value: InvalidVersion(\"NOPE!\")"
-    )]
     async fn it_fails_to_fetch_info_when_version_is_invalid() {
         let mut info = NodeJSRelInfo::new("NOPE!");
-        info.fetch().await.unwrap();
+        let err = info.fetch().await.unwrap_err();
+
+        assert!(matches!(err, NodeJSRelInfoError::InvalidVersion(x) if x == "NOPE!"));
     }
 
     #[tokio::test]
-    #[should_panic(
-        expected = "called `Result::unwrap()` on an `Err` value: UnrecognizedVersion(\"1.0.0\")"
-    )]
     async fn it_fails_to_fetch_info_when_version_is_unrecognized() {
         let mut info = NodeJSRelInfo::new("1.0.0");
         let mut server = Server::new_async().await;
@@ -624,14 +620,13 @@ mod tests {
             .create_async()
             .await;
 
-        info.fetch().await.unwrap();
+        let err = info.fetch().await.unwrap_err();
         mock.assert_async().await;
+
+        assert!(matches!(err, NodeJSRelInfoError::UnrecognizedVersion(x) if x == "1.0.0"));
     }
 
     #[tokio::test]
-    #[should_panic(
-        expected = "called `Result::unwrap()` on an `Err` value: UnrecognizedConfiguration(\"node-v20.6.1-linux-x64.zip\")"
-    )]
     async fn it_fails_to_fetch_info_when_configuration_is_unrecognized() {
         let mut server = Server::new_async().await;
         let mut info = NodeJSRelInfo::new("20.6.1").linux().zip().to_owned();
@@ -640,8 +635,12 @@ mod tests {
             .create_async()
             .await;
 
-        info.fetch().await.unwrap();
+        let err = info.fetch().await.unwrap_err();
         mock.assert_async().await;
+
+        assert!(
+            matches!(err, NodeJSRelInfoError::UnrecognizedConfiguration(x) if x == "node-v20.6.1-linux-x64.zip")
+        );
     }
 
     #[tokio::test]
@@ -727,9 +726,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[should_panic(
-        expected = "called `Result::unwrap()` on an `Err` value: UnrecognizedVersion(\"1.0.0\")"
-    )]
     async fn it_fails_to_fetch_all_supported_node_js_configurations_when_version_is_unrecognized() {
         let mut info = NodeJSRelInfo::new("1.0.0");
         let mut server = Server::new_async().await;
@@ -738,7 +734,9 @@ mod tests {
             .create_async()
             .await;
 
-        info.fetch_all().await.unwrap();
+        let err = info.fetch_all().await.unwrap_err();
         mock.assert_async().await;
+
+        assert!(matches!(err, NodeJSRelInfoError::UnrecognizedVersion(x) if x == "1.0.0"));
     }
 }

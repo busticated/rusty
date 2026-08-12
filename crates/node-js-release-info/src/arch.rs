@@ -192,11 +192,9 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(
-        expected = "called `Result::unwrap()` on an `Err` value: UnrecognizedArch(\"NOPE!\")"
-    )]
     fn it_fails_when_arch_is_unrecognized() {
-        NodeJSArch::from_str("NOPE!").unwrap();
+        let err = NodeJSArch::from_str("NOPE!").unwrap_err();
+        assert!(matches!(err, NodeJSRelInfoError::UnrecognizedArch(x) if x == "NOPE!"));
     }
 
     #[test]

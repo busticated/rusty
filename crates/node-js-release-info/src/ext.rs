@@ -136,11 +136,9 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(
-        expected = "called `Result::unwrap()` on an `Err` value: UnrecognizedExt(\"NOPE!\")"
-    )]
-    fn it_fails_when_arch_is_unrecognized() {
-        NodeJSPkgExt::from_str("NOPE!").unwrap();
+    fn it_fails_when_ext_is_unrecognized() {
+        let err = NodeJSPkgExt::from_str("NOPE!").unwrap_err();
+        assert!(matches!(err, NodeJSRelInfoError::UnrecognizedExt(x) if x == "NOPE!"));
     }
 
     #[test]

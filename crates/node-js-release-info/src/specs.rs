@@ -319,9 +319,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[should_panic(
-        expected = "called `Result::unwrap()` on an `Err` value: UnrecognizedVersion(\"1.0.0\")"
-    )]
     async fn it_fails_to_fetch_node_js_specs_when_version_is_unrecognized() {
         let version = String::from("1.0.0");
         let mut url_fmt = NodeJSURLFormatter::new();
@@ -332,7 +329,9 @@ mod tests {
             .create_async()
             .await;
 
-        fetch(&version, &url_fmt).await.unwrap();
+        let err = fetch(&version, &url_fmt).await.unwrap_err();
         mock.assert_async().await;
+
+        assert!(matches!(err, NodeJSRelInfoError::UnrecognizedVersion(x) if x == "1.0.0"));
     }
 }

@@ -149,11 +149,9 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(
-        expected = "called `Result::unwrap()` on an `Err` value: UnrecognizedOs(\"NOPE!\")"
-    )]
     fn it_fails_when_os_cannot_be_determined_from_str() {
-        NodeJSOS::from_str("NOPE!").unwrap();
+        let err = NodeJSOS::from_str("NOPE!").unwrap_err();
+        assert!(matches!(err, NodeJSRelInfoError::UnrecognizedOs(x) if x == "NOPE!"));
     }
 
     #[test]
