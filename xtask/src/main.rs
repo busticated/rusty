@@ -536,10 +536,10 @@ fn init_tasks() -> Tasks {
                 // to 'C:\Users\runneradmin\.cargo\bin\cargo.exe'"
                 // see: https://github.com/rust-lang/rustup/issues/1367
                 //cmd!("rustup", "update").run()?;
+                // NOTE: the toolchain and its components (clippy, rustfmt,
+                // llvm-tools-preview) are installed by `rustup` automatically
+                // per `rust-toolchain.toml`
                 cmd!("rustup", "toolchain", "list", "--verbose").run()?;
-                // TODO (busticated): is there a way to includes these in Cargo.toml or similar?
-                cmd!("rustup", "component", "add", "clippy").run()?;
-                cmd!("rustup", "component", "add", "llvm-tools-preview").run()?;
                 cargo.install(["grcov"]).run()?;
                 cargo.install(["typos-cli"]).run()?;
 
