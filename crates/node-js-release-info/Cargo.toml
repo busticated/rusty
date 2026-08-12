@@ -30,6 +30,8 @@ tokio = { version = "1.*", default-features = false, features = ["macros", "net"
 [dev-dependencies]
 mockito = "1.*"
 serde_json = "1.*"
+# doc examples use `#[tokio::main]`, which requires the multi-threaded runtime
+tokio = { version = "1.*", default-features = false, features = ["rt-multi-thread"] }
 
 [features]
 json = ["dep:serde"]

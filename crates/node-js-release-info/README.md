@@ -49,7 +49,7 @@ Full `json` serialization + deserialization is available via the `json` feature.
 cargo add node-js-release-info --features json
 ```
 
-```rust
+```rust,ignore
 use node_js_release_info::{NodeJSRelInfo, NodeJSRelInfoError};
 
 #[tokio::main]

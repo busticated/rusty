@@ -130,6 +130,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "json")]
     fn it_serializes_and_deserializes() {
         let ext_json = serde_json::to_string(&NodeJSPkgExt::Tarxz).unwrap();
         let ext: NodeJSPkgExt = serde_json::from_str(&ext_json).unwrap();

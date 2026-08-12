@@ -137,6 +137,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "json")]
     fn it_serializes_and_deserializes() {
         let os_json = serde_json::to_string(&NodeJSOS::Darwin).unwrap();
         let os: NodeJSOS = serde_json::from_str(&os_json).unwrap();

@@ -557,6 +557,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "json")]
     fn it_serializes_and_deserializes() {
         let version = "20.6.1".to_string();
         let filename = "node-v20.6.1-darwin-arm64.tar.gz".to_string();

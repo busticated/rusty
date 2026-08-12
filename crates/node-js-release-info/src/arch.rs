@@ -177,6 +177,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "json")]
     fn it_serializes_and_deserializes() {
         let arch_json = serde_json::to_string(&NodeJSArch::X64).unwrap();
         let arch: NodeJSArch = serde_json::from_str(&arch_json).unwrap();
