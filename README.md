@@ -127,6 +127,27 @@ Run `cargo xtask help` to see any other test-related commands that are available
 </p>
 </details>
 
+<details id="develop-format-source">
+<summary><b>How to format source code</b></summary>
+<p>
+
+To format source code across the workspace, run:
+
+```
+cargo xtask format
+```
+
+To check formatting _without_ making changes - as CI does - run:
+
+```
+cargo xtask format --check
+```
+
+Run `cargo xtask help` to see any other formatting-related commands that are available.
+
+</p>
+</details>
+
 <details id="develop-build-docs">
 <summary><b>How to create docs</b></summary>
 <p>

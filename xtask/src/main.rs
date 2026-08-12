@@ -140,6 +140,10 @@ fn init_tasks() -> Tasks {
                 println!();
 
                 tasks
+                    .get("format")
+                    .unwrap()
+                    .exec(vec!["--check".into()], tasks)?;
+                tasks
                     .get("spellcheck")
                     .unwrap()
                     .exec(vec![], tasks)?;
@@ -469,6 +473,31 @@ fn init_tasks() -> Tasks {
                 if opts.has("open") {
                     cmd!("open", readme_path.to_str().unwrap()).run()?;
                 }
+
+                println!(":::: Done!");
+                println!();
+                Ok(())
+            },
+        },
+        Task {
+            name: "format".into(),
+            description: "format source code (rustfmt)".into(),
+            flags: task_flags! {
+                "check" => "check formatting without making changes"
+            },
+            run: |opts, _fs, _git, cargo, _workspace, _tasks| {
+                let check = opts.has("check");
+
+                println!("::::::::::::::::::::::::::::");
+                if check {
+                    println!(":::: Checking Formatting ::::");
+                } else {
+                    println!(":::: Formatting Project ::::");
+                }
+                println!("::::::::::::::::::::::::::::");
+                println!();
+
+                cargo.format(check).run()?;
 
                 println!(":::: Done!");
                 println!();

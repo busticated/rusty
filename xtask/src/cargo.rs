@@ -161,6 +161,22 @@ impl<'a> Cargo<'a> {
         (args, Some(envs))
     }
 
+    pub fn format(&self, check: bool) -> Expression {
+        let (args, envs) = self.format_params(check);
+        self.exec_safe(args, envs)
+    }
+
+    fn format_params(&self, check: bool) -> (Vec<OsString>, EnvVars) {
+        let mut arguments = vec![OsString::from("--all")];
+
+        if check {
+            arguments.push("--check".into());
+        }
+
+        let args = self.build_args([OsString::from("fmt")], arguments);
+        (args, None)
+    }
+
     pub fn lint(&self) -> Expression {
         let (args, envs) = self.lint_params();
         self.exec_safe(args, envs)
@@ -172,7 +188,6 @@ impl<'a> Cargo<'a> {
             ["--all-targets", "--all-features", "--no-deps"],
         );
         let envs = HashMap::from([("RUSTFLAGS".into(), "-Dwarnings".into())]);
-
         (args, Some(envs))
     }
 
@@ -288,6 +303,19 @@ mod tests {
 
         assert_eq!(args, ["test", "--all-features"]);
         assert_eq!(envs, Some(expected_envs));
+    }
+
+    #[test]
+    fn it_builds_args_for_the_format_subcommand() {
+        let opts = Options::new(vec![], task_flags! {}).unwrap();
+        let cargo = Cargo::new(&opts);
+        let (args, envs) = cargo.format_params(false);
+        assert_eq!(args, ["fmt", "--all"]);
+        assert_eq!(envs, None);
+
+        let (args, envs) = cargo.format_params(true);
+        assert_eq!(args, ["fmt", "--all", "--check"]);
+        assert_eq!(envs, None);
     }
 
     #[test]
