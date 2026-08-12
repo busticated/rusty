@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter, Result};
 
+/// The error type returned by all fallible operations in this crate
 #[derive(Debug)]
 pub enum NodeJSRelInfoError {
     /// The operating system for the Node.js distributable you are targeting is
@@ -28,27 +29,27 @@ impl Display for NodeJSRelInfoError {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let message = match self {
             NodeJSRelInfoError::UnrecognizedOs(input) => {
-                format!("Unrecognized OS! Received: '{}'", input)
+                format!("Unrecognized OS! Received: '{input}'")
             }
             NodeJSRelInfoError::UnrecognizedArch(input) => {
-                format!("Unrecognized Arch! Received: '{}'", input)
+                format!("Unrecognized Arch! Received: '{input}'")
             }
             NodeJSRelInfoError::UnrecognizedExt(input) => {
-                format!("Unrecognized File Extension! Received: '{}'", input)
+                format!("Unrecognized File Extension! Received: '{input}'")
             }
             NodeJSRelInfoError::InvalidVersion(input) => {
-                format!("Invalid Version! Received: '{}'", input)
+                format!("Invalid Version! Received: '{input}'")
             }
             NodeJSRelInfoError::UnrecognizedVersion(input) => {
-                format!("Unrecognized Version! Received: '{}'", input)
+                format!("Unrecognized Version! Received: '{input}'")
             }
             NodeJSRelInfoError::UnrecognizedConfiguration(input) => {
-                format!("Unrecognized Configuration! Received: '{}'", input)
+                format!("Unrecognized Configuration! Received: '{input}'")
             }
-            NodeJSRelInfoError::HttpError(e) => return write!(f, "{}", e),
+            NodeJSRelInfoError::HttpError(e) => return write!(f, "{e}"),
         };
 
-        write!(f, "Error: {}", message)
+        write!(f, "Error: {message}")
     }
 }
 

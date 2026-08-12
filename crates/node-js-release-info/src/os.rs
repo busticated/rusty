@@ -7,13 +7,18 @@ use std::str::FromStr;
 
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "json", derive(Deserialize, Serialize))]
+/// The operating system a Node.js distributable targets
 pub enum NodeJSOS {
+    /// Linux (`linux`)
     #[cfg_attr(feature = "json", serde(rename = "linux"))]
     Linux,
+    /// macOS (`darwin`)
     #[cfg_attr(feature = "json", serde(rename = "darwin"))]
     Darwin,
+    /// Windows (`win`)
     #[cfg_attr(feature = "json", serde(rename = "win"))]
     Windows,
+    /// IBM AIX (`aix`)
     #[cfg_attr(feature = "json", serde(rename = "aix"))]
     AIX,
 }
@@ -25,10 +30,25 @@ impl Default for NodeJSOS {
 }
 
 impl NodeJSOS {
+    /// Creates a new instance using the default OS ([`Linux`](NodeJSOS::Linux))
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use node_js_release_info::NodeJSOS;
+    /// assert_eq!(NodeJSOS::new(), NodeJSOS::Linux);
+    /// ```
     pub fn new() -> NodeJSOS {
         NodeJSOS::Linux
     }
 
+    /// Determines the OS of the current environment via
+    /// [`std::env::consts::OS`]
+    ///
+    /// # Errors
+    ///
+    /// Returns [`NodeJSRelInfoError::UnrecognizedOs`] when the current OS has
+    /// no corresponding Node.js distributable
     pub fn from_env() -> Result<NodeJSOS, NodeJSRelInfoError> {
         NodeJSOS::from_str(OS)
     }
@@ -43,7 +63,7 @@ impl Display for NodeJSOS {
             NodeJSOS::AIX => "aix",
         };
 
-        write!(f, "{}", os)
+        write!(f, "{os}")
     }
 }
 

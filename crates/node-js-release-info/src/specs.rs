@@ -6,7 +6,7 @@ use crate::url::NodeJSURLFormatter;
 use semver::Version;
 use std::str::FromStr;
 
-pub fn validate_version<T: AsRef<str>>(semver: T) -> Result<String, NodeJSRelInfoError> {
+pub(crate) fn validate_version<T: AsRef<str>>(semver: T) -> Result<String, NodeJSRelInfoError> {
     match Version::parse(semver.as_ref()) {
         Ok(v) => Ok(v.to_string()),
         Err(_) => Err(NodeJSRelInfoError::InvalidVersion(
@@ -15,7 +15,7 @@ pub fn validate_version<T: AsRef<str>>(semver: T) -> Result<String, NodeJSRelInf
     }
 }
 
-pub async fn fetch(
+pub(crate) async fn fetch(
     version: &String,
     url_fmt: &NodeJSURLFormatter,
 ) -> Result<String, NodeJSRelInfoError> {
@@ -36,9 +36,9 @@ pub async fn fetch(
     }
 }
 
-pub type ParsedSpecs = Vec<(NodeJSOS, NodeJSArch, NodeJSPkgExt, String, String)>;
+pub(crate) type ParsedSpecs = Vec<(NodeJSOS, NodeJSArch, NodeJSPkgExt, String, String)>;
 
-pub fn parse(version: &String, specs: String) -> Option<ParsedSpecs> {
+pub(crate) fn parse(version: &String, specs: String) -> Option<ParsedSpecs> {
     let mut all: ParsedSpecs = vec![];
     for line in specs.lines() {
         let (sha256, filename) = match line.trim().split_once(' ') {
@@ -50,7 +50,7 @@ pub fn parse(version: &String, specs: String) -> Option<ParsedSpecs> {
             continue;
         }
 
-        if !filename.starts_with(format!("node-v{}", version).as_str()) {
+        if !filename.starts_with(format!("node-v{version}").as_str()) {
             continue;
         }
 
@@ -107,7 +107,7 @@ pub fn parse(version: &String, specs: String) -> Option<ParsedSpecs> {
 use mockito::{Mock, Server};
 
 #[cfg(test)]
-pub fn setup_server_mock(
+pub(crate) fn setup_server_mock(
     version: &str,
     url_fmt: &mut NodeJSURLFormatter,
     server: &mut Server,
@@ -118,7 +118,7 @@ pub fn setup_server_mock(
 }
 
 #[cfg(test)]
-pub fn get_fake_specs() -> &'static str {
+pub(crate) fn get_fake_specs() -> &'static str {
     "ea52b4feaf917e08cd2c729c1186585fcacef07c261a01310c91333b9e41d93c  node-v20.6.1-aix-ppc64.tar.gz
     9471bd6dc491e09c31b0f831f5953284b8a6842ed4ccb98f5c62d13e6086c471  node-v20.6.1-arm64.msi
     d8ba8018d45b294429b1a7646ccbeaeb2af3cdf45b5c91dabbd93e2a2035cb46  node-v20.6.1-darwin-arm64.tar.gz

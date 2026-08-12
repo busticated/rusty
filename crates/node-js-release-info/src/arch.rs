@@ -7,19 +7,27 @@ use std::str::FromStr;
 
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "json", derive(Deserialize, Serialize))]
+/// The CPU architecture a Node.js distributable targets
 pub enum NodeJSArch {
+    /// 64-bit x86 (`x64`)
     #[cfg_attr(feature = "json", serde(rename = "x64"))]
     X64,
+    /// 32-bit x86 (`x86`)
     #[cfg_attr(feature = "json", serde(rename = "x86"))]
     X86,
+    /// 64-bit ARM (`arm64`)
     #[cfg_attr(feature = "json", serde(rename = "arm64"))]
     ARM64,
+    /// 32-bit ARMv7 with hardware floating point (`armv7l`)
     #[cfg_attr(feature = "json", serde(rename = "armv7l"))]
     ARMV7L,
+    /// 64-bit PowerPC, big-endian (`ppc64`)
     #[cfg_attr(feature = "json", serde(rename = "ppc64"))]
     PPC64,
+    /// 64-bit PowerPC, little-endian (`ppc64le`)
     #[cfg_attr(feature = "json", serde(rename = "ppc64le"))]
     PPC64LE,
+    /// 64-bit IBM Z (`s390x`)
     #[cfg_attr(feature = "json", serde(rename = "s390x"))]
     S390X,
 }
@@ -31,10 +39,25 @@ impl Default for NodeJSArch {
 }
 
 impl NodeJSArch {
+    /// Creates a new instance using the default architecture ([`X64`](NodeJSArch::X64))
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use node_js_release_info::NodeJSArch;
+    /// assert_eq!(NodeJSArch::new(), NodeJSArch::X64);
+    /// ```
     pub fn new() -> NodeJSArch {
         NodeJSArch::X64
     }
 
+    /// Determines the architecture of the current environment via
+    /// [`std::env::consts::ARCH`]
+    ///
+    /// # Errors
+    ///
+    /// Returns [`NodeJSRelInfoError::UnrecognizedArch`] when the current
+    /// architecture has no corresponding Node.js distributable
     pub fn from_env() -> Result<NodeJSArch, NodeJSRelInfoError> {
         NodeJSArch::from_str(ARCH)
     }
@@ -52,7 +75,7 @@ impl Display for NodeJSArch {
             NodeJSArch::S390X => "s390x",
         };
 
-        write!(f, "{}", arch)
+        write!(f, "{arch}")
     }
 }
 

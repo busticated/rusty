@@ -23,16 +23,19 @@ repository.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-reqwest = { version = "0.13.*" }
-semver = "1.*"
-serde = { version = "1.*", features = ["derive"], optional = true }
-tokio = { version = "1.*", default-features = false, features = ["macros", "net", "time"] }
+reqwest.workspace = true
+semver.workspace = true
+serde = { workspace = true, optional = true }
+tokio = { workspace = true, features = ["macros", "net", "time"] }
 
 [dev-dependencies]
-mockito = "1.*"
-serde_json = "1.*"
+mockito.workspace = true
+serde_json.workspace = true
 # doc examples use `#[tokio::main]`, which requires the multi-threaded runtime
-tokio = { version = "1.*", default-features = false, features = ["rt-multi-thread"] }
+tokio = { workspace = true, features = ["rt-multi-thread"] }
 
 [features]
 json = ["dep:serde"]
+
+[lints]
+workspace = true

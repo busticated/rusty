@@ -16,6 +16,13 @@ use crate::url::NodeJSURLFormatter;
 use serde::{Deserialize, Serialize};
 use std::string::ToString;
 
+/// Metadata describing a single Node.js distributable
+///
+/// Build one with [`new`](NodeJSRelInfo::new) or
+/// [`from_env`](NodeJSRelInfo::from_env), narrow it with the builder methods
+/// (e.g. [`macos`](NodeJSRelInfo::macos), [`arm64`](NodeJSRelInfo::arm64)),
+/// then call [`fetch`](NodeJSRelInfo::fetch) to populate `filename`, `sha256`
+/// and `url` from the downloads server
 #[derive(Clone, Debug, Default, PartialEq)]
 #[cfg_attr(feature = "json", derive(Deserialize, Serialize))]
 pub struct NodeJSRelInfo {

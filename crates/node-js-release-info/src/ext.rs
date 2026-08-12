@@ -6,15 +6,21 @@ use std::str::FromStr;
 
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "json", derive(Deserialize, Serialize))]
+/// The file extension of a Node.js distributable
 pub enum NodeJSPkgExt {
+    /// gzip-compressed tarball (`tar.gz`)
     #[cfg_attr(feature = "json", serde(rename = "tar.gz"))]
     Targz,
+    /// xz-compressed tarball (`tar.xz`)
     #[cfg_attr(feature = "json", serde(rename = "tar.xz"))]
     Tarxz,
+    /// zip archive (`zip`) - Windows only
     #[cfg_attr(feature = "json", serde(rename = "zip"))]
     Zip,
+    /// Windows installer package (`msi`)
     #[cfg_attr(feature = "json", serde(rename = "msi"))]
     Msi,
+    /// 7-Zip archive (`7z`) - Windows only
     #[cfg_attr(feature = "json", serde(rename = "7z"))]
     S7z, // can't start w/ a number (X_x)
 }
@@ -26,6 +32,14 @@ impl Default for NodeJSPkgExt {
 }
 
 impl NodeJSPkgExt {
+    /// Creates a new instance using the default extension ([`Targz`](NodeJSPkgExt::Targz))
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use node_js_release_info::NodeJSPkgExt;
+    /// assert_eq!(NodeJSPkgExt::new(), NodeJSPkgExt::Targz);
+    /// ```
     pub fn new() -> NodeJSPkgExt {
         NodeJSPkgExt::Targz
     }
@@ -40,7 +54,7 @@ impl Display for NodeJSPkgExt {
             NodeJSPkgExt::S7z => "7z",
         };
 
-        write!(f, "{}", arch)
+        write!(f, "{arch}")
     }
 }
 

@@ -1,3 +1,7 @@
+//! Integration tests exercising the crate's public API as a consumer would
+//!
+//! NOTE: these hit the live Node.js downloads server
+
 use node_js_release_info::*;
 
 const VERSION: &str = "20.7.0";

@@ -1,5 +1,5 @@
 #[derive(Clone, Debug, PartialEq)]
-pub struct NodeJSURLFormatter {
+pub(crate) struct NodeJSURLFormatter {
     pub protocol: String,
     pub host: String,
     pub pathname: String,
@@ -12,7 +12,7 @@ impl Default for NodeJSURLFormatter {
 }
 
 impl NodeJSURLFormatter {
-    pub fn new() -> NodeJSURLFormatter {
+    pub(crate) fn new() -> NodeJSURLFormatter {
         NodeJSURLFormatter {
             protocol: String::from("https:"),
             host: String::from("nodejs.org"),
@@ -20,7 +20,7 @@ impl NodeJSURLFormatter {
         }
     }
 
-    pub fn info<V: AsRef<str>>(&self, version: V) -> String {
+    pub(crate) fn info<V: AsRef<str>>(&self, version: V) -> String {
         format!(
             "{}//{}{}",
             self.protocol,
@@ -29,7 +29,7 @@ impl NodeJSURLFormatter {
         )
     }
 
-    pub fn info_pathname<V: AsRef<str>>(&self, version: V) -> String {
+    pub(crate) fn info_pathname<V: AsRef<str>>(&self, version: V) -> String {
         format!(
             "{}/v{}/SHASUMS256.txt",
             self.pathname,
@@ -37,7 +37,7 @@ impl NodeJSURLFormatter {
         )
     }
 
-    pub fn pkg<V: AsRef<str>, F: AsRef<str>>(&self, version: V, filename: F) -> String {
+    pub(crate) fn pkg<V: AsRef<str>, F: AsRef<str>>(&self, version: V, filename: F) -> String {
         format!(
             "{}//{}{}",
             self.protocol,
@@ -46,7 +46,11 @@ impl NodeJSURLFormatter {
         )
     }
 
-    pub fn pkg_pathname<V: AsRef<str>, F: AsRef<str>>(&self, version: V, filename: F) -> String {
+    pub(crate) fn pkg_pathname<V: AsRef<str>, F: AsRef<str>>(
+        &self,
+        version: V,
+        filename: F,
+    ) -> String {
         format!(
             "{}/v{}/{}",
             self.pathname,
