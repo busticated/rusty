@@ -1,10 +1,10 @@
 # Rusty
 
-[![CI Status](https://github.com/busticated/rusty/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/busticated/rusty/actions) [![Rust Version Support](https://img.shields.io/badge/rust%20version-%3E%3D1.86-orange)](https://releases.rs/) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/busticated/rusty/blob/main/LICENSE)
+[![CI Status](https://github.com/busticated/rusty/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/busticated/rusty/actions) [![Rust Version Support](https://img.shields.io/badge/rust%20version-%3E%3D1.86-orange)](https://releases.rs/) [![License](https://img.shields.io/badge/license-MIT_OR_Apache--2.0-blue.svg)](https://github.com/busticated/rusty#license)
 
 A `cargo` workspace ([docs](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html)) monorepo ([info](https://en.wikipedia.org/wiki/Monorepo)) hosting a collection of Rust utility crates.
 
-[Installation](#installation) | [Crates](#crates) | [Development](#development) | [Docs](#docs--resources)
+[Installation](#installation) | [Crates](#crates) | [Development](#development) | [Docs](#docs--resources) | [License](#license)
 
 
 ## Installation
@@ -243,4 +243,16 @@ Any `todo!()` macros in the source code will also be reported.
 * [Inquire](https://github.com/mikaelmello/inquire)
 * [Reqwest](https://github.com/seanmonstar/reqwest)
 * [Mockito](https://github.com/lipanski/mockito)
+
+
+## License
+
+Licensed under either of
+
+* Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or [apache.org/licenses/LICENSE-2.0](https://www.apache.org/licenses/LICENSE-2.0))
+* MIT license ([LICENSE-MIT](LICENSE-MIT) or [opensource.org/licenses/MIT](https://opensource.org/licenses/MIT))
+
+at your option.
+
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in this repository by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
 
