@@ -118,15 +118,13 @@ mod tests {
 
     #[tokio::test]
     async fn it_prints_expected_message_upon_http_error() {
-        let err = fake_http_error().await.unwrap_err();
-        assert_eq!(
-            format!("{err}"),
-            "builder error: relative URL without a base"
-        );
-    }
+        let source = reqwest::get("not-a-url").await.unwrap_err();
+        // NOTE: `HttpError` delegates to the wrapped `reqwest::Error` verbatim
+        // so assert on that rather than on reqwest's exact wording, which
+        // changes between releases
+        let expected = source.to_string();
+        let err = NodeJSRelInfoError::from(source);
 
-    async fn fake_http_error() -> std::result::Result<(), NodeJSRelInfoError> {
-        let error = reqwest::get("not-a-url").await.unwrap_err();
-        Err(NodeJSRelInfoError::from(error))
+        assert_eq!(format!("{err}"), expected);
     }
 }
