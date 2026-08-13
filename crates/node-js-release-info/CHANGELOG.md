@@ -1,6 +1,31 @@
 # `node-js-release-info` Changelog
 <!-- next-version-start -->
 <!-- next-version-end -->
+## v2.0.0
+
+* add migrations section to README with v1.x -> v2.x notes
+* rename types + variants per RFC 430, consume self in builders
+* BREAKING: types are now `NodeJsRelInfo`, `NodeJsOs`, `NodeJsArch`, `NodeJsPkgExt`, `NodeJsRelInfoError`
+* BREAKING: variants are now UpperCamelCase - e.g. `AIX` -> `Aix`, `PPC64LE` -> `Ppc64le`
+* BREAKING: builder methods consume and return `Self`, so `to_owned()` is gone
+* BREAKING: `fetch()` takes `self` and returns the populated value
+* BREAKING: os/arch/ext/error enums are `#[non_exhaustive]`
+* BREAKING: error messages drop the `Error: ` prefix and are lowercased
+* add `NodeJsOs::SunOs` and `NodeJsArch::Armv6l` for older Node.js releases
+* derive `Copy` on the os/arch/ext enums
+* return an error instead of panicking on a malformed checksum line
+* target Node.js v24.19.0 in integration tests and doc examples
+* expose error source, derive Eq + Hash, document json feature
+* assert on returned errors instead of panic text
+* inherit dependencies and lint settings from workspace
+* clarify licensing
+* update cargo dependencies to latest
+* set minimum supported rust version to v1.86
+* fix lint issues
+* fix tokio for doctests, serde for serialization tests
+* fix typo
+
+
 ## v1.1.1
 
 * add new version markers to changelog
