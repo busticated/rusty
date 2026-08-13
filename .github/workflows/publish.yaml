@@ -20,6 +20,14 @@ jobs:
           fetch-tags: true
       - name: Install Rust Toolchain (stable)
         uses: dtolnay/rust-toolchain@stable
+      # NOTE: publishing needs none of these, but `cargo xtask setup` installs
+      # them and `cargo install` always builds from source. fetching the
+      # prebuilt binaries makes `setup` below a no-op instead - see the same
+      # step in `test.yaml` for details
+      - name: Install Prebuilt Tooling
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov,cargo-deny,cargo-semver-checks,typos
       - name: Setup Project
         run: cargo xtask setup
       - name: Publish to Crates.io
