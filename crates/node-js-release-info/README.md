@@ -21,20 +21,20 @@ cargo add tokio --features full
 ```
 
 ```rust
-use node_js_release_info::{NodeJSRelInfo, NodeJSRelInfoError};
+use node_js_release_info::{NodeJsRelInfo, NodeJsRelInfoError};
 
 #[tokio::main]
-async fn main() -> Result<(), NodeJSRelInfoError> {
+async fn main() -> Result<(), NodeJsRelInfoError> {
   // get a specific configuration
-  let info = NodeJSRelInfo::new("20.6.1").macos().arm64().fetch().await?;
-  assert_eq!(info.version, "20.6.1");
-  assert_eq!(info.filename, "node-v20.6.1-darwin-arm64.tar.gz");
-  assert_eq!(info.sha256, "d8ba8018d45b294429b1a7646ccbeaeb2af3cdf45b5c91dabbd93e2a2035cb46");
-  assert_eq!(info.url, "https://nodejs.org/download/release/v20.6.1/node-v20.6.1-darwin-arm64.tar.gz");
+  let info = NodeJsRelInfo::new("24.19.0").macos().arm64().fetch().await?;
+  assert_eq!(info.version, "24.19.0");
+  assert_eq!(info.filename, "node-v24.19.0-darwin-arm64.tar.gz");
+  assert_eq!(info.sha256, "8294b7aa9b03997481c06babf1e8b270c859358f27da57a11509afe537ac381d");
+  assert_eq!(info.url, "https://nodejs.org/download/release/v24.19.0/node-v24.19.0-darwin-arm64.tar.gz");
 
   // get all supported configurations
   let all = info.fetch_all().await?;
-  assert_eq!(all.len(), 24);
+  assert_eq!(all.len(), 19);
   assert_eq!(all[2], info);
   println!("{:?}", all);
   Ok(())
@@ -50,11 +50,11 @@ cargo add node-js-release-info --features json
 ```
 
 ```rust,ignore
-use node_js_release_info::{NodeJSRelInfo, NodeJSRelInfoError};
+use node_js_release_info::NodeJsRelInfo;
 
 #[tokio::main]
 async fn main() {
-  let info = NodeJSRelInfo::new("20.6.1").macos().arm64().to_owned();
+  let info = NodeJsRelInfo::new("24.19.0").macos().arm64();
   let json = serde_json::to_string(&info).unwrap();
   let info_deserialized = serde_json::from_str(&json).unwrap();
   assert_eq!(info, info_deserialized);

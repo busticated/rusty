@@ -2,16 +2,19 @@ use std::error::Error;
 use std::fmt::{Display, Formatter, Result};
 
 /// The error type returned by all fallible operations in this crate
+///
+/// Non-exhaustive: new variants may appear in a minor release
 #[derive(Debug)]
-pub enum NodeJSRelInfoError {
+#[non_exhaustive]
+pub enum NodeJsRelInfoError {
     /// The operating system for the Node.js distributable you are targeting is
-    /// unrecognized - see: [`NodeJSOS`](crate::NodeJSOS) for options
+    /// unrecognized - see: [`NodeJsOs`](crate::NodeJsOs) for options
     UnrecognizedOs(String),
     /// The CPU architecture for the Node.js distributable you are targeting is
-    /// unrecognized - see: [`NodeJSArch`](crate::NodeJSArch) for options
+    /// unrecognized - see: [`NodeJsArch`](crate::NodeJsArch) for options
     UnrecognizedArch(String),
     /// The file extension of the Node.js distributable you are targeting is
-    /// unrecognized - see: [`NodeJSPkgExt`](crate::NodeJSPkgExt) for options
+    /// unrecognized - see: [`NodeJsPkgExt`](crate::NodeJsPkgExt) for options
     UnrecognizedExt(String),
     /// The version string provided is invalid - see: [semver](https://semver.org)
     InvalidVersion(String),
@@ -23,49 +26,49 @@ pub enum NodeJSRelInfoError {
     HttpError(reqwest::Error),
 }
 
-impl Error for NodeJSRelInfoError {
+impl Error for NodeJsRelInfoError {
     /// Exposes the underlying [`reqwest::Error`] behind
-    /// [`HttpError`](NodeJSRelInfoError::HttpError) so callers (and error
+    /// [`HttpError`](NodeJsRelInfoError::HttpError) so callers (and error
     /// reporters like `anyhow`) can walk the full cause chain
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            NodeJSRelInfoError::HttpError(e) => Some(e),
+            NodeJsRelInfoError::HttpError(e) => Some(e),
             _ => None,
         }
     }
 }
 
-impl Display for NodeJSRelInfoError {
+impl Display for NodeJsRelInfoError {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let message = match self {
-            NodeJSRelInfoError::UnrecognizedOs(input) => {
-                format!("Unrecognized OS! Received: '{input}'")
+            NodeJsRelInfoError::UnrecognizedOs(input) => {
+                format!("unrecognized os - received: '{input}'")
             }
-            NodeJSRelInfoError::UnrecognizedArch(input) => {
-                format!("Unrecognized Arch! Received: '{input}'")
+            NodeJsRelInfoError::UnrecognizedArch(input) => {
+                format!("unrecognized arch - received: '{input}'")
             }
-            NodeJSRelInfoError::UnrecognizedExt(input) => {
-                format!("Unrecognized File Extension! Received: '{input}'")
+            NodeJsRelInfoError::UnrecognizedExt(input) => {
+                format!("unrecognized file extension - received: '{input}'")
             }
-            NodeJSRelInfoError::InvalidVersion(input) => {
-                format!("Invalid Version! Received: '{input}'")
+            NodeJsRelInfoError::InvalidVersion(input) => {
+                format!("invalid version - received: '{input}'")
             }
-            NodeJSRelInfoError::UnrecognizedVersion(input) => {
-                format!("Unrecognized Version! Received: '{input}'")
+            NodeJsRelInfoError::UnrecognizedVersion(input) => {
+                format!("unrecognized version - received: '{input}'")
             }
-            NodeJSRelInfoError::UnrecognizedConfiguration(input) => {
-                format!("Unrecognized Configuration! Received: '{input}'")
+            NodeJsRelInfoError::UnrecognizedConfiguration(input) => {
+                format!("unrecognized configuration - received: '{input}'")
             }
-            NodeJSRelInfoError::HttpError(e) => return write!(f, "{e}"),
+            NodeJsRelInfoError::HttpError(e) => return write!(f, "{e}"),
         };
 
-        write!(f, "Error: {message}")
+        write!(f, "{message}")
     }
 }
 
-impl From<reqwest::Error> for NodeJSRelInfoError {
+impl From<reqwest::Error> for NodeJsRelInfoError {
     fn from(e: reqwest::Error) -> Self {
-        NodeJSRelInfoError::HttpError(e)
+        NodeJsRelInfoError::HttpError(e)
     }
 }
 
@@ -75,55 +78,52 @@ mod tests {
 
     #[test]
     fn it_prints_expected_message_when_os_is_unrecognized() {
-        let err = NodeJSRelInfoError::UnrecognizedOs("unknown-os".to_string());
-        assert_eq!(
-            format!("{err}"),
-            "Error: Unrecognized OS! Received: 'unknown-os'"
-        );
+        let err = NodeJsRelInfoError::UnrecognizedOs("unknown-os".to_string());
+        assert_eq!(format!("{err}"), "unrecognized os - received: 'unknown-os'");
     }
 
     #[test]
     fn it_prints_expected_message_when_arch_is_unrecognized() {
-        let err = NodeJSRelInfoError::UnrecognizedArch("unknown-arch".to_string());
+        let err = NodeJsRelInfoError::UnrecognizedArch("unknown-arch".to_string());
         assert_eq!(
             format!("{err}"),
-            "Error: Unrecognized Arch! Received: 'unknown-arch'"
+            "unrecognized arch - received: 'unknown-arch'"
         );
     }
 
     #[test]
     fn it_prints_expected_message_when_extension_is_unrecognized() {
-        let err = NodeJSRelInfoError::UnrecognizedExt("unknown-ext".to_string());
+        let err = NodeJsRelInfoError::UnrecognizedExt("unknown-ext".to_string());
         assert_eq!(
             format!("{err}"),
-            "Error: Unrecognized File Extension! Received: 'unknown-ext'"
+            "unrecognized file extension - received: 'unknown-ext'"
         );
     }
 
     #[test]
     fn it_prints_expected_message_when_version_is_invalid() {
-        let err = NodeJSRelInfoError::InvalidVersion("invalid-ver".to_string());
+        let err = NodeJsRelInfoError::InvalidVersion("invalid-ver".to_string());
         assert_eq!(
             format!("{err}"),
-            "Error: Invalid Version! Received: 'invalid-ver'"
+            "invalid version - received: 'invalid-ver'"
         );
     }
 
     #[test]
     fn it_prints_expected_message_when_version_is_unrecognized() {
-        let err = NodeJSRelInfoError::UnrecognizedVersion("unknown-ver".to_string());
+        let err = NodeJsRelInfoError::UnrecognizedVersion("unknown-ver".to_string());
         assert_eq!(
             format!("{err}"),
-            "Error: Unrecognized Version! Received: 'unknown-ver'"
+            "unrecognized version - received: 'unknown-ver'"
         );
     }
 
     #[test]
     fn it_prints_expected_message_when_configuration_is_unrecognized() {
-        let err = NodeJSRelInfoError::UnrecognizedConfiguration("unknown-cfg".to_string());
+        let err = NodeJsRelInfoError::UnrecognizedConfiguration("unknown-cfg".to_string());
         assert_eq!(
             format!("{err}"),
-            "Error: Unrecognized Configuration! Received: 'unknown-cfg'"
+            "unrecognized configuration - received: 'unknown-cfg'"
         );
     }
 
@@ -134,7 +134,7 @@ mod tests {
         // so assert on that rather than on reqwest's exact wording, which
         // changes between releases
         let expected = source.to_string();
-        let err = NodeJSRelInfoError::from(source);
+        let err = NodeJsRelInfoError::from(source);
 
         assert_eq!(format!("{err}"), expected);
     }

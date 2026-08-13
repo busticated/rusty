@@ -1,15 +1,15 @@
-use crate::arch::NodeJSArch;
-use crate::error::NodeJSRelInfoError;
-use crate::ext::NodeJSPkgExt;
-use crate::os::NodeJSOS;
-use crate::url::NodeJSURLFormatter;
+use crate::arch::NodeJsArch;
+use crate::error::NodeJsRelInfoError;
+use crate::ext::NodeJsPkgExt;
+use crate::os::NodeJsOs;
+use crate::url::NodeJsUrlFormatter;
 use semver::Version;
 use std::str::FromStr;
 
-pub(crate) fn validate_version<T: AsRef<str>>(semver: T) -> Result<String, NodeJSRelInfoError> {
+pub(crate) fn validate_version<T: AsRef<str>>(semver: T) -> Result<String, NodeJsRelInfoError> {
     match Version::parse(semver.as_ref()) {
         Ok(v) => Ok(v.to_string()),
-        Err(_) => Err(NodeJSRelInfoError::InvalidVersion(
+        Err(_) => Err(NodeJsRelInfoError::InvalidVersion(
             semver.as_ref().to_owned(),
         )),
     }
@@ -17,26 +17,26 @@ pub(crate) fn validate_version<T: AsRef<str>>(semver: T) -> Result<String, NodeJ
 
 pub(crate) async fn fetch(
     version: &String,
-    url_fmt: &NodeJSURLFormatter,
-) -> Result<String, NodeJSRelInfoError> {
+    url_fmt: &NodeJsUrlFormatter,
+) -> Result<String, NodeJsRelInfoError> {
     let info_url = url_fmt.info(version);
     let res = match reqwest::get(info_url.as_str()).await {
-        Err(e) => return Err(NodeJSRelInfoError::HttpError(e)),
+        Err(e) => return Err(NodeJsRelInfoError::HttpError(e)),
         Ok(r) => r,
     };
 
     // TODO (busticated): handle 5xx errors
     if res.status().as_u16() >= 400 {
-        return Err(NodeJSRelInfoError::UnrecognizedVersion(version.clone()));
+        return Err(NodeJsRelInfoError::UnrecognizedVersion(version.clone()));
     }
 
     match res.text().await {
-        Err(e) => Err(NodeJSRelInfoError::HttpError(e)),
+        Err(e) => Err(NodeJsRelInfoError::HttpError(e)),
         Ok(b) => Ok(b),
     }
 }
 
-pub(crate) type ParsedSpecs = Vec<(NodeJSOS, NodeJSArch, NodeJSPkgExt, String, String)>;
+pub(crate) type ParsedSpecs = Vec<(NodeJsOs, NodeJsArch, NodeJsPkgExt, String, String)>;
 
 pub(crate) fn parse(version: &String, specs: String) -> Option<ParsedSpecs> {
     let mut all: ParsedSpecs = vec![];
@@ -63,7 +63,7 @@ pub(crate) fn parse(version: &String, specs: String) -> Option<ParsedSpecs> {
         }
 
         let os = if is_msi { "win" } else { parts[2] };
-        let os = match NodeJSOS::from_str(os) {
+        let os = match NodeJsOs::from_str(os) {
             Ok(os) => os,
             Err(_) => {
                 continue;
@@ -77,14 +77,14 @@ pub(crate) fn parse(version: &String, specs: String) -> Option<ParsedSpecs> {
             }
         };
 
-        let arch = match NodeJSArch::from_str(arch) {
+        let arch = match NodeJsArch::from_str(arch) {
             Ok(a) => a,
             Err(_) => {
                 continue;
             }
         };
 
-        let ext = match NodeJSPkgExt::from_str(ext) {
+        let ext = match NodeJsPkgExt::from_str(ext) {
             Ok(ext) => ext,
             Err(_) => {
                 continue;
@@ -109,7 +109,7 @@ use mockito::{Mock, Server};
 #[cfg(test)]
 pub(crate) fn setup_server_mock(
     version: &str,
-    url_fmt: &mut NodeJSURLFormatter,
+    url_fmt: &mut NodeJsUrlFormatter,
     server: &mut Server,
 ) -> Mock {
     url_fmt.host = server.host_with_port();
@@ -169,9 +169,9 @@ mod tests {
     fn assert_is_darwin_arm64_targz_specs(specs: ParsedSpecs) {
         assert_eq!(specs.len(), 1);
         let (os, arch, ext, sha256, filename) = &specs[0];
-        assert_eq!(*os, NodeJSOS::Darwin);
-        assert_eq!(*arch, NodeJSArch::ARM64);
-        assert_eq!(*ext, NodeJSPkgExt::Targz);
+        assert_eq!(*os, NodeJsOs::Darwin);
+        assert_eq!(*arch, NodeJsArch::Arm64);
+        assert_eq!(*ext, NodeJsPkgExt::Targz);
         assert_eq!(filename, "node-v20.6.1-darwin-arm64.tar.gz");
         assert_eq!(sha256, "FAKESHA");
     }
@@ -184,14 +184,11 @@ mod tests {
 
         let error = validate_version("NOPE").unwrap_err();
 
-        assert_eq!(
-            format!("{error}"),
-            "Error: Invalid Version! Received: 'NOPE'"
-        );
+        assert_eq!(format!("{error}"), "invalid version - received: 'NOPE'");
 
         let error = validate_version("").unwrap_err();
 
-        assert_eq!(format!("{error}"), "Error: Invalid Version! Received: ''");
+        assert_eq!(format!("{error}"), "invalid version - received: ''");
     }
 
     #[test]
@@ -201,9 +198,9 @@ mod tests {
         let specs = parse(&version, specs_raw).unwrap();
         assert_eq!(specs.len(), 24);
         let (os, arch, ext, sha256, filename) = &specs[2];
-        assert_eq!(*os, NodeJSOS::Darwin);
-        assert_eq!(*arch, NodeJSArch::ARM64);
-        assert_eq!(*ext, NodeJSPkgExt::Targz);
+        assert_eq!(*os, NodeJsOs::Darwin);
+        assert_eq!(*arch, NodeJsArch::Arm64);
+        assert_eq!(*ext, NodeJsPkgExt::Targz);
         assert_eq!(filename, "node-v20.6.1-darwin-arm64.tar.gz");
         assert_eq!(
             sha256,
@@ -306,7 +303,7 @@ mod tests {
     #[tokio::test]
     async fn it_fetches_node_js_specs() {
         let version = String::from("20.6.1");
-        let mut url_fmt = NodeJSURLFormatter::new();
+        let mut url_fmt = NodeJsUrlFormatter::new();
         let mut server = Server::new_async().await;
         let mock = setup_server_mock(&version, &mut url_fmt, &mut server)
             .with_body(get_fake_specs())
@@ -321,7 +318,7 @@ mod tests {
     #[tokio::test]
     async fn it_fails_to_fetch_node_js_specs_when_version_is_unrecognized() {
         let version = String::from("1.0.0");
-        let mut url_fmt = NodeJSURLFormatter::new();
+        let mut url_fmt = NodeJsUrlFormatter::new();
         let mut server = Server::new_async().await;
         let mock = setup_server_mock(&version, &mut url_fmt, &mut server)
             .with_body(get_fake_specs())
@@ -332,6 +329,6 @@ mod tests {
         let err = fetch(&version, &url_fmt).await.unwrap_err();
         mock.assert_async().await;
 
-        assert!(matches!(err, NodeJSRelInfoError::UnrecognizedVersion(x) if x == "1.0.0"));
+        assert!(matches!(err, NodeJsRelInfoError::UnrecognizedVersion(x) if x == "1.0.0"));
     }
 }
