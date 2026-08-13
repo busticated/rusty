@@ -37,6 +37,8 @@ This repository contains a series of `rust` crates managed together as a `cargo`
 
 To add a _new_ crate to the workspace, run `cargo xtask crate:add` and follow the prompts (add the `--dry-run` flag to test). Upon completion, your new crate will be available within `./crates/<your crate>`
 
+Adding a crate adds a workspace member, so the workspace `Cargo.lock` is updated too - include it when you commit the new crate.
+
 </p>
 </details>
 

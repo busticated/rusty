@@ -84,6 +84,11 @@ impl Workspace {
         krate.changelog.create(fs, &krate_copy)?;
         krate.readme.create(fs, &krate_copy)?;
         krate.toml.create(fs, &krate_copy)?;
+        // NOTE: `cargo new` does not touch `Cargo.lock`, so the new member is
+        // missing from it until the next cargo command happens to add it -
+        // leaving an unexplained dirty lockfile. must run *after* the manifest
+        // above is written, so the entry resolves against the real manifest
+        cargo.update_lockfile().run()?;
         Ok(krate)
     }
 
