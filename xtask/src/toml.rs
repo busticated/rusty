@@ -4,7 +4,7 @@ use semver::Version;
 use std::error::Error;
 use std::fs;
 use std::path::{Path, PathBuf};
-use toml_edit::{value as toml_value, Document};
+use toml_edit::{value as toml_value, DocumentMut};
 
 type DynError = Box<dyn Error>;
 
@@ -13,7 +13,7 @@ const CARGO_TOML: &str = "Cargo.toml";
 #[derive(Clone, Debug, Default)]
 pub struct Toml {
     pub path: PathBuf,
-    data: Document,
+    data: DocumentMut,
 }
 
 impl Toml {
@@ -29,10 +29,10 @@ impl Toml {
         toml.load()
     }
 
-    pub fn read(&self) -> Result<Document, DynError> {
+    pub fn read(&self) -> Result<DocumentMut, DynError> {
         // TODO (busticated): pull into FS wrapper?
         let text = fs::read_to_string(&self.path)?;
-        Ok(text.parse::<Document>()?)
+        Ok(text.parse::<DocumentMut>()?)
     }
 
     pub fn load(&mut self) -> Result<Self, DynError> {
@@ -42,7 +42,7 @@ impl Toml {
 
     pub fn create(&mut self, fs: &FS, krate: &Krate) -> Result<(), DynError> {
         let text = self.render(&krate.name, &krate.description);
-        self.data = text.parse::<Document>()?;
+        self.data = text.parse::<DocumentMut>()?;
         self.save(fs)
     }
 
