@@ -16,7 +16,7 @@ const SRC_DIRNAME: &str = "src";
 const LIB_FILENAME: &str = "lib.rs";
 
 #[derive(Clone, Debug)]
-pub struct Krate {
+pub(crate) struct Krate {
     pub kind: KrateKind,
     pub version: Version,
     pub name: String,
@@ -57,7 +57,7 @@ impl Default for Krate {
 }
 
 impl Krate {
-    pub fn new<K: AsRef<str>, V: AsRef<str>, N: AsRef<str>, D: AsRef<str>>(
+    pub(crate) fn new<K: AsRef<str>, V: AsRef<str>, N: AsRef<str>, D: AsRef<str>>(
         kind: K,
         version: V,
         name: N,
@@ -83,7 +83,7 @@ impl Krate {
         }
     }
 
-    pub fn from_path(path: PathBuf) -> Result<Krate, DynError> {
+    pub(crate) fn from_path(path: PathBuf) -> Result<Krate, DynError> {
         let toml = Toml::from_path(path.clone())?;
         let readme = Readme::from_path(path.clone())?;
         let changelog = Changelog::from_path(path.clone())?;
@@ -105,17 +105,17 @@ impl Krate {
         Ok(krate)
     }
 
-    pub fn id(&self) -> String {
-        format!("{}@{}", &self.name, self.version)
+    pub(crate) fn id(&self) -> String {
+        format!("{}@{}", self.name, self.version)
     }
 
-    pub fn set_version(&mut self, version: Version) -> Result<(), DynError> {
+    pub(crate) fn set_version(&mut self, version: Version) -> Result<(), DynError> {
         self.version = version;
         self.toml.set_version(&self.version)?;
         Ok(())
     }
 
-    pub fn clean(&self, fs: &FS) -> Result<(), DynError> {
+    pub(crate) fn clean(&self, fs: &FS) -> Result<(), DynError> {
         use std::io::ErrorKind;
 
         match fs.remove_dir_all(self.tmp_path()) {
@@ -125,12 +125,12 @@ impl Krate {
         }
     }
 
-    pub fn create_dirs(&self, fs: &FS) -> Result<(), DynError> {
+    pub(crate) fn create_dirs(&self, fs: &FS) -> Result<(), DynError> {
         Ok(fs.create_dir_all(self.coverage_path())?)
     }
 }
 
-pub trait KratePaths {
+pub(crate) trait KratePaths {
     fn path(&self) -> PathBuf;
 
     fn tmp_path(&self) -> PathBuf {
@@ -143,14 +143,14 @@ pub trait KratePaths {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub enum KrateKind {
+pub(crate) enum KrateKind {
     #[default]
     Library,
     Binary,
 }
 
 impl KrateKind {
-    pub fn new<K: AsRef<str>>(kind: K) -> KrateKind {
+    pub(crate) fn new<K: AsRef<str>>(kind: K) -> KrateKind {
         let kind = KrateKind::from_str(kind.as_ref());
 
         if kind.is_err() {
@@ -160,7 +160,7 @@ impl KrateKind {
         kind.unwrap()
     }
 
-    pub fn from_path(path: PathBuf) -> Result<KrateKind, DynError> {
+    pub(crate) fn from_path(path: PathBuf) -> Result<KrateKind, DynError> {
         let path = path.join(SRC_DIRNAME).join(LIB_FILENAME);
 
         if !path.is_file() {
@@ -178,7 +178,7 @@ impl Display for KrateKind {
             KrateKind::Library => "--lib",
         };
 
-        write!(f, "{}", arch)
+        write!(f, "{arch}")
     }
 }
 
@@ -189,7 +189,7 @@ impl FromStr for KrateKind {
         match s.to_lowercase().trim() {
             "binary" | "bin" | "--bin" => Ok(KrateKind::Binary),
             "library" | "lib" | "--lib" => Ok(KrateKind::Library),
-            _ => Err(format!("Unrecognized input: {}", s).into()),
+            _ => Err(format!("Unrecognized input: {s}").into()),
         }
     }
 }
@@ -252,11 +252,9 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(
-        expected = "called `Result::unwrap()` on an `Err` value: \"Unrecognized input: NOPE!\""
-    )]
     fn it_fails_to_initialize_when_krate_kind_cannot_be_determined_from_str() {
-        KrateKind::from_str("NOPE!").unwrap();
+        let err = KrateKind::from_str("NOPE!").unwrap_err();
+        assert_eq!(err.to_string(), "Unrecognized input: NOPE!");
     }
 
     #[test]

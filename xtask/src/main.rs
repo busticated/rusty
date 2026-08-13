@@ -1,3 +1,9 @@
+//! Internal-only task runner for this workspace - see `cargo xtask help`
+//!
+//! This crate is not published. Each repo task (test, lint, coverage,
+//! changelog, release, ...) is declared as a [`Task`] in
+//! [`init_tasks`] and dispatched by name from the command line.
+
 mod cargo;
 mod changelog;
 mod exec;
@@ -28,7 +34,7 @@ type DynError = Box<dyn Error>;
 
 fn main() {
     if let Err(e) = try_main() {
-        eprintln!("{:?}", e);
+        eprintln!("{e:?}");
         std::process::exit(-1);
     }
 }
@@ -38,7 +44,7 @@ fn try_main() -> Result<(), DynError> {
 
     args.remove(0); // drop executable path
 
-    let cmd = match args.get(0) {
+    let cmd = match args.first() {
         Some(x) => x.clone(),
         None => "".to_string(),
     };
@@ -50,8 +56,8 @@ fn try_main() -> Result<(), DynError> {
     println!("::::::::::::::::::::::");
     println!(":::: Running Task ::::");
     println!("::::::::::::::::::::::");
-    println!("Name: {}", cmd);
-    println!("Args: {:?}", args);
+    println!("Name: {cmd}");
+    println!("Args: {args:?}");
     println!();
 
     let tasks = init_tasks();
@@ -59,6 +65,19 @@ fn try_main() -> Result<(), DynError> {
         Some(task) => task.exec(args, &tasks),
         None => print_help(cmd, args, tasks),
     }
+}
+
+/// Reports whether a tool is already usable by running a probe command (e.g.
+/// `cargo llvm-cov --version`). Returns `false` when the binary is missing or
+/// the probe exits non-zero - never errors, so a failed probe just means
+/// "install it".
+fn is_tool_available(bin: &str, args: &[&str]) -> bool {
+    cmd(bin, args)
+        .stdout_null()
+        .stderr_null()
+        .unchecked()
+        .run()
+        .is_ok_and(|out| out.status.success())
 }
 
 fn print_help(cmd: String, _args: Vec<String>, tasks: Tasks) -> Result<(), DynError> {
@@ -70,7 +89,7 @@ fn print_help(cmd: String, _args: Vec<String>, tasks: Tasks) -> Result<(), DynEr
     println!();
 
     if !(cmd.is_empty() || cmd == "help" || cmd == "--help") {
-        let msg = format!("Unrecognized Command! Received: '{}'", cmd);
+        let msg = format!("Unrecognized Command! Received: '{cmd}'");
         return Err(msg.into());
     }
 
@@ -97,18 +116,18 @@ fn init_tasks() -> Tasks {
 
                 for tag in tags_text.lines() {
                     let (name, version) = match tag.split_once('@') {
-                        None => return Err(format!("Invalid tag: {}", tag).into()),
+                        None => return Err(format!("Invalid tag: {tag}").into()),
                         Some((n, v)) => (n.trim().to_string(), v.trim().to_string()),
                     };
 
                     tags.insert(name, version);
                 }
 
-                for (name, _version) in tags.iter() {
-                    let krate = krates.get(name).unwrap_or_else(|| panic!("Could Not Find Crate: `{}`!", name));
+                for name in tags.keys() {
+                    let krate = krates.get(name).unwrap_or_else(|| panic!("Could Not Find Crate: `{name}`!"));
                     let log = git.get_changelog(krate)?;
 
-                    println!(":::: {} [changes: {}]", &krate.name, log.len());
+                    println!(":::: {} [changes: {}]", krate.name, log.len());
 
                     if log.is_empty() {
                         println!("\t--- n/a ---");
@@ -118,7 +137,7 @@ fn init_tasks() -> Tasks {
 
 
                     for l in log.iter() {
-                        println!("* {}", l);
+                        println!("* {l}");
                     }
 
                     println!();
@@ -140,6 +159,10 @@ fn init_tasks() -> Tasks {
                 println!();
 
                 tasks
+                    .get("format")
+                    .unwrap()
+                    .exec(vec!["--check".into()], tasks)?;
+                tasks
                     .get("spellcheck")
                     .unwrap()
                     .exec(vec![], tasks)?;
@@ -147,6 +170,10 @@ fn init_tasks() -> Tasks {
                     .get("lint")
                     .unwrap()
                     .exec(vec![], tasks)?;
+                tasks
+                    .get("doc")
+                    .unwrap()
+                    .exec(vec!["--check".into()], tasks)?;
                 tasks
                     .get("coverage")
                     .unwrap()
@@ -176,11 +203,6 @@ fn init_tasks() -> Tasks {
             },
         },
         Task {
-            // TODO (busticated): oof. coverage is a bit h0rked atm - see:
-            // https://github.com/mozilla/grcov/issues/1103
-            // https://github.com/mozilla/grcov/issues/556
-            // https://github.com/mozilla/grcov/issues/802
-            // https://github.com/mozilla/grcov/issues/1042
             name: "coverage".into(),
             description: "run tests and generate html code coverage report".into(),
             flags: task_flags! {
@@ -193,10 +215,16 @@ fn init_tasks() -> Tasks {
                 println!();
 
                 let coverage_root = String::from("tmp/coverage");
-                let report = format!("{}/html/index.html", &coverage_root);
+                let report = format!("{coverage_root}/html/index.html");
+                let lcov = format!("{coverage_root}/lcov.info");
+                // NOTE: `xtask` is tooling and `tests/` holds the tests
+                // themselves - neither belongs in the crates' coverage numbers
+                let ignore = r"(^|/)(xtask|tests)/";
 
+                // NOTE: `clean` wipes stale profiling data, which would
+                // otherwise be folded into this run's report
                 tasks.get("clean").unwrap().exec(vec![], tasks)?;
-                cargo.coverage(&coverage_root).run()?;
+                cargo.coverage().run()?;
 
                 println!(":::: Done!");
                 println!();
@@ -205,35 +233,29 @@ fn init_tasks() -> Tasks {
                 println!(":::::::::::::::::::::::::::");
                 println!();
 
-                cmd!(
-                    "grcov",
-                    ".",
-                    "--binary-path",
-                    "./target/debug/deps",
-                    "--source-dir",
-                    ".",
-                    "--output-types",
-                    "html,lcov",
-                    "--branch",
-                    "--ignore-not-existing",
-                    "--ignore",
-                    "../*",
-                    "--ignore",
-                    "/*",
-                    "--ignore",
-                    "xtask/*",
-                    "--ignore",
-                    "*/tests/*",
-                    "--output-path",
+                cargo.coverage_report([
+                    "--html",
+                    "--output-dir",
                     &coverage_root,
-                )
+                    "--ignore-filename-regex",
+                    ignore,
+                ])
+                .run()?;
+
+                cargo.coverage_report([
+                    "--lcov",
+                    "--output-path",
+                    &lcov,
+                    "--ignore-filename-regex",
+                    ignore,
+                ])
                 .run()?;
 
                 if opts.has("open"){
                     cmd!("open", &report).run()?;
                 }
 
-                println!(":::: Report: {}", report);
+                println!(":::: Report: {report}");
                 println!(":::: Done!");
                 println!();
                 Ok(())
@@ -343,10 +365,10 @@ fn init_tasks() -> Tasks {
                 }
 
                 for tag in tags {
-                    let (name, _ver) = tag.split_once('@').unwrap_or_else(|| panic!("Invalid Tag: `{}`!", tag));
-                    let krate = krates.get(name).unwrap_or_else(|| panic!("Could Not Find Crate: `{}`!", name));
-                    let message = format!("Publishing: {} at v{}", &krate.name, &krate.version);
-                    println!("{}", &message);
+                    let (name, _ver) = tag.split_once('@').unwrap_or_else(|| panic!("Invalid Tag: `{tag}`!"));
+                    let krate = krates.get(name).unwrap_or_else(|| panic!("Could Not Find Crate: `{name}`!"));
+                    let message = format!("Publishing: {} at v{}", krate.name, krate.version);
+                    println!("{message}");
                     cargo.publish_package(&krate.name).run()?;
                 }
 
@@ -385,6 +407,21 @@ fn init_tasks() -> Tasks {
                 for mut krate in krates.values().cloned() {
                     let log = git.get_changelog(&krate)?;
                     let version = krate.toml.get_version()?;
+
+                    println!();
+                    println!(":::: Checking `{}` for breaking API changes...", krate.name);
+                    println!();
+
+                    // NOTE: advisory only - "requires new major version" is the
+                    // *expected* result here, since versions are bumped below
+                    // rather than alongside the code. `.unchecked()` keeps that
+                    // non-zero exit from aborting the release
+                    cmd!("cargo", "semver-checks", "--package", &krate.name)
+                        .unchecked()
+                        .run()?;
+
+                    println!();
+
                     let options = VersionChoice::options(&version);
                     let message = format!("Version for `{}` [current: {}]", krate.name, version);
                     let question = InquireSelect::new(&message, options);
@@ -432,17 +469,26 @@ fn init_tasks() -> Tasks {
             name: "doc".into(),
             description: "build project documentation".into(),
             flags: task_flags! {
+                "check" => "test examples and render docs without updating the README",
                 "dry-run" => "run thru steps but do not generate docs",
                 "open" => "open rendered docs for viewing"
             },
             run: |opts, fs, _git, cargo, mut workspace, _tasks| {
+                let check = opts.has("check");
+
                 println!(":::::::::::::::::::::::::::");
-                println!(":::: Building All Docs ::::");
+                if check {
+                    println!(":::: Checking All Docs ::::");
+                } else {
+                    println!(":::: Building All Docs ::::");
+                }
                 println!(":::::::::::::::::::::::::::");
                 println!();
                 println!(":::: Testing Examples...");
                 println!();
 
+                // NOTE: `cargo llvm-cov` does not run doc tests, so the
+                // `coverage` task does not cover them - they run here
                 cargo.test(["--doc", "--all-features"]).run()?;
 
                 println!(":::: Rendering Docs...");
@@ -456,6 +502,15 @@ fn init_tasks() -> Tasks {
 
                 cargo.doc(args).run()?;
 
+                // NOTE: `--check` verifies only - rewriting the README here
+                // would mutate the tree mid-CI
+                if check {
+                    println!();
+                    println!(":::: Done!");
+                    println!();
+                    return Ok(());
+                }
+
                 println!();
                 println!(":::: Updating Workspace README...");
 
@@ -464,11 +519,73 @@ fn init_tasks() -> Tasks {
 
                 workspace.readme.update_crates_list(&fs, krates)?;
 
-                println!(":::: Updated: {:?}", readme_path);
+                println!(":::: Updated: {readme_path:?}");
 
                 if opts.has("open") {
                     cmd!("open", readme_path.to_str().unwrap()).run()?;
                 }
+
+                println!(":::: Done!");
+                println!();
+                Ok(())
+            },
+        },
+        Task {
+            name: "audit".into(),
+            description: "audit dependencies for advisories, licenses & bans".into(),
+            flags: task_flags! {},
+            run: |_opts, _fs, _git, _cargo, _workspace, _tasks| {
+                println!("::::::::::::::::::::::::::::::");
+                println!(":::: Auditing Dependencies ::::");
+                println!("::::::::::::::::::::::::::::::");
+                println!();
+
+                cmd!("cargo", "deny", "--all-features", "check").run()?;
+
+                println!(":::: Done!");
+                println!();
+                Ok(())
+            },
+        },
+        Task {
+            name: "semver".into(),
+            description: "check public APIs for accidental breaking changes".into(),
+            flags: task_flags! {},
+            run: |_opts, _fs, _git, _cargo, _workspace, _tasks| {
+                println!(":::::::::::::::::::::::::::");
+                println!(":::: Checking Semver ::::");
+                println!(":::::::::::::::::::::::::::");
+                println!();
+
+                // NOTE: baselines are the last published version of each
+                // crate, so this needs network access. crates marked
+                // `publish = false` (e.g. `xtask`) are skipped automatically
+                cmd!("cargo", "semver-checks", "--workspace").run()?;
+
+                println!(":::: Done!");
+                println!();
+                Ok(())
+            },
+        },
+        Task {
+            name: "format".into(),
+            description: "format source code (rustfmt)".into(),
+            flags: task_flags! {
+                "check" => "check formatting without making changes"
+            },
+            run: |opts, _fs, _git, cargo, _workspace, _tasks| {
+                let check = opts.has("check");
+
+                println!("::::::::::::::::::::::::::::");
+                if check {
+                    println!(":::: Checking Formatting ::::");
+                } else {
+                    println!(":::: Formatting Project ::::");
+                }
+                println!("::::::::::::::::::::::::::::");
+                println!();
+
+                cargo.format(check).run()?;
 
                 println!(":::: Done!");
                 println!();
@@ -507,12 +624,34 @@ fn init_tasks() -> Tasks {
                 // to 'C:\Users\runneradmin\.cargo\bin\cargo.exe'"
                 // see: https://github.com/rust-lang/rustup/issues/1367
                 //cmd!("rustup", "update").run()?;
+                // NOTE: the toolchain and its components (clippy, rustfmt,
+                // llvm-tools-preview) are installed by `rustup` automatically
+                // per `rust-toolchain.toml`
                 cmd!("rustup", "toolchain", "list", "--verbose").run()?;
-                // TODO (busticated): is there a way to includes these in Cargo.toml or similar?
-                cmd!("rustup", "component", "add", "clippy").run()?;
-                cmd!("rustup", "component", "add", "llvm-tools-preview").run()?;
-                cargo.install(["grcov"]).run()?;
-                cargo.install(["typos-cli"]).run()?;
+
+                // NOTE: each entry is (crate to install, command that proves
+                // it is usable). `cargo install` decides whether to skip by
+                // consulting its own ledger, so it rebuilds from source for a
+                // binary put in place by anything else - probing the tool
+                // itself makes this a no-op wherever it is already available
+                // (e.g. CI, where prebuilt binaries are fetched beforehand)
+                let bin = cargo.bin.as_str();
+                let tools = [
+                    ("cargo-llvm-cov", bin, vec!["llvm-cov", "--version"]),
+                    ("cargo-deny", bin, vec!["deny", "--version"]),
+                    ("cargo-semver-checks", bin, vec!["semver-checks", "--version"]),
+                    ("typos-cli", "typos", vec!["--version"]),
+                ];
+
+                for (krate, probe_bin, probe_args) in tools {
+                    if is_tool_available(probe_bin, &probe_args) {
+                        println!(":::: Found: {krate} - skipping");
+                        continue;
+                    }
+
+                    println!(":::: Installing: {krate}...");
+                    cargo.install([krate]).run()?;
+                }
 
                 println!(":::: Done!");
                 println!();
@@ -573,4 +712,30 @@ fn init_tasks() -> Tasks {
     ]);
 
     tasks
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_detects_an_available_tool() {
+        // `cargo` is always present - we are running under it
+        assert!(is_tool_available("cargo", &["--version"]));
+    }
+
+    #[test]
+    fn it_detects_a_missing_tool() {
+        assert!(!is_tool_available(
+            "xtask-definitely-not-a-real-binary",
+            &["--version"]
+        ));
+    }
+
+    #[test]
+    fn it_detects_a_tool_whose_probe_fails() {
+        // binary exists but the subcommand does not, so the probe exits
+        // non-zero - treated as "not available" rather than erroring
+        assert!(!is_tool_available("cargo", &["xtask-not-a-subcommand"]));
+    }
 }

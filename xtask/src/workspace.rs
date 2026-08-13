@@ -12,9 +12,12 @@ type DynError = Box<dyn Error>;
 const CRATES_DIRNAME: &str = "crates";
 
 #[derive(Clone, Debug, Default)]
-pub struct Workspace {
+pub(crate) struct Workspace {
     pub path: PathBuf,
     pub readme: Readme,
+    // NOTE: unread for now, but loading it validates the workspace manifest
+    // parses on every task run - and mirrors `Krate`'s shape
+    #[allow(dead_code)]
     pub toml: Toml,
 }
 
@@ -26,25 +29,25 @@ impl KratePaths for Workspace {
 
 impl Workspace {
     #[allow(dead_code)]
-    pub fn new<P: AsRef<Path>>(path: P) -> Self {
+    pub(crate) fn new<P: AsRef<Path>>(path: P) -> Self {
         let path = path.as_ref().to_owned();
         let readme = Readme::new(path.clone());
         let toml = Toml::new(path.clone());
         Workspace { path, readme, toml }
     }
 
-    pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Workspace, DynError> {
+    pub(crate) fn from_path<P: AsRef<Path>>(path: P) -> Result<Workspace, DynError> {
         let path = path.as_ref().to_owned();
         let readme = Readme::from_path(path.clone())?;
         let toml = Toml::from_path(path.clone())?;
         Ok(Workspace { path, readme, toml })
     }
 
-    pub fn krates_path(&self) -> PathBuf {
+    pub(crate) fn krates_path(&self) -> PathBuf {
         self.path().join(CRATES_DIRNAME)
     }
 
-    pub fn krates(&self, fs: &FS) -> Result<BTreeMap<String, Krate>, DynError> {
+    pub(crate) fn krates(&self, fs: &FS) -> Result<BTreeMap<String, Krate>, DynError> {
         let mut krates = BTreeMap::new();
 
         for entry in fs.read_dir(self.krates_path())? {
@@ -59,7 +62,12 @@ impl Workspace {
         Ok(krates)
     }
 
-    pub fn add_krate(&self, fs: &FS, cargo: &Cargo, mut krate: Krate) -> Result<Krate, DynError> {
+    pub(crate) fn add_krate(
+        &self,
+        fs: &FS,
+        cargo: &Cargo,
+        mut krate: Krate,
+    ) -> Result<Krate, DynError> {
         let kind = krate.kind.to_string();
         let args = ["--name", &krate.name, &kind];
         let krate_copy = krate.clone(); // TODO (mirande): deal w/ "cannot borrow as mutable because it is also borrowed as immutable" errors
@@ -70,7 +78,7 @@ impl Workspace {
         Ok(krate)
     }
 
-    pub fn clean(&self, fs: &FS, cargo: &Cargo) -> Result<(), DynError> {
+    pub(crate) fn clean(&self, fs: &FS, cargo: &Cargo) -> Result<(), DynError> {
         use std::io::ErrorKind;
 
         match fs.remove_dir_all(self.tmp_path()) {
@@ -86,10 +94,14 @@ impl Workspace {
         }
 
         cargo.clean(["--release"]).run()?;
+        // NOTE: `cargo-llvm-cov` keeps its instrumented build and `.profraw`
+        // data under `target/llvm-cov-target`, which neither the `tmp/` wipe
+        // above nor `cargo clean --release` touches - it is hundreds of MB
+        cargo.coverage_clean().run()?;
         Ok(())
     }
 
-    pub fn create_dirs(&self, fs: &FS) -> Result<(), DynError> {
+    pub(crate) fn create_dirs(&self, fs: &FS) -> Result<(), DynError> {
         fs.create_dir_all(self.coverage_path())?;
         let krates = self.krates(fs)?;
 

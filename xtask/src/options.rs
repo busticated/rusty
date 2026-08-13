@@ -6,13 +6,13 @@ type DynError = Box<dyn Error>;
 type TaskFlags = BTreeMap<String, String>;
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct Options {
+pub(crate) struct Options {
     pub args: Vec<String>,
     pub flags: TaskFlags,
 }
 
 impl Options {
-    pub fn new(args: Vec<String>, flags: TaskFlags) -> Result<Self, DynError> {
+    pub(crate) fn new(args: Vec<String>, flags: TaskFlags) -> Result<Self, DynError> {
         let re = Regex::new(r"^-*")?;
         let args = args
             .iter()
@@ -21,14 +21,14 @@ impl Options {
 
         for arg in &args {
             if !flags.contains_key(arg) {
-                return Err(format!("Unrecognized argument! {}", arg).into());
+                return Err(format!("Unrecognized argument! {arg}").into());
             }
         }
 
         Ok(Options { args, flags })
     }
 
-    pub fn has<F: AsRef<str>>(&self, flag: F) -> bool {
+    pub(crate) fn has<F: AsRef<str>>(&self, flag: F) -> bool {
         let flag = flag.as_ref().trim().to_lowercase();
         for arg in &self.args {
             if arg == &flag {
@@ -40,6 +40,13 @@ impl Options {
     }
 }
 
+/// Builds the flag name / description map used when declaring a [`Task`](crate::tasks::Task)
+///
+/// ```ignore
+/// task_flags! {
+///     "dry-run" => "run thru steps but do not publish",
+/// }
+/// ```
 #[macro_export]
 macro_rules! task_flags {
     ($($k:expr => $v:expr),* $(,)?) => {{
@@ -61,13 +68,11 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(
-        expected = "called `Result::unwrap()` on an `Err` value: \"Unrecognized argument! nope\""
-    )]
     fn it_fails_to_initialize_when_args_has_unrecognized_items() {
         let flags = task_flags! {};
         let args = vec!["nope".into()];
-        Options::new(args, flags).unwrap();
+        let err = Options::new(args, flags).unwrap_err();
+        assert_eq!(err.to_string(), "Unrecognized argument! nope");
     }
 
     #[test]

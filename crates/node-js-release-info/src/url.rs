@@ -1,26 +1,26 @@
-#[derive(Clone, Debug, PartialEq)]
-pub struct NodeJSURLFormatter {
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub(crate) struct NodeJsUrlFormatter {
     pub protocol: String,
     pub host: String,
     pub pathname: String,
 }
 
-impl Default for NodeJSURLFormatter {
+impl Default for NodeJsUrlFormatter {
     fn default() -> Self {
-        NodeJSURLFormatter::new()
+        NodeJsUrlFormatter::new()
     }
 }
 
-impl NodeJSURLFormatter {
-    pub fn new() -> NodeJSURLFormatter {
-        NodeJSURLFormatter {
+impl NodeJsUrlFormatter {
+    pub(crate) fn new() -> NodeJsUrlFormatter {
+        NodeJsUrlFormatter {
             protocol: String::from("https:"),
             host: String::from("nodejs.org"),
             pathname: String::from("/download/release"),
         }
     }
 
-    pub fn info<V: AsRef<str>>(&self, version: V) -> String {
+    pub(crate) fn info<V: AsRef<str>>(&self, version: V) -> String {
         format!(
             "{}//{}{}",
             self.protocol,
@@ -29,7 +29,7 @@ impl NodeJSURLFormatter {
         )
     }
 
-    pub fn info_pathname<V: AsRef<str>>(&self, version: V) -> String {
+    pub(crate) fn info_pathname<V: AsRef<str>>(&self, version: V) -> String {
         format!(
             "{}/v{}/SHASUMS256.txt",
             self.pathname,
@@ -37,7 +37,7 @@ impl NodeJSURLFormatter {
         )
     }
 
-    pub fn pkg<V: AsRef<str>, F: AsRef<str>>(&self, version: V, filename: F) -> String {
+    pub(crate) fn pkg<V: AsRef<str>, F: AsRef<str>>(&self, version: V, filename: F) -> String {
         format!(
             "{}//{}{}",
             self.protocol,
@@ -46,7 +46,11 @@ impl NodeJSURLFormatter {
         )
     }
 
-    pub fn pkg_pathname<V: AsRef<str>, F: AsRef<str>>(&self, version: V, filename: F) -> String {
+    pub(crate) fn pkg_pathname<V: AsRef<str>, F: AsRef<str>>(
+        &self,
+        version: V,
+        filename: F,
+    ) -> String {
         format!(
             "{}/v{}/{}",
             self.pathname,
@@ -62,7 +66,7 @@ mod tests {
 
     #[test]
     fn it_initializes() {
-        let url_fmt = NodeJSURLFormatter::new();
+        let url_fmt = NodeJsUrlFormatter::new();
         assert_eq!(url_fmt.protocol, "https:");
         assert_eq!(url_fmt.host, "nodejs.org");
         assert_eq!(url_fmt.pathname, "/download/release");
@@ -70,13 +74,13 @@ mod tests {
 
     #[test]
     fn it_initializes_with_defaults() {
-        let url_fmt = NodeJSURLFormatter::default();
-        assert_eq!(url_fmt, NodeJSURLFormatter::new());
+        let url_fmt = NodeJsUrlFormatter::default();
+        assert_eq!(url_fmt, NodeJsUrlFormatter::new());
     }
 
     #[test]
     fn it_formats_url_for_node_js_release_info() {
-        let url_fmt = NodeJSURLFormatter::new();
+        let url_fmt = NodeJsUrlFormatter::new();
         assert_eq!(
             url_fmt.info("1.0.0"),
             "https://nodejs.org/download/release/v1.0.0/SHASUMS256.txt"
@@ -85,7 +89,7 @@ mod tests {
 
     #[test]
     fn it_formats_url_for_node_js_package() {
-        let url_fmt = NodeJSURLFormatter::new();
+        let url_fmt = NodeJsUrlFormatter::new();
         assert_eq!(
             url_fmt.pkg("1.0.0", "fake-filename"),
             "https://nodejs.org/download/release/v1.0.0/fake-filename"

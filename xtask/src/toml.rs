@@ -4,53 +4,53 @@ use semver::Version;
 use std::error::Error;
 use std::fs;
 use std::path::{Path, PathBuf};
-use toml_edit::{value as toml_value, Document};
+use toml_edit::{DocumentMut, value as toml_value};
 
 type DynError = Box<dyn Error>;
 
 const CARGO_TOML: &str = "Cargo.toml";
 
 #[derive(Clone, Debug, Default)]
-pub struct Toml {
+pub(crate) struct Toml {
     pub path: PathBuf,
-    data: Document,
+    data: DocumentMut,
 }
 
 impl Toml {
-    pub fn new(crate_root: PathBuf) -> Self {
+    pub(crate) fn new(crate_root: PathBuf) -> Self {
         Toml {
             path: crate_root.join(CARGO_TOML),
             ..Default::default()
         }
     }
 
-    pub fn from_path(crate_root: PathBuf) -> Result<Self, DynError> {
+    pub(crate) fn from_path(crate_root: PathBuf) -> Result<Self, DynError> {
         let mut toml = Toml::new(crate_root);
         toml.load()
     }
 
-    pub fn read(&self) -> Result<Document, DynError> {
+    pub(crate) fn read(&self) -> Result<DocumentMut, DynError> {
         // TODO (busticated): pull into FS wrapper?
         let text = fs::read_to_string(&self.path)?;
-        Ok(text.parse::<Document>()?)
+        Ok(text.parse::<DocumentMut>()?)
     }
 
-    pub fn load(&mut self) -> Result<Self, DynError> {
+    pub(crate) fn load(&mut self) -> Result<Self, DynError> {
         self.data = self.read()?;
         Ok(self.clone())
     }
 
-    pub fn create(&mut self, fs: &FS, krate: &Krate) -> Result<(), DynError> {
+    pub(crate) fn create(&mut self, fs: &FS, krate: &Krate) -> Result<(), DynError> {
         let text = self.render(&krate.name, &krate.description);
-        self.data = text.parse::<Document>()?;
+        self.data = text.parse::<DocumentMut>()?;
         self.save(fs)
     }
 
-    pub fn save(&self, fs: &FS) -> Result<(), DynError> {
+    pub(crate) fn save(&self, fs: &FS) -> Result<(), DynError> {
         Ok(fs.write(&self.path, self.data.to_string())?)
     }
 
-    pub fn render<N: AsRef<str>, D: AsRef<str>>(&self, name: N, description: D) -> String {
+    pub(crate) fn render<N: AsRef<str>, D: AsRef<str>>(&self, name: N, description: D) -> String {
         let name = name.as_ref();
         let description = description.as_ref();
         let lines = vec![
@@ -59,16 +59,20 @@ impl Toml {
             format!("description = \"{}\"", description),
             "version = \"0.1.0\"".to_string(),
             "edition.workspace = true".to_string(),
+            "rust-version.workspace = true".to_string(),
             "license.workspace = true".to_string(),
             "authors.workspace = true".to_string(),
             "repository.workspace = true".to_string(),
             "".to_string(),
             "[dependencies]".to_string(),
+            "".to_string(),
+            "[lints]".to_string(),
+            "workspace = true".to_string(),
         ];
         lines.join("\n")
     }
 
-    pub fn get_version(&self) -> Result<Version, DynError> {
+    pub(crate) fn get_version(&self) -> Result<Version, DynError> {
         let pkg = self
             .data
             .get("package")
@@ -82,12 +86,12 @@ impl Toml {
         Ok(Version::parse(version)?)
     }
 
-    pub fn set_version(&mut self, version: &Version) -> Result<(), DynError> {
+    pub(crate) fn set_version(&mut self, version: &Version) -> Result<(), DynError> {
         self.data["package"]["version"] = toml_value(version.to_string());
         Ok(())
     }
 
-    pub fn get_name(&self) -> Result<String, DynError> {
+    pub(crate) fn get_name(&self) -> Result<String, DynError> {
         let pkg = self
             .data
             .get("package")
@@ -101,7 +105,7 @@ impl Toml {
         Ok(name.to_string())
     }
 
-    pub fn get_description(&self) -> Result<String, DynError> {
+    pub(crate) fn get_description(&self) -> Result<String, DynError> {
         let pkg = self
             .data
             .get("package")
@@ -165,11 +169,15 @@ mod tests {
                 "description = \"my-crate description\"",
                 "version = \"0.1.0\"",
                 "edition.workspace = true",
+                "rust-version.workspace = true",
                 "license.workspace = true",
                 "authors.workspace = true",
                 "repository.workspace = true",
                 "",
                 "[dependencies]",
+                "",
+                "[lints]",
+                "workspace = true",
             ]
             .join("\n")
         );

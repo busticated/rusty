@@ -1,0 +1,25 @@
+# see: https://docs.github.com/code-security/dependabot/dependabot-version-updates
+version: 2
+
+updates:
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    # workspace crates share dependencies - one PR per batch keeps CI runs and
+    # changelog noise down. commit messages match this repo's convention:
+    # workspace-level changes carry no crate-name prefix
+    groups:
+      cargo-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns:
+          - "*"

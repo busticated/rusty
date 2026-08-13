@@ -2,7 +2,7 @@ use semver::{BuildMetadata, Prerelease, Version};
 use std::fmt::{Display, Formatter};
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum VersionChoice {
+pub(crate) enum VersionChoice {
     Major(Version),
     Minor(Version),
     Patch(Version),
@@ -11,17 +11,17 @@ pub enum VersionChoice {
 impl Display for VersionChoice {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
         let msg = match self {
-            VersionChoice::Major(v) => format!("Major: {}", v),
-            VersionChoice::Minor(v) => format!("Minor: {}", v),
-            VersionChoice::Patch(v) => format!("Patch: {}", v),
+            VersionChoice::Major(v) => format!("Major: {v}"),
+            VersionChoice::Minor(v) => format!("Minor: {v}"),
+            VersionChoice::Patch(v) => format!("Patch: {v}"),
         };
 
-        write!(f, "{}", msg)
+        write!(f, "{msg}")
     }
 }
 
 impl VersionChoice {
-    pub fn options(version: &Version) -> Vec<VersionChoice> {
+    pub(crate) fn options(version: &Version) -> Vec<VersionChoice> {
         vec![
             VersionChoice::Major(increment_major(version)),
             VersionChoice::Minor(increment_minor(version)),
@@ -29,7 +29,7 @@ impl VersionChoice {
         ]
     }
 
-    pub fn get_version(&self) -> Version {
+    pub(crate) fn get_version(&self) -> Version {
         match self {
             VersionChoice::Major(v) => v.clone(),
             VersionChoice::Minor(v) => v.clone(),
@@ -38,7 +38,7 @@ impl VersionChoice {
     }
 }
 
-pub fn increment_major(version: &Version) -> Version {
+pub(crate) fn increment_major(version: &Version) -> Version {
     let mut v = version.clone();
     v.major += 1;
     v.minor = 0;
@@ -48,7 +48,7 @@ pub fn increment_major(version: &Version) -> Version {
     v
 }
 
-pub fn increment_minor(version: &Version) -> Version {
+pub(crate) fn increment_minor(version: &Version) -> Version {
     let mut v = version.clone();
     v.minor += 1;
     v.patch = 0;
@@ -57,7 +57,7 @@ pub fn increment_minor(version: &Version) -> Version {
     v
 }
 
-pub fn increment_patch(version: &Version) -> Version {
+pub(crate) fn increment_patch(version: &Version) -> Version {
     let mut v = version.clone();
     v.patch += 1;
     v.pre = Prerelease::EMPTY;
@@ -88,7 +88,7 @@ mod tests {
     #[test]
     fn it_displays_version_choice_text() {
         let choice = VersionChoice::Major(Version::new(1, 0, 0));
-        assert_eq!(format!("{}", choice), "Major: 1.0.0");
+        assert_eq!(format!("{choice}"), "Major: 1.0.0");
     }
 
     #[test]

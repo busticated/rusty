@@ -16,8 +16,8 @@ type TaskRunner = fn(
     tasks: &Tasks,
 ) -> Result<(), DynError>;
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct Task {
+#[derive(Clone, Debug)]
+pub(crate) struct Task {
     pub name: String,
     pub description: String,
     pub flags: BTreeMap<String, String>,
@@ -26,7 +26,7 @@ pub struct Task {
 
 impl Task {
     #[allow(dead_code)]
-    pub fn new<N: AsRef<str>, D: AsRef<str>>(
+    pub(crate) fn new<N: AsRef<str>, D: AsRef<str>>(
         name: N,
         description: D,
         flags: BTreeMap<String, String>,
@@ -40,7 +40,7 @@ impl Task {
         }
     }
 
-    pub fn exec(&self, args: Vec<String>, tasks: &Tasks) -> Result<(), DynError> {
+    pub(crate) fn exec(&self, args: Vec<String>, tasks: &Tasks) -> Result<(), DynError> {
         let opts = Options::new(args, self.flags.clone())?;
         let cargo = Cargo::new(&opts);
         let git = Git::new(&opts);
@@ -51,29 +51,29 @@ impl Task {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct Tasks {
+#[derive(Clone, Debug)]
+pub(crate) struct Tasks {
     map: BTreeMap<String, Task>,
 }
 
 impl Tasks {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Tasks {
             map: BTreeMap::new(),
         }
     }
 
-    pub fn add(&mut self, tasks: Vec<Task>) {
+    pub(crate) fn add(&mut self, tasks: Vec<Task>) {
         for task in tasks.iter() {
             self.map.insert(task.name.clone(), task.clone());
         }
     }
 
-    pub fn get<T: AsRef<str>>(&self, name: T) -> Option<&Task> {
+    pub(crate) fn get<T: AsRef<str>>(&self, name: T) -> Option<&Task> {
         self.map.get(name.as_ref())
     }
 
-    pub fn help(&self) -> Result<String, DynError> {
+    pub(crate) fn help(&self) -> Result<String, DynError> {
         let separator = ".".to_string();
         let mut lines = String::new();
         let mut max_col_width = 0;
@@ -90,18 +90,16 @@ impl Tasks {
         for task in self.map.values() {
             let char_count = task.name.char_indices().count();
             let spaces = separator.repeat(max_col_width - char_count + padding);
-            let line = format!(">> {}{}{}\n", task.name, spaces, task.description);
+            let line = format!("  {}{}{}\n", task.name, spaces, task.description);
 
             lines.push_str(&line);
 
             for (name, description) in task.flags.iter() {
                 let separator = " ".to_string();
                 let spaces = separator.repeat(max_col_width + padding);
-                let line = format!("\n{}   >> --{} | {}\n", spaces, name, description);
+                let line = format!("{spaces}  ⮑  --{name} | {description}\n");
                 lines.push_str(&line);
             }
-
-            lines.push('\n');
         }
 
         Ok(lines)
@@ -192,16 +190,11 @@ mod tests {
         assert_eq!(
             tasks.help().unwrap(),
             [
-                ">> one....task 01",
-                "",
-                "          >> --bar | enables bar",
-                "",
-                "          >> --foo | does the foo",
-                "",
-                ">> two....task 02",
-                "",
-                "          >> --baz | invokes a baz",
-                "",
+                "  one....task 01",
+                "         ⮑  --bar | enables bar",
+                "         ⮑  --foo | does the foo",
+                "  two....task 02",
+                "         ⮑  --baz | invokes a baz",
                 "",
             ]
             .join("\n")

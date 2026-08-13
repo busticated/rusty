@@ -11,22 +11,80 @@ jobs:
     strategy:
       # fail-fast: false
       matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
-          - windows-latest
-        architecture:
-          - x64
+        include:
+          - os: ubuntu-latest
+            architecture: x64
+          - os: macos-latest
+            architecture: arm64
+          - os: windows-latest
+            architecture: x64
     steps:
       - name: Git Symlink Setup for Windows
         if: matrix.os == 'windows-latest'
         run: git config --global core.symlinks true
       - name: Checkout Source Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
       - name: Install Rust Toolchain (stable)
         uses: dtolnay/rust-toolchain@stable
+      # NOTE: `cargo install` always builds from source - crates.io ships no
+      # binaries. these tools publish prebuilt binaries via GitHub Releases,
+      # which this action fetches in seconds rather than minutes. installing
+      # them here makes the `setup` step below a no-op, since it skips any
+      # tool that is already available
+      # NOTE: these are `install-action` tool names, not crate names - they
+      # match one-to-one here except `typos`, whose crate is `typos-cli` (the
+      # name `cargo xtask setup` installs) and whose binary is `typos`
+      # NOTE: `cargo-semver-checks` is listed even though no job here runs it -
+      # `setup` installs it for `crate:release`, and fetching the prebuilt
+      # binary is far cheaper than letting `setup` build it from source
+      - name: Install Prebuilt Tooling
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov,cargo-deny,cargo-semver-checks,typos
       - name: Setup Project
         run: cargo xtask setup
       - name: Run Tests & Coverage
         run: cargo xtask ci
 
+  deny:
+    name: Audit Dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v7
+      - name: Install Rust Toolchain (stable)
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny
+      - name: Check Advisories, Licenses & Bans
+        run: cargo deny --all-features check
+
+  msrv:
+    name: Verify Minimum Supported Rust Version
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v7
+      - name: Read MSRV from Cargo.toml
+        id: msrv
+        run: |
+          version="$(grep -m1 '^rust-version' Cargo.toml | sed -E 's/.*"([^"]+)".*/\1/')"
+          echo ":::: MSRV: ${version}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+      - name: Install Rust Toolchain (MSRV)
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.msrv.outputs.version }}
+      - name: Check Workspace Builds on MSRV
+        # NOTE: `rust-toolchain.toml` pins `stable`, which takes precedence over
+        # the toolchain installed above - `RUSTUP_TOOLCHAIN` overrides both, so
+        # without it this job would silently verify the wrong toolchain
+        env:
+          RUSTUP_TOOLCHAIN: ${{ steps.msrv.outputs.version }}
+        run: |
+          rustc --version
+          cargo check --workspace --all-features --all-targets

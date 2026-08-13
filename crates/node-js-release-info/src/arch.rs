@@ -1,74 +1,103 @@
-use crate::error::NodeJSRelInfoError;
+use crate::error::NodeJsRelInfoError;
 #[cfg(feature = "json")]
 use serde::{Deserialize, Serialize};
 use std::env::consts::ARCH;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
-#[derive(Clone, Debug, PartialEq)]
+/// The CPU architecture a Node.js distributable targets
+///
+/// Non-exhaustive: Node.js has added and removed target architectures over
+/// time, so new variants may appear in a minor release
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "json", derive(Deserialize, Serialize))]
-pub enum NodeJSArch {
+#[non_exhaustive]
+pub enum NodeJsArch {
+    /// 64-bit x86 (`x64`)
+    #[default]
     #[cfg_attr(feature = "json", serde(rename = "x64"))]
     X64,
+    /// 32-bit x86 (`x86`)
     #[cfg_attr(feature = "json", serde(rename = "x86"))]
     X86,
+    /// 64-bit ARM (`arm64`)
     #[cfg_attr(feature = "json", serde(rename = "arm64"))]
-    ARM64,
+    Arm64,
+    /// 32-bit ARMv6 with hardware floating point (`armv6l`) - shipped up to
+    /// Node.js v11
+    #[cfg_attr(feature = "json", serde(rename = "armv6l"))]
+    Armv6l,
+    /// 32-bit ARMv7 with hardware floating point (`armv7l`) - shipped up to
+    /// Node.js v23
     #[cfg_attr(feature = "json", serde(rename = "armv7l"))]
-    ARMV7L,
+    Armv7l,
+    /// 64-bit PowerPC, big-endian (`ppc64`)
     #[cfg_attr(feature = "json", serde(rename = "ppc64"))]
-    PPC64,
+    Ppc64,
+    /// 64-bit PowerPC, little-endian (`ppc64le`)
     #[cfg_attr(feature = "json", serde(rename = "ppc64le"))]
-    PPC64LE,
+    Ppc64le,
+    /// 64-bit IBM Z (`s390x`)
     #[cfg_attr(feature = "json", serde(rename = "s390x"))]
-    S390X,
+    S390x,
 }
 
-impl Default for NodeJSArch {
-    fn default() -> Self {
-        NodeJSArch::new()
+impl NodeJsArch {
+    /// Creates a new instance using the default architecture ([`X64`](NodeJsArch::X64))
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use node_js_release_info::NodeJsArch;
+    /// assert_eq!(NodeJsArch::new(), NodeJsArch::X64);
+    /// ```
+    pub fn new() -> NodeJsArch {
+        NodeJsArch::default()
+    }
+
+    /// Determines the architecture of the current environment via
+    /// [`std::env::consts::ARCH`]
+    ///
+    /// # Errors
+    ///
+    /// Returns [`NodeJsRelInfoError::UnrecognizedArch`] when the current
+    /// architecture has no corresponding Node.js distributable
+    pub fn from_env() -> Result<NodeJsArch, NodeJsRelInfoError> {
+        NodeJsArch::from_str(ARCH)
     }
 }
 
-impl NodeJSArch {
-    pub fn new() -> NodeJSArch {
-        NodeJSArch::X64
-    }
-
-    pub fn from_env() -> Result<NodeJSArch, NodeJSRelInfoError> {
-        NodeJSArch::from_str(ARCH)
-    }
-}
-
-impl Display for NodeJSArch {
+impl Display for NodeJsArch {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let arch = match self {
-            NodeJSArch::X64 => "x64",
-            NodeJSArch::X86 => "x86",
-            NodeJSArch::ARM64 => "arm64",
-            NodeJSArch::ARMV7L => "armv7l",
-            NodeJSArch::PPC64 => "ppc64",
-            NodeJSArch::PPC64LE => "ppc64le",
-            NodeJSArch::S390X => "s390x",
+            NodeJsArch::X64 => "x64",
+            NodeJsArch::X86 => "x86",
+            NodeJsArch::Arm64 => "arm64",
+            NodeJsArch::Armv6l => "armv6l",
+            NodeJsArch::Armv7l => "armv7l",
+            NodeJsArch::Ppc64 => "ppc64",
+            NodeJsArch::Ppc64le => "ppc64le",
+            NodeJsArch::S390x => "s390x",
         };
 
-        write!(f, "{}", arch)
+        write!(f, "{arch}")
     }
 }
 
-impl FromStr for NodeJSArch {
-    type Err = NodeJSRelInfoError;
+impl FromStr for NodeJsArch {
+    type Err = NodeJsRelInfoError;
 
-    fn from_str(s: &str) -> Result<NodeJSArch, NodeJSRelInfoError> {
+    fn from_str(s: &str) -> Result<NodeJsArch, NodeJsRelInfoError> {
         match s {
-            "x64" | "x86_64" => Ok(NodeJSArch::X64),
-            "x86" => Ok(NodeJSArch::X86),
-            "arm64" | "aarch64" => Ok(NodeJSArch::ARM64),
-            "arm" | "armv7l" => Ok(NodeJSArch::ARMV7L),
-            "ppc64" | "powerpc64" => Ok(NodeJSArch::PPC64),
-            "ppc64le" => Ok(NodeJSArch::PPC64LE),
-            "s390x" => Ok(NodeJSArch::S390X),
-            _ => Err(NodeJSRelInfoError::UnrecognizedArch(s.to_string())),
+            "x64" | "x86_64" => Ok(NodeJsArch::X64),
+            "x86" => Ok(NodeJsArch::X86),
+            "arm64" | "aarch64" => Ok(NodeJsArch::Arm64),
+            "armv6l" => Ok(NodeJsArch::Armv6l),
+            "arm" | "armv7l" => Ok(NodeJsArch::Armv7l),
+            "ppc64" | "powerpc64" => Ok(NodeJsArch::Ppc64),
+            "ppc64le" => Ok(NodeJsArch::Ppc64le),
+            "s390x" => Ok(NodeJsArch::S390x),
+            _ => Err(NodeJsRelInfoError::UnrecognizedArch(s.to_string())),
         }
     }
 }
@@ -79,107 +108,114 @@ mod tests {
 
     #[test]
     fn it_initializes() {
-        let arch = NodeJSArch::new();
-        assert_eq!(arch, NodeJSArch::X64);
+        let arch = NodeJsArch::new();
+        assert_eq!(arch, NodeJsArch::X64);
     }
 
     #[test]
     fn it_initializes_with_defaults() {
-        let arch = NodeJSArch::default();
-        assert_eq!(arch, NodeJSArch::X64);
+        let arch = NodeJsArch::default();
+        assert_eq!(arch, NodeJsArch::X64);
     }
 
     #[test]
     fn it_initializes_from_str() {
-        let arch = NodeJSArch::from_str("x64").unwrap();
+        let arch = NodeJsArch::from_str("x64").unwrap();
 
-        assert_eq!(arch, NodeJSArch::X64);
+        assert_eq!(arch, NodeJsArch::X64);
 
-        let arch = NodeJSArch::from_str("x86_64").unwrap();
+        let arch = NodeJsArch::from_str("x86_64").unwrap();
 
-        assert_eq!(arch, NodeJSArch::X64);
+        assert_eq!(arch, NodeJsArch::X64);
 
-        let arch = NodeJSArch::from_str("x86").unwrap();
+        let arch = NodeJsArch::from_str("x86").unwrap();
 
-        assert_eq!(arch, NodeJSArch::X86);
+        assert_eq!(arch, NodeJsArch::X86);
 
-        let arch = NodeJSArch::from_str("arm64").unwrap();
+        let arch = NodeJsArch::from_str("arm64").unwrap();
 
-        assert_eq!(arch, NodeJSArch::ARM64);
+        assert_eq!(arch, NodeJsArch::Arm64);
 
-        let arch = NodeJSArch::from_str("aarch64").unwrap();
+        let arch = NodeJsArch::from_str("aarch64").unwrap();
 
-        assert_eq!(arch, NodeJSArch::ARM64);
+        assert_eq!(arch, NodeJsArch::Arm64);
 
-        let arch = NodeJSArch::from_str("arm").unwrap();
+        let arch = NodeJsArch::from_str("arm").unwrap();
 
-        assert_eq!(arch, NodeJSArch::ARMV7L);
+        assert_eq!(arch, NodeJsArch::Armv7l);
 
-        let arch = NodeJSArch::from_str("ppc64").unwrap();
+        let arch = NodeJsArch::from_str("armv6l").unwrap();
 
-        assert_eq!(arch, NodeJSArch::PPC64);
+        assert_eq!(arch, NodeJsArch::Armv6l);
 
-        let arch = NodeJSArch::from_str("ppc64le").unwrap();
+        let arch = NodeJsArch::from_str("ppc64").unwrap();
 
-        assert_eq!(arch, NodeJSArch::PPC64LE);
+        assert_eq!(arch, NodeJsArch::Ppc64);
 
-        let arch = NodeJSArch::from_str("powerpc64").unwrap();
+        let arch = NodeJsArch::from_str("ppc64le").unwrap();
 
-        assert_eq!(arch, NodeJSArch::PPC64);
+        assert_eq!(arch, NodeJsArch::Ppc64le);
 
-        let arch = NodeJSArch::from_str("s390x").unwrap();
+        let arch = NodeJsArch::from_str("powerpc64").unwrap();
 
-        assert_eq!(arch, NodeJSArch::S390X);
+        assert_eq!(arch, NodeJsArch::Ppc64);
+
+        let arch = NodeJsArch::from_str("s390x").unwrap();
+
+        assert_eq!(arch, NodeJsArch::S390x);
     }
 
     #[test]
     fn it_serializes_to_str() {
-        let text = format!("{}", NodeJSArch::X64);
+        let text = format!("{}", NodeJsArch::X64);
 
         assert_eq!(text, "x64");
 
-        let text = format!("{}", NodeJSArch::X86);
+        let text = format!("{}", NodeJsArch::X86);
 
         assert_eq!(text, "x86");
 
-        let text = format!("{}", NodeJSArch::ARM64);
+        let text = format!("{}", NodeJsArch::Arm64);
 
         assert_eq!(text, "arm64");
 
-        let text = format!("{}", NodeJSArch::ARMV7L);
+        let text = format!("{}", NodeJsArch::Armv7l);
 
         assert_eq!(text, "armv7l");
 
-        let text = format!("{}", NodeJSArch::PPC64);
+        let text = format!("{}", NodeJsArch::Armv6l);
+
+        assert_eq!(text, "armv6l");
+
+        let text = format!("{}", NodeJsArch::Ppc64);
 
         assert_eq!(text, "ppc64");
 
-        let text = format!("{}", NodeJSArch::PPC64LE);
+        let text = format!("{}", NodeJsArch::Ppc64le);
 
         assert_eq!(text, "ppc64le");
 
-        let text = format!("{}", NodeJSArch::S390X);
+        let text = format!("{}", NodeJsArch::S390x);
 
         assert_eq!(text, "s390x");
     }
 
     #[test]
     fn it_initializes_using_current_environment() {
-        NodeJSArch::from_env().unwrap();
+        NodeJsArch::from_env().unwrap();
     }
 
     #[test]
-    #[should_panic(
-        expected = "called `Result::unwrap()` on an `Err` value: UnrecognizedArch(\"NOPE!\")"
-    )]
     fn it_fails_when_arch_is_unrecognized() {
-        NodeJSArch::from_str("NOPE!").unwrap();
+        let err = NodeJsArch::from_str("NOPE!").unwrap_err();
+        assert!(matches!(err, NodeJsRelInfoError::UnrecognizedArch(x) if x == "NOPE!"));
     }
 
     #[test]
+    #[cfg(feature = "json")]
     fn it_serializes_and_deserializes() {
-        let arch_json = serde_json::to_string(&NodeJSArch::X64).unwrap();
-        let arch: NodeJSArch = serde_json::from_str(&arch_json).unwrap();
-        assert_eq!(arch, NodeJSArch::X64);
+        let arch_json = serde_json::to_string(&NodeJsArch::X64).unwrap();
+        let arch: NodeJsArch = serde_json::from_str(&arch_json).unwrap();
+        assert_eq!(arch, NodeJsArch::X64);
     }
 }

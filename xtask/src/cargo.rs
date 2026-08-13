@@ -10,7 +10,7 @@ use std::path::PathBuf;
 type DynError = Box<dyn Error>;
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Cargo<'a> {
+pub(crate) struct Cargo<'a> {
     pub bin: String,
     opts: &'a Options,
 }
@@ -26,12 +26,12 @@ impl<'a> Execute for Cargo<'a> {
 }
 
 impl<'a> Cargo<'a> {
-    pub fn new(opts: &'a Options) -> Cargo<'a> {
+    pub(crate) fn new(opts: &'a Options) -> Cargo<'a> {
         let bin = env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
         Cargo { bin, opts }
     }
 
-    pub fn workspace_path(&self) -> Result<PathBuf, DynError> {
+    pub(crate) fn workspace_path(&self) -> Result<PathBuf, DynError> {
         let (args, envs) = self.workspace_path_params();
         let stdout = self.exec_safe(args, envs).read()?;
         Ok(PathBuf::from(stdout.replace("Cargo.toml", "").trim()))
@@ -45,7 +45,7 @@ impl<'a> Cargo<'a> {
         (args, None)
     }
 
-    pub fn create<P, U>(&self, path: P, arguments: U) -> Expression
+    pub(crate) fn create<P, U>(&self, path: P, arguments: U) -> Expression
     where
         P: Into<OsString>,
         U: IntoIterator,
@@ -65,7 +65,7 @@ impl<'a> Cargo<'a> {
         (args, None)
     }
 
-    pub fn install<U>(&self, arguments: U) -> Expression
+    pub(crate) fn install<U>(&self, arguments: U) -> Expression
     where
         U: IntoIterator,
         U::Item: Into<OsString>,
@@ -79,11 +79,17 @@ impl<'a> Cargo<'a> {
         U: IntoIterator,
         U::Item: Into<OsString>,
     {
-        let args = self.build_args([OsString::from("install")], arguments);
+        // NOTE: `--locked` makes the tool build from its own committed
+        // `Cargo.lock` - without it, an unrelated upstream release can break
+        // `setup` on a repo where nothing changed
+        let args = self.build_args(
+            [OsString::from("install"), OsString::from("--locked")],
+            arguments,
+        );
         (args, None)
     }
 
-    pub fn build<U>(&self, arguments: U) -> Expression
+    pub(crate) fn build<U>(&self, arguments: U) -> Expression
     where
         U: IntoIterator,
         U::Item: Into<OsString>,
@@ -101,7 +107,7 @@ impl<'a> Cargo<'a> {
         (args, None)
     }
 
-    pub fn clean<U>(&self, arguments: U) -> Expression
+    pub(crate) fn clean<U>(&self, arguments: U) -> Expression
     where
         U: IntoIterator,
         U::Item: Into<OsString>,
@@ -119,7 +125,7 @@ impl<'a> Cargo<'a> {
         (args, None)
     }
 
-    pub fn test<U>(&self, arguments: U) -> Expression
+    pub(crate) fn test<U>(&self, arguments: U) -> Expression
     where
         U: IntoIterator,
         U::Item: Into<OsString>,
@@ -137,31 +143,72 @@ impl<'a> Cargo<'a> {
         (args, None)
     }
 
-    pub fn coverage<P>(&self, path: P) -> Expression
-    where
-        P: Into<OsString>,
-    {
-        let (args, envs) = self.coverage_params(path);
+    pub(crate) fn coverage_clean(&self) -> Expression {
+        let (args, envs) = self.coverage_clean_params();
         self.exec_unsafe(args, envs)
     }
 
-    fn coverage_params<P>(&self, path: P) -> (Vec<OsString>, EnvVars)
-    where
-        P: Into<OsString>,
-    {
-        let mut profile_ptn: OsString = path.into();
-        profile_ptn.push("/cargo-test-%p-%m.profraw");
-        let args = self.build_args([OsString::from("test")], ["--all-features"]);
-        let envs = HashMap::from([
-            ("CARGO_INCREMENTAL".into(), "0".into()),
-            ("RUSTFLAGS".into(), "-Cinstrument-coverage".into()),
-            ("LLVM_PROFILE_FILE".into(), profile_ptn),
-        ]);
-
-        (args, Some(envs))
+    fn coverage_clean_params(&self) -> (Vec<OsString>, EnvVars) {
+        // NOTE: profiling data accumulates across runs - without this, stale
+        // data from a previous run is folded into the report
+        let args = self.build_args([OsString::from("llvm-cov")], ["clean", "--workspace"]);
+        (args, None)
     }
 
-    pub fn lint(&self) -> Expression {
+    pub(crate) fn coverage(&self) -> Expression {
+        let (args, envs) = self.coverage_params();
+        self.exec_unsafe(args, envs)
+    }
+
+    fn coverage_params(&self) -> (Vec<OsString>, EnvVars) {
+        // NOTE: `--no-report` runs the tests and collects profiling data but
+        // renders nothing - `coverage_report()` below turns that single
+        // collection run into both html and lcov output
+        let args = self.build_args(
+            [OsString::from("llvm-cov")],
+            ["--workspace", "--all-features", "--no-report"],
+        );
+        (args, None)
+    }
+
+    pub(crate) fn coverage_report<U>(&self, arguments: U) -> Expression
+    where
+        U: IntoIterator,
+        U::Item: Into<OsString>,
+    {
+        let (args, envs) = self.coverage_report_params(arguments);
+        self.exec_unsafe(args, envs)
+    }
+
+    fn coverage_report_params<U>(&self, arguments: U) -> (Vec<OsString>, EnvVars)
+    where
+        U: IntoIterator,
+        U::Item: Into<OsString>,
+    {
+        let args = self.build_args(
+            [OsString::from("llvm-cov"), OsString::from("report")],
+            arguments,
+        );
+        (args, None)
+    }
+
+    pub(crate) fn format(&self, check: bool) -> Expression {
+        let (args, envs) = self.format_params(check);
+        self.exec_safe(args, envs)
+    }
+
+    fn format_params(&self, check: bool) -> (Vec<OsString>, EnvVars) {
+        let mut arguments = vec![OsString::from("--all")];
+
+        if check {
+            arguments.push("--check".into());
+        }
+
+        let args = self.build_args([OsString::from("fmt")], arguments);
+        (args, None)
+    }
+
+    pub(crate) fn lint(&self) -> Expression {
         let (args, envs) = self.lint_params();
         self.exec_safe(args, envs)
     }
@@ -172,11 +219,10 @@ impl<'a> Cargo<'a> {
             ["--all-targets", "--all-features", "--no-deps"],
         );
         let envs = HashMap::from([("RUSTFLAGS".into(), "-Dwarnings".into())]);
-
         (args, Some(envs))
     }
 
-    pub fn doc<U>(&self, arguments: U) -> Expression
+    pub(crate) fn doc<U>(&self, arguments: U) -> Expression
     where
         U: IntoIterator,
         U::Item: Into<OsString>,
@@ -191,10 +237,13 @@ impl<'a> Cargo<'a> {
         U::Item: Into<OsString>,
     {
         let args = self.build_args([OsString::from("doc")], arguments);
-        (args, None)
+        // NOTE: rustdoc only *warns* on problems like broken intra-doc links,
+        // so they slip by unnoticed - this promotes them to build failures
+        let envs = HashMap::from([("RUSTDOCFLAGS".into(), "-Dwarnings".into())]);
+        (args, Some(envs))
     }
 
-    pub fn publish_package<N: AsRef<str>>(&self, name: N) -> Expression {
+    pub(crate) fn publish_package<N: AsRef<str>>(&self, name: N) -> Expression {
         let (args, envs) = self.publish_package_params(name);
         self.exec_unsafe(args, envs)
     }
@@ -240,7 +289,7 @@ mod tests {
         let opts = Options::new(vec![], task_flags! {}).unwrap();
         let cargo = Cargo::new(&opts);
         let (args, envs) = cargo.install_params(["grcov"]);
-        assert_eq!(args, ["install", "grcov"]);
+        assert_eq!(args, ["install", "--locked", "grcov"]);
         assert_eq!(envs, None);
     }
 
@@ -275,19 +324,56 @@ mod tests {
     fn it_builds_args_for_the_coverage_subcommand() {
         let opts = Options::new(vec![], task_flags! {}).unwrap();
         let cargo = Cargo::new(&opts);
-        let path = PathBuf::from("fake-coverage-path");
-        let (args, envs) = cargo.coverage_params(path);
-        let expected_envs = HashMap::from([
-            ("CARGO_INCREMENTAL".into(), "0".into()),
-            ("RUSTFLAGS".into(), "-Cinstrument-coverage".into()),
-            (
-                "LLVM_PROFILE_FILE".into(),
-                "fake-coverage-path/cargo-test-%p-%m.profraw".into(),
-            ),
-        ]);
+        let (args, envs) = cargo.coverage_params();
 
-        assert_eq!(args, ["test", "--all-features"]);
-        assert_eq!(envs, Some(expected_envs));
+        assert_eq!(
+            args,
+            ["llvm-cov", "--workspace", "--all-features", "--no-report"]
+        );
+        assert_eq!(envs, None);
+    }
+
+    #[test]
+    fn it_builds_args_for_the_coverage_clean_subcommand() {
+        let opts = Options::new(vec![], task_flags! {}).unwrap();
+        let cargo = Cargo::new(&opts);
+        let (args, envs) = cargo.coverage_clean_params();
+
+        assert_eq!(args, ["llvm-cov", "clean", "--workspace"]);
+        assert_eq!(envs, None);
+    }
+
+    #[test]
+    fn it_builds_args_for_the_coverage_report_subcommand() {
+        let opts = Options::new(vec![], task_flags! {}).unwrap();
+        let cargo = Cargo::new(&opts);
+        let (args, envs) =
+            cargo.coverage_report_params(["--html", "--output-dir", "fake-coverage-path"]);
+
+        assert_eq!(
+            args,
+            [
+                "llvm-cov",
+                "report",
+                "--html",
+                "--output-dir",
+                "fake-coverage-path"
+            ]
+        );
+        assert_eq!(envs, None);
+    }
+
+    #[test]
+    fn it_builds_args_for_the_format_subcommand() {
+        let opts = Options::new(vec![], task_flags! {}).unwrap();
+        let cargo = Cargo::new(&opts);
+        let (args, envs) = cargo.format_params(false);
+        assert_eq!(args, ["fmt", "--all"]);
+        assert_eq!(envs, None);
+
+        let (args, envs) = cargo.format_params(true);
+        assert_eq!(args, ["fmt", "--all", "--check"]);
+        assert_eq!(envs, None);
     }
 
     #[test]
@@ -308,8 +394,10 @@ mod tests {
         let opts = Options::new(vec![], task_flags! {}).unwrap();
         let cargo = Cargo::new(&opts);
         let (args, envs) = cargo.doc_params(["--workspace", "--no-deps"]);
+        let expected_envs = HashMap::from([("RUSTDOCFLAGS".into(), "-Dwarnings".into())]);
+
         assert_eq!(args, ["doc", "--workspace", "--no-deps"]);
-        assert_eq!(envs, None);
+        assert_eq!(envs, Some(expected_envs));
     }
 
     #[test]

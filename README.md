@@ -1,10 +1,10 @@
 # Rusty
 
-[![CI Status](https://github.com/busticated/rusty/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/busticated/rusty/actions) [![Rust Version Support](https://img.shields.io/badge/rust%20version-%3E%3D1.72.1-orange)](https://releases.rs/) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/busticated/rusty/blob/master/LICENSE)
+[![CI Status](https://github.com/busticated/rusty/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/busticated/rusty/actions) [![Rust Version Support](https://img.shields.io/badge/rust%20version-%3E%3D1.86-orange)](https://releases.rs/) [![License](https://img.shields.io/badge/license-MIT_OR_Apache--2.0-blue.svg)](https://github.com/busticated/rusty#license)
 
 A `cargo` workspace ([docs](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html)) monorepo ([info](https://en.wikipedia.org/wiki/Monorepo)) hosting a collection of Rust utility crates.
 
-[Installation](#installation) | [Crates](#crates) | [Development](#development) | [Docs](#docs--resources)
+[Installation](#installation) | [Crates](#crates) | [Development](#development) | [Docs](#docs--resources) | [License](#license)
 
 
 ## Installation
@@ -107,7 +107,32 @@ To see code coverage stats for _all_ crates:
 cargo xtask coverage --open
 ```
 
+Coverage is collected with [cargo-llvm-cov](https://github.com/taiki-e/cargo-llvm-cov) and written to `tmp/coverage` as both an html report and `lcov.info`. The `xtask` crate and `tests/` directories are excluded. Note `cargo-llvm-cov` does _not_ run doc tests - those run via `cargo xtask doc --check`.
+
 Run `cargo xtask help` to see any other coverage-related commands that are available.
+
+</p>
+</details>
+
+<details id="develop-audit-dependencies">
+<summary><b>How to audit dependencies</b></summary>
+<p>
+
+To check dependencies for security advisories, disallowed licenses, and untrusted sources, run:
+
+```
+cargo xtask audit
+```
+
+This runs [cargo-deny](https://github.com/EmbarkStudios/cargo-deny) - policy lives in [deny.toml](deny.toml). It needs network access to fetch the advisory database, so it is not part of `cargo xtask ci`; it runs as its own CI job instead.
+
+To check whether your changes break the public API of an already-published crate, run:
+
+```
+cargo xtask semver
+```
+
+This compares each crate against its last published version on [crates.io](https://crates.io). Because versions are assigned at release time rather than alongside the code, breaking changes sit on `main` un-bumped until released - so this reports "requires new major version" as a normal state and deliberately does **not** gate CI. [`cargo xtask crate:release`](#develop-publish-crate) runs it for you before asking which version to assign.
 
 </p>
 </details>
@@ -123,6 +148,27 @@ cargo xtask spellcheck
 ```
 
 Run `cargo xtask help` to see any other test-related commands that are available.
+
+</p>
+</details>
+
+<details id="develop-format-source">
+<summary><b>How to format source code</b></summary>
+<p>
+
+To format source code across the workspace, run:
+
+```
+cargo xtask format
+```
+
+To check formatting _without_ making changes - as CI does - run:
+
+```
+cargo xtask format --check
+```
+
+Run `cargo xtask help` to see any other formatting-related commands that are available.
 
 </p>
 </details>
@@ -222,4 +268,16 @@ Any `todo!()` macros in the source code will also be reported.
 * [Inquire](https://github.com/mikaelmello/inquire)
 * [Reqwest](https://github.com/seanmonstar/reqwest)
 * [Mockito](https://github.com/lipanski/mockito)
+
+
+## License
+
+Licensed under either of
+
+* Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or [apache.org/licenses/LICENSE-2.0](https://www.apache.org/licenses/LICENSE-2.0))
+* MIT license ([LICENSE-MIT](LICENSE-MIT) or [opensource.org/licenses/MIT](https://opensource.org/licenses/MIT))
+
+at your option.
+
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in this repository by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
 

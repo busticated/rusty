@@ -1,4 +1,8 @@
 # see: https://rust-lang.github.io/rustfmt/
 #
+# pin formatting rules to the 2024 style edition so output does not shift when
+# the toolchain updates. this is independent of the crates' `edition`
+style_edition = "2024"
+
 # reorder_modules = false
 # reorder_imports = false

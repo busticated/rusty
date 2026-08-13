@@ -11,44 +11,44 @@ type DynError = Box<dyn Error>;
 const README_MD: &str = "README.md";
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct Readme {
+pub(crate) struct Readme {
     pub path: PathBuf,
     text: String,
 }
 
 impl Readme {
-    pub fn new(crate_root: PathBuf) -> Self {
+    pub(crate) fn new(crate_root: PathBuf) -> Self {
         Readme {
             text: String::new(),
             path: crate_root.join(README_MD),
         }
     }
 
-    pub fn from_path(crate_root: PathBuf) -> Result<Self, DynError> {
+    pub(crate) fn from_path(crate_root: PathBuf) -> Result<Self, DynError> {
         let mut readme = Readme::new(crate_root);
         readme.load()
     }
 
-    pub fn read(&self) -> Result<String, DynError> {
+    pub(crate) fn read(&self) -> Result<String, DynError> {
         // TODO (busticated): pull into FS wrapper?
         Ok(fs::read_to_string(&self.path)?)
     }
 
-    pub fn load(&mut self) -> Result<Self, DynError> {
+    pub(crate) fn load(&mut self) -> Result<Self, DynError> {
         self.text = self.read()?;
         Ok(self.clone())
     }
 
-    pub fn create(&mut self, fs: &FS, krate: &Krate) -> Result<(), DynError> {
+    pub(crate) fn create(&mut self, fs: &FS, krate: &Krate) -> Result<(), DynError> {
         self.text = self.render(&krate.name, &krate.description);
         self.save(fs)
     }
 
-    pub fn save(&self, fs: &FS) -> Result<(), DynError> {
+    pub(crate) fn save(&self, fs: &FS) -> Result<(), DynError> {
         Ok(fs.write(&self.path, &self.text)?)
     }
 
-    pub fn render<N: AsRef<str>, D: AsRef<str>>(&self, name: N, description: D) -> String {
+    pub(crate) fn render<N: AsRef<str>, D: AsRef<str>>(&self, name: N, description: D) -> String {
         let name = name.as_ref();
         let description = description.as_ref();
         let lines = vec![
@@ -69,7 +69,7 @@ impl Readme {
         lines.join("\n")
     }
 
-    pub fn update_crates_list(
+    pub(crate) fn update_crates_list(
         &mut self,
         fs: &FS,
         mut krates: BTreeMap<String, Krate>,
@@ -78,7 +78,7 @@ impl Readme {
         let marker_start = "<!-- crate-list-start -->";
         let marker_end = "<!-- crate-list-end -->";
         let mut entries = String::from(marker_start);
-        let ptn = format!(r"{}[\s\S]*?{}", marker_start, marker_end);
+        let ptn = format!(r"{marker_start}[\s\S]*?{marker_end}");
         let re = RegexBuilder::new(ptn.as_str())
             .case_insensitive(true)
             .multi_line(true)
@@ -88,7 +88,7 @@ impl Readme {
             krate.toml.load()?;
             let name = krate.toml.get_name()?;
             let description = krate.toml.get_description()?;
-            let entry = format!("\n* [{}](crates/{})\n\t* {}", name, name, description);
+            let entry = format!("\n* [{name}](crates/{name})\n\t* {description}");
             entries.push_str(&entry);
         }
 
