@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 type DynError = Box<dyn Error>;
 
 const CRATES_DIRNAME: &str = "crates";
+const LOCKFILE_NAME: &str = "Cargo.lock";
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct Workspace {
@@ -45,6 +46,14 @@ impl Workspace {
 
     pub(crate) fn krates_path(&self) -> PathBuf {
         self.path().join(CRATES_DIRNAME)
+    }
+
+    /// Path to the workspace lockfile
+    ///
+    /// Only ever regenerated (via `cargo update --workspace`) and staged, so
+    /// there is nothing to read or parse - a path is all that is needed
+    pub(crate) fn lockfile_path(&self) -> PathBuf {
+        self.path().join(LOCKFILE_NAME)
     }
 
     pub(crate) fn krates(&self, fs: &FS) -> Result<BTreeMap<String, Krate>, DynError> {
@@ -131,6 +140,18 @@ mod tests {
         let fake_path = PathBuf::from("fake-path");
         let workspace = Workspace::new(fake_path);
         assert_eq!(workspace.path(), PathBuf::from("fake-path"));
+    }
+
+    #[test]
+    fn it_gets_workspace_file_paths() {
+        let fake_path = PathBuf::from("fake-path");
+        let workspace = Workspace::new(fake_path);
+        assert_eq!(workspace.readme.path, PathBuf::from("fake-path/README.md"));
+        assert_eq!(workspace.toml.path, PathBuf::from("fake-path/Cargo.toml"));
+        assert_eq!(
+            workspace.lockfile_path(),
+            PathBuf::from("fake-path/Cargo.lock")
+        );
     }
 
     #[test]

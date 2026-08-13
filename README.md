@@ -224,7 +224,7 @@ To publish a crate to the [crates.io](https://crates.io) registry, follow these 
 3. Verify all checks pass: `cargo xtask ci`
 4. Push to remote: `git push origin main --follow-tags`
 
-Each crate you select for publishing will be assigned its new version and all changes will be committed and tagged in `git`. The assigned tag will be formatted like `name@version` (e.g. `detect-newline-style@1.0.0`). After pushing to the remote, CI will execute the publishing steps and if all goes well, your crate will be available on [crates.io](https://crates.io).
+Each crate you select for publishing will be assigned its new version and all changes - its `Cargo.toml`, its `CHANGELOG.md`, and the workspace `Cargo.lock` - will be committed and tagged in `git`. The assigned tag will be formatted like `name@version` (e.g. `detect-newline-style@1.0.0`). After pushing to the remote, CI will execute the publishing steps and if all goes well, your crate will be available on [crates.io](https://crates.io).
 
 </p>
 </details>

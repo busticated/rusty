@@ -384,7 +384,7 @@ fn init_tasks() -> Tasks {
             flags: task_flags! {
                 "dry-run" => "run thru steps but do not save changes"
             },
-            run: |_opts, fs, git, _cargo, workspace, _tasks| {
+            run: |_opts, fs, git, cargo, workspace, _tasks| {
                 println!("::::::::::::::::::::::::::");
                 println!(":::: Releasing Crates ::::");
                 println!("::::::::::::::::::::::::::");
@@ -434,7 +434,19 @@ fn init_tasks() -> Tasks {
                     tags.push(krate.id());
                 }
 
+                // NOTE: `Cargo.lock` records the version of every workspace
+                // member, so bumping a crate above leaves it stale. without
+                // this the release commit and tag capture a lockfile that
+                // disagrees with the manifests, and the next cargo command
+                // (e.g. `cargo xtask ci`) silently dirties the tree
+                println!();
+                println!(":::: Updating Lockfile...");
+                println!();
+
+                cargo.update_lockfile().run()?;
+
                 let message = format!("Release:\n{}", tags.join("\n"));
+                git.add(workspace.lockfile_path(), [""]).run()?;
                 git.commit(message, [""]).run()?;
 
                 for tag in tags {

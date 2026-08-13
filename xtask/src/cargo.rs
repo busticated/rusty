@@ -243,6 +243,20 @@ impl<'a> Cargo<'a> {
         (args, Some(envs))
     }
 
+    pub(crate) fn update_lockfile(&self) -> Expression {
+        let (args, envs) = self.update_lockfile_params();
+        // NOTE: mutates `Cargo.lock`, so it must respect `--dry-run`
+        self.exec_unsafe(args, envs)
+    }
+
+    fn update_lockfile_params(&self) -> (Vec<OsString>, EnvVars) {
+        // NOTE: `--workspace` limits the update to workspace members, so only
+        // the version entries we just bumped change. `--offline` guarantees a
+        // release cannot quietly re-resolve external dependencies
+        let args = self.build_args([OsString::from("update")], ["--workspace", "--offline"]);
+        (args, None)
+    }
+
     pub(crate) fn publish_package<N: AsRef<str>>(&self, name: N) -> Expression {
         let (args, envs) = self.publish_package_params(name);
         self.exec_unsafe(args, envs)
@@ -398,6 +412,16 @@ mod tests {
 
         assert_eq!(args, ["doc", "--workspace", "--no-deps"]);
         assert_eq!(envs, Some(expected_envs));
+    }
+
+    #[test]
+    fn it_builds_args_for_the_update_lockfile_subcommand() {
+        let opts = Options::new(vec![], task_flags! {}).unwrap();
+        let cargo = Cargo::new(&opts);
+        let (args, envs) = cargo.update_lockfile_params();
+
+        assert_eq!(args, ["update", "--workspace", "--offline"]);
+        assert_eq!(envs, None);
     }
 
     #[test]
