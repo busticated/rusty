@@ -19,23 +19,23 @@ use detect_newline_style::LineEnding;
 
 fn main() {
     let text = "one\rtwo\r\nthree\nfour\n";
-    let eol = LineEnding::find(text, LineEnding::LF);
+    let eol = LineEnding::find(text, LineEnding::Lf);
 
-    assert_eq!(eol, LineEnding::LF);
+    assert_eq!(eol, LineEnding::Lf);
 
     let text = "one\rtwo\r\nthree\n";
     let eol = LineEnding::find_or_use_lf(text);
 
-    assert_eq!(eol, LineEnding::LF);
+    assert_eq!(eol, LineEnding::Lf);
 
     let text = "one\rtwo\r\nthree\n";
     let eol = LineEnding::find_or_use_crlf(text);
 
-    assert_eq!(eol, LineEnding::CRLF);
+    assert_eq!(eol, LineEnding::Crlf);
 
-    assert_eq!(format!("{}", LineEnding::CR), "\r");
-    assert_eq!(format!("{}", LineEnding::LF), "\n");
-    assert_eq!(format!("{}", LineEnding::CRLF), "\r\n");
+    assert_eq!(format!("{}", LineEnding::Cr), "\r");
+    assert_eq!(format!("{}", LineEnding::Lf), "\n");
+    assert_eq!(format!("{}", LineEnding::Crlf), "\r\n");
 }
 ```
 
