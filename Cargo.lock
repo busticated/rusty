@@ -233,9 +233,6 @@ dependencies = [
 [[package]]
 name = "detect-newline-style"
 version = "0.1.2"
-dependencies = [
- "regex",
-]
 
 [[package]]
 name = "displaydoc"

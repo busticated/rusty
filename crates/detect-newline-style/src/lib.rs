@@ -1,6 +1,5 @@
 #![doc = include_str!("../README.md")]
 
-use regex::RegexBuilder;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
@@ -11,7 +10,7 @@ const CRLF: &str = "\r\n";
 
 /// A newline style - see [`find`](LineEnding::find) to detect which style a
 /// given string prefers
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
 pub enum LineEnding {
     /// CR-style line ending (`"\r"`) rarely used, mostly on older systems
     /// (e.g. classic MacOS - OS-X before 10.0)
@@ -63,28 +62,31 @@ impl LineEnding {
     /// assert_eq!(eol, LineEnding::LF);
     /// ```
     pub fn find<S: AsRef<str>>(text: S, default: LineEnding) -> LineEnding {
-        let text = text.as_ref();
-        let ptn = r"(?:\r\n?|\n)";
-        let re = RegexBuilder::new(ptn)
-            .case_insensitive(true)
-            .multi_line(true)
-            .build()
-            .unwrap();
-
-        let matches = re.find_iter(text);
+        // NOTE: `\r` and `\n` are ASCII, so they can never appear inside a
+        // multi-byte UTF-8 sequence - scanning bytes is safe and avoids
+        // pulling in (and re-compiling, on every call) a regex
+        let bytes = text.as_ref().as_bytes();
         let mut crlf_count = 0;
         let mut cr_count = 0;
         let mut lf_count = 0;
+        let mut i = 0;
 
-        for item in matches {
-            let x = item.as_str();
-
-            if x == CRLF {
-                crlf_count += 1;
-            } else if x == LF {
-                lf_count += 1;
-            } else if x == CR {
-                cr_count += 1;
+        while i < bytes.len() {
+            match bytes[i] {
+                b'\r' => {
+                    if bytes.get(i + 1) == Some(&b'\n') {
+                        crlf_count += 1;
+                        i += 2;
+                    } else {
+                        cr_count += 1;
+                        i += 1;
+                    }
+                }
+                b'\n' => {
+                    lf_count += 1;
+                    i += 1;
+                }
+                _ => i += 1,
             }
         }
 
@@ -243,6 +245,25 @@ mod tests {
         let input = "\r\nthis\r\nis\nambiguous\n?\r\r";
         let eol = LineEnding::find(input, LineEnding::LF);
         assert_eq!(eol, LineEnding::LF);
+    }
+
+    #[test]
+    fn it_counts_a_lone_cr_followed_by_crlf_separately() {
+        // "\r\r\n" is one CR then one CRLF - not two CRs, and not a CR plus
+        // an LF.
+        let eol = LineEnding::find("a\r\r\nb\r\nc\r\nd", LineEnding::LF);
+        assert_eq!(eol, LineEnding::CRLF);
+
+        // ...and with the CRLFs removed, the lone CR wins
+        let eol = LineEnding::find("a\r\r\nb", LineEnding::LF);
+        assert_eq!(eol, LineEnding::LF);
+    }
+
+    #[test]
+    fn it_counts_line_breaks_around_multi_byte_characters() {
+        // `\r` / `\n` are ASCII and cannot appear inside a UTF-8 sequence
+        let eol = LineEnding::find("日本\r\n語\r\n🦀\n", LineEnding::LF);
+        assert_eq!(eol, LineEnding::CRLF);
     }
 
     #[test]
