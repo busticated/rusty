@@ -124,13 +124,15 @@ To check dependencies for security advisories, disallowed licenses, and untruste
 cargo xtask audit
 ```
 
-This runs [cargo-deny](https://github.com/EmbarkStudios/cargo-deny) - policy lives in [deny.toml](deny.toml). To check whether your changes break the public API of an already-published crate, run:
+This runs [cargo-deny](https://github.com/EmbarkStudios/cargo-deny) - policy lives in [deny.toml](deny.toml). It needs network access to fetch the advisory database, so it is not part of `cargo xtask ci`; it runs as its own CI job instead.
+
+To check whether your changes break the public API of an already-published crate, run:
 
 ```
 cargo xtask semver
 ```
 
-Both commands need network access - the first to fetch the advisory database, the second to fetch each crate's last published version as a baseline. For that reason neither is part of `cargo xtask ci`; they run as their own CI jobs instead.
+This compares each crate against its last published version on [crates.io](https://crates.io). Because versions are assigned at release time rather than alongside the code, breaking changes sit on `main` un-bumped until released - so this reports "requires new major version" as a normal state and deliberately does **not** gate CI. [`cargo xtask crate:release`](#develop-publish-crate) runs it for you before asking which version to assign.
 
 </p>
 </details>

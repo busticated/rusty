@@ -407,6 +407,21 @@ fn init_tasks() -> Tasks {
                 for mut krate in krates.values().cloned() {
                     let log = git.get_changelog(&krate)?;
                     let version = krate.toml.get_version()?;
+
+                    println!();
+                    println!(":::: Checking `{}` for breaking API changes...", krate.name);
+                    println!();
+
+                    // NOTE: advisory only - "requires new major version" is the
+                    // *expected* result here, since versions are bumped below
+                    // rather than alongside the code. `.unchecked()` keeps that
+                    // non-zero exit from aborting the release
+                    cmd!("cargo", "semver-checks", "--package", &krate.name)
+                        .unchecked()
+                        .run()?;
+
+                    println!();
+
                     let options = VersionChoice::options(&version);
                     let message = format!("Version for `{}` [current: {}]", krate.name, version);
                     let question = InquireSelect::new(&message, options);

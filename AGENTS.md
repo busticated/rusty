@@ -15,7 +15,8 @@ All local dev commands are `xtask` scripts — run `cargo xtask help` for the fu
 
 - `cargo xtask test` — fast inner loop while iterating.
 - `cargo xtask ci` — run before prompting the user to review. Chains `format --check`, `spellcheck`, `lint` (clippy), `doc --check` (doc tests + rustdoc warnings), and `coverage` (which runs the tests). Report results honestly.
-- `cargo xtask audit` and `cargo xtask semver` — dependency audit and public-API breakage check. Both need network access and run as their own CI jobs, so they are **not** part of `cargo xtask ci`.
+- `cargo xtask audit` — dependency audit (advisories, licenses, sources). Needs network access and runs as its own CI job, so it is **not** part of `cargo xtask ci`.
+- `cargo xtask semver` — checks the public API against the last published version. Versions are bumped at release time, not alongside the code, so breaking changes legitimately sit on `main` un-bumped — this must **not** gate CI. `crate:release` runs it automatically before prompting for the new version.
 
 Task naming follows one rule: `--check` is a non-mutating mode of a task that otherwise writes (`format`, `doc`); `name:sub` is a family of distinct operations on one noun (`crate:add`, `crate:list`, ...); everything else is a bare verb.
 - `cargo xtask crate:add` — the only supported way to add a crate. Never hand-create one under `crates/`.
