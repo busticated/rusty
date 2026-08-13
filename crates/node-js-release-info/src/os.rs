@@ -5,11 +5,12 @@ use std::env::consts::OS;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "json", derive(Deserialize, Serialize))]
 /// The operating system a Node.js distributable targets
 pub enum NodeJSOS {
     /// Linux (`linux`)
+    #[default]
     #[cfg_attr(feature = "json", serde(rename = "linux"))]
     Linux,
     /// macOS (`darwin`)
@@ -23,12 +24,6 @@ pub enum NodeJSOS {
     AIX,
 }
 
-impl Default for NodeJSOS {
-    fn default() -> Self {
-        NodeJSOS::new()
-    }
-}
-
 impl NodeJSOS {
     /// Creates a new instance using the default OS ([`Linux`](NodeJSOS::Linux))
     ///
@@ -39,7 +34,7 @@ impl NodeJSOS {
     /// assert_eq!(NodeJSOS::new(), NodeJSOS::Linux);
     /// ```
     pub fn new() -> NodeJSOS {
-        NodeJSOS::Linux
+        NodeJSOS::default()
     }
 
     /// Determines the OS of the current environment via

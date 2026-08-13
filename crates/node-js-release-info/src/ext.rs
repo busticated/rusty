@@ -4,11 +4,12 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "json", derive(Deserialize, Serialize))]
 /// The file extension of a Node.js distributable
 pub enum NodeJSPkgExt {
     /// gzip-compressed tarball (`tar.gz`)
+    #[default]
     #[cfg_attr(feature = "json", serde(rename = "tar.gz"))]
     Targz,
     /// xz-compressed tarball (`tar.xz`)
@@ -25,12 +26,6 @@ pub enum NodeJSPkgExt {
     S7z, // can't start w/ a number (X_x)
 }
 
-impl Default for NodeJSPkgExt {
-    fn default() -> Self {
-        NodeJSPkgExt::new()
-    }
-}
-
 impl NodeJSPkgExt {
     /// Creates a new instance using the default extension ([`Targz`](NodeJSPkgExt::Targz))
     ///
@@ -41,7 +36,7 @@ impl NodeJSPkgExt {
     /// assert_eq!(NodeJSPkgExt::new(), NodeJSPkgExt::Targz);
     /// ```
     pub fn new() -> NodeJSPkgExt {
-        NodeJSPkgExt::Targz
+        NodeJSPkgExt::default()
     }
 }
 impl Display for NodeJSPkgExt {

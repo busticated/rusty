@@ -23,7 +23,17 @@ pub enum NodeJSRelInfoError {
     HttpError(reqwest::Error),
 }
 
-impl Error for NodeJSRelInfoError {}
+impl Error for NodeJSRelInfoError {
+    /// Exposes the underlying [`reqwest::Error`] behind
+    /// [`HttpError`](NodeJSRelInfoError::HttpError) so callers (and error
+    /// reporters like `anyhow`) can walk the full cause chain
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            NodeJSRelInfoError::HttpError(e) => Some(e),
+            _ => None,
+        }
+    }
+}
 
 impl Display for NodeJSRelInfoError {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {

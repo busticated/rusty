@@ -23,7 +23,7 @@ use std::string::ToString;
 /// (e.g. [`macos`](NodeJSRelInfo::macos), [`arm64`](NodeJSRelInfo::arm64)),
 /// then call [`fetch`](NodeJSRelInfo::fetch) to populate `filename`, `sha256`
 /// and `url` from the downloads server
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "json", derive(Deserialize, Serialize))]
 pub struct NodeJSRelInfo {
     /// The operating system for the Node.js distributable you are targeting

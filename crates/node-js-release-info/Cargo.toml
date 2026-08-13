@@ -37,5 +37,10 @@ tokio = { workspace = true, features = ["rt-multi-thread"] }
 [features]
 json = ["dep:serde"]
 
+# NOTE: docs.rs builds with default features unless told otherwise, which
+# would hide everything the `json` feature adds
+[package.metadata.docs.rs]
+all-features = true
+
 [lints]
 workspace = true

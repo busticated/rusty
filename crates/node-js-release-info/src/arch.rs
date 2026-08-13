@@ -5,11 +5,12 @@ use std::env::consts::ARCH;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "json", derive(Deserialize, Serialize))]
 /// The CPU architecture a Node.js distributable targets
 pub enum NodeJSArch {
     /// 64-bit x86 (`x64`)
+    #[default]
     #[cfg_attr(feature = "json", serde(rename = "x64"))]
     X64,
     /// 32-bit x86 (`x86`)
@@ -32,12 +33,6 @@ pub enum NodeJSArch {
     S390X,
 }
 
-impl Default for NodeJSArch {
-    fn default() -> Self {
-        NodeJSArch::new()
-    }
-}
-
 impl NodeJSArch {
     /// Creates a new instance using the default architecture ([`X64`](NodeJSArch::X64))
     ///
@@ -48,7 +43,7 @@ impl NodeJSArch {
     /// assert_eq!(NodeJSArch::new(), NodeJSArch::X64);
     /// ```
     pub fn new() -> NodeJSArch {
-        NodeJSArch::X64
+        NodeJSArch::default()
     }
 
     /// Determines the architecture of the current environment via
