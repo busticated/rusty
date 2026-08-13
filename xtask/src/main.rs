@@ -67,6 +67,19 @@ fn try_main() -> Result<(), DynError> {
     }
 }
 
+/// Reports whether a tool is already usable by running a probe command (e.g.
+/// `cargo llvm-cov --version`). Returns `false` when the binary is missing or
+/// the probe exits non-zero - never errors, so a failed probe just means
+/// "install it".
+fn is_tool_available(bin: &str, args: &[&str]) -> bool {
+    cmd(bin, args)
+        .stdout_null()
+        .stderr_null()
+        .unchecked()
+        .run()
+        .is_ok_and(|out| out.status.success())
+}
+
 fn print_help(cmd: String, _args: Vec<String>, tasks: Tasks) -> Result<(), DynError> {
     println!(":::::::::::::::::::::::::");
     println!(":::: Tasks & Options ::::");
@@ -600,10 +613,30 @@ fn init_tasks() -> Tasks {
                 // llvm-tools-preview) are installed by `rustup` automatically
                 // per `rust-toolchain.toml`
                 cmd!("rustup", "toolchain", "list", "--verbose").run()?;
-                cargo.install(["cargo-llvm-cov"]).run()?;
-                cargo.install(["cargo-deny"]).run()?;
-                cargo.install(["cargo-semver-checks"]).run()?;
-                cargo.install(["typos-cli"]).run()?;
+
+                // NOTE: each entry is (crate to install, command that proves
+                // it is usable). `cargo install` decides whether to skip by
+                // consulting its own ledger, so it rebuilds from source for a
+                // binary put in place by anything else - probing the tool
+                // itself makes this a no-op wherever it is already available
+                // (e.g. CI, where prebuilt binaries are fetched beforehand)
+                let bin = cargo.bin.as_str();
+                let tools = [
+                    ("cargo-llvm-cov", bin, vec!["llvm-cov", "--version"]),
+                    ("cargo-deny", bin, vec!["deny", "--version"]),
+                    ("cargo-semver-checks", bin, vec!["semver-checks", "--version"]),
+                    ("typos-cli", "typos", vec!["--version"]),
+                ];
+
+                for (krate, probe_bin, probe_args) in tools {
+                    if is_tool_available(probe_bin, &probe_args) {
+                        println!(":::: Found: {krate} - skipping");
+                        continue;
+                    }
+
+                    println!(":::: Installing: {krate}...");
+                    cargo.install([krate]).run()?;
+                }
 
                 println!(":::: Done!");
                 println!();
@@ -664,4 +697,30 @@ fn init_tasks() -> Tasks {
     ]);
 
     tasks
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_detects_an_available_tool() {
+        // `cargo` is always present - we are running under it
+        assert!(is_tool_available("cargo", &["--version"]));
+    }
+
+    #[test]
+    fn it_detects_a_missing_tool() {
+        assert!(!is_tool_available(
+            "xtask-definitely-not-a-real-binary",
+            &["--version"]
+        ));
+    }
+
+    #[test]
+    fn it_detects_a_tool_whose_probe_fails() {
+        // binary exists but the subcommand does not, so the probe exits
+        // non-zero - treated as "not available" rather than erroring
+        assert!(!is_tool_available("cargo", &["xtask-not-a-subcommand"]));
+    }
 }

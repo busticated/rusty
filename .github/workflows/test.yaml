@@ -26,6 +26,18 @@ jobs:
         uses: actions/checkout@v7
       - name: Install Rust Toolchain (stable)
         uses: dtolnay/rust-toolchain@stable
+      # NOTE: `cargo install` always builds from source - crates.io ships no
+      # binaries. these tools publish prebuilt binaries via GitHub Releases,
+      # which this action fetches in seconds rather than minutes. installing
+      # them here makes the `setup` step below a no-op, since it skips any
+      # tool that is already available
+      # NOTE: these are `install-action` tool names, not crate names - they
+      # match one-to-one here except `typos`, whose crate is `typos-cli` (the
+      # name `cargo xtask setup` installs) and whose binary is `typos`
+      - name: Install Prebuilt Tooling
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov,cargo-deny,cargo-semver-checks,typos
       - name: Setup Project
         run: cargo xtask setup
       - name: Run Tests & Coverage
