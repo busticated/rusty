@@ -106,7 +106,7 @@ impl Krate {
     }
 
     pub fn id(&self) -> String {
-        format!("{}@{}", &self.name, self.version)
+        format!("{}@{}", self.name, self.version)
     }
 
     pub fn set_version(&mut self, version: Version) -> Result<(), DynError> {

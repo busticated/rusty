@@ -52,7 +52,7 @@ impl Changelog {
 
     pub fn render<N: AsRef<str>>(&self, name: N, version: &Version) -> String {
         let name = name.as_ref();
-        let lines = vec![
+        let lines = [
             format!("# `{}` Changelog", name),
             MARKER_START.to_string(),
             MARKER_END.to_string(),
@@ -70,10 +70,10 @@ impl Changelog {
         }
         self.load()?;
         let mut changes = format!("{}\n{}\n", MARKER_START, MARKER_END);
-        changes.push_str(format!("## v{}\n\n", &krate.version).as_str());
+        changes.push_str(format!("## v{}\n\n", krate.version).as_str());
         for msg in log.iter() {
             if !msg.is_empty() {
-                changes.push_str(format!("* {}\n", &msg).as_str());
+                changes.push_str(format!("* {}\n", msg).as_str());
             }
         }
         changes.push('\n');

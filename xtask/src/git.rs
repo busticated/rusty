@@ -140,10 +140,10 @@ impl<'a> Git<'a> {
     }
 
     fn get_changelog_params(&self, krate: &Krate) -> (String, Vec<OsString>) {
-        let range = format!("{}@{}..HEAD", &krate.name, &krate.version);
-        let query = format!(r"--grep=\[{}\]", &krate.name);
+        let range = format!("{}@{}..HEAD", krate.name, krate.version);
+        let query = format!(r"--grep=\[{}\]", krate.name);
         let fmt = String::from("--pretty=format:%B");
-        let prefix = format!("[{}]", &krate.name);
+        let prefix = format!("[{}]", krate.name);
         let args = self.build_args(["log"], [range, query, fmt]);
         (prefix, args)
     }

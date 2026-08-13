@@ -38,7 +38,7 @@ fn try_main() -> Result<(), DynError> {
 
     args.remove(0); // drop executable path
 
-    let cmd = match args.get(0) {
+    let cmd = match args.first() {
         Some(x) => x.clone(),
         None => "".to_string(),
     };
@@ -104,11 +104,11 @@ fn init_tasks() -> Tasks {
                     tags.insert(name, version);
                 }
 
-                for (name, _version) in tags.iter() {
+                for name in tags.keys() {
                     let krate = krates.get(name).unwrap_or_else(|| panic!("Could Not Find Crate: `{}`!", name));
                     let log = git.get_changelog(krate)?;
 
-                    println!(":::: {} [changes: {}]", &krate.name, log.len());
+                    println!(":::: {} [changes: {}]", krate.name, log.len());
 
                     if log.is_empty() {
                         println!("\t--- n/a ---");
@@ -193,7 +193,7 @@ fn init_tasks() -> Tasks {
                 println!();
 
                 let coverage_root = String::from("tmp/coverage");
-                let report = format!("{}/html/index.html", &coverage_root);
+                let report = format!("{}/html/index.html", coverage_root);
 
                 tasks.get("clean").unwrap().exec(vec![], tasks)?;
                 cargo.coverage(&coverage_root).run()?;
@@ -345,8 +345,8 @@ fn init_tasks() -> Tasks {
                 for tag in tags {
                     let (name, _ver) = tag.split_once('@').unwrap_or_else(|| panic!("Invalid Tag: `{}`!", tag));
                     let krate = krates.get(name).unwrap_or_else(|| panic!("Could Not Find Crate: `{}`!", name));
-                    let message = format!("Publishing: {} at v{}", &krate.name, &krate.version);
-                    println!("{}", &message);
+                    let message = format!("Publishing: {} at v{}", krate.name, krate.version);
+                    println!("{}", message);
                     cargo.publish_package(&krate.name).run()?;
                 }
 

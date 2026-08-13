@@ -16,7 +16,7 @@ type TaskRunner = fn(
     tasks: &Tasks,
 ) -> Result<(), DynError>;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct Task {
     pub name: String,
     pub description: String,
@@ -51,7 +51,7 @@ impl Task {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct Tasks {
     map: BTreeMap<String, Task>,
 }

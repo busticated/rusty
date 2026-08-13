@@ -15,6 +15,9 @@ const CRATES_DIRNAME: &str = "crates";
 pub struct Workspace {
     pub path: PathBuf,
     pub readme: Readme,
+    // NOTE: unread for now, but loading it validates the workspace manifest
+    // parses on every task run - and mirrors `Krate`'s shape
+    #[allow(dead_code)]
     pub toml: Toml,
 }
 
