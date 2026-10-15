@@ -23,7 +23,7 @@ Task naming follows one rule: `--check` is a non-mutating mode of a task that ot
 
 ## Conventions
 
-- **Toolchain is pinned** to Rust 1.86 (`rust-toolchain.toml`, `Cargo.toml`). CI verifies this MSRV — don't use newer language or std features.
+- **Development tracks `stable`** (`rust-toolchain.toml`), so a new stable release can fail `cargo xtask ci` with no change here — usually a new clippy lint. The **MSRV is 1.86** (`rust-version` in `Cargo.toml`), and CI checks that the workspace builds on it — don't use newer language or std features.
 - **Commit messages** are `[<crate name>] <message>` (e.g. `[node-js-release-info] update docs`) and crate changes are staged separately from workspace changes. This drives automated changelogs. Workspace-level changes (including `xtask`) get no prefix.
 - **Don't hand-edit** the crate list in `README.md` — it's generated between the `<!-- crate-list-start -->` / `<!-- crate-list-end -->` markers.
 - **Document public interfaces** with inline rustdoc annotations.
